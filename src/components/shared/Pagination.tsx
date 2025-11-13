@@ -37,15 +37,18 @@ export const Pagination = ({
   const endIndex = Math.min(startIndex + itemsPerPage - 1, totalItems);
 
   return (
-    <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+    // This component now stacks vertically on small screens (flex-col)
+    // and becomes a horizontal row on medium screens and up (md:flex-row)
+    <div className="flex flex-col md:flex-row items-center justify-between gap-4">
       
       {/* Left Side: Item Count */}
-      <div className="text-sm text-muted-foreground">
+      <div className="text-sm text-muted-foreground w-full md:w-auto text-center md:text-left">
         Showing {totalItems > 0 ? startIndex : 0} to {endIndex} of {totalItems} results
       </div>
 
       {/* Right Side: Controls */}
-      <div className="flex items-center justify-end gap-4 sm:gap-6 flex-wrap">
+      {/* This group will stack on mobile and be centered */}
+      <div className="flex flex-col sm:flex-row items-center justify-center sm:justify-end gap-4 sm:gap-6 w-full md:w-auto">
         
         {/* Items per page */}
         <div className="flex items-center gap-2">
