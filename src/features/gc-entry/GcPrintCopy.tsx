@@ -1,141 +1,305 @@
-import type { GcEntry, Consignor, Consignee } from '../../types';
-import { numberToWordsInRupees } from '../../utils/toWords';
-import Logo from '../../assets/company-logo.png'; // Make sure this path is correct
+import React from "react";
+import type { GcEntry, Consignor, Consignee } from "../../types";
+import { numberToWords, numberToWordsInRupees } from "../../utils/toWords";
 
-interface GcPrintCopyProps {
-  gc: GcEntry;
-  consignor: Consignor;
-  consignee: Consignee;
-  copyType: "CONSIGNOR COPY" | "CONSIGNEE COPY" | "LORRY COPY";
-}
-
-// Helper component for a single data field
-const PrintField = ({ label, value, large = false }: { label: string, value: string | number | undefined, large?: boolean }) => (
-  <div className="flex flex-col">
-    <span className="text-xs font-semibold uppercase text-gray-600">{label}</span>
-    <span className={`font-bold ${large ? 'text-lg' : 'text-sm'}`}>{value || '---'}</span>
+const Field = ({
+  label,
+  value,
+  className = "",
+}: {
+  label: string;
+  value?: string | number | null;
+  className?: string;
+}) => (
+  <div className={`py-0.5 ${className}`}>
+    <span className="text-xs font-semibold pr-2">{label}</span>
+    <span className="text-sm font-bold">{value ?? "---"}</span>
   </div>
 );
 
-// Helper for bordered sections
-const BorderedBox = ({ children, className }: { children: React.ReactNode, className?: string }) => (
-  <div className={`border border-black p-2 ${className}`}>{children}</div>
+const AddressBlock = ({
+  title,
+  name,
+  place,
+  gst,
+  mobile,
+  dynamicProof, // <-- This prop is for the consignee
+}: {
+  title: string;
+  name?: string;
+  place?: string;
+  gst?: string; // This prop is for the consignor
+  mobile?: string;
+  dynamicProof?: string;
+}) => (
+  <div className="p-1">
+    <div className="text-xs font-semibold">{title}</div>
+    <div className="text-sm font-bold mt-1">{name ?? "---"}</div>
+    {place && <div className="text-xs">{place}</div>}
+    
+    {/* This block is for the Consignor, which ALWAYS shows "GSTIN :" */}
+    {gst && (
+      <div className="flex items-center mt-1">
+        <span className="text-xs font-semibold pr-2">GSTIN :</span>
+        <span className="text-sm font-bold">{gst}</span>
+      </div>
+    )}
+
+    {/* This block is for the Consignee, which shows the full proof string */}
+    {dynamicProof && (
+      <div className="flex items-center mt-1">
+        <span className="text-sm font-bold">{dynamicProof}</span>
+      </div>
+    )}
+
+    {mobile && (
+      <div className="flex items-center mt-1">
+        <span className="text-xs font-semibold pr-2">Mobile :</span>
+        <span className="text-sm font-bold">{mobile}</span>
+      </div>
+    )}
+  </div>
 );
 
-export const GcPrintCopy = ({ gc, consignor, consignee, copyType }: GcPrintCopyProps) => {
+interface Props {
+  gc: GcEntry;
+  consignor: Consignor;
+  consignee: Consignee;
+  copyType: string;
+}
 
-  // --- Data Mapping Logic ---
-  // 1. Bill Value from form -> "Balance To Pay" field on printout
-  const printBalanceToPay = gc.billValue.toLocaleString('en-IN');
-  // 2. Balance ToPay from form -> "To pay Rs." (in words)
-  const printToPayWords = numberToWordsInRupees(gc.balanceToPay);
+export const GcPrintCopy: React.FC<Props> = ({
+  gc,
+  consignor,
+  consignee,
+  copyType,
+}) => {
+  
+  // Parse all string fields into numbers for calculation
+  const quantityNum = parseFloat(gc.quantity) || 0;
+  const fromNoNum = parseFloat(gc.fromNo) || 0;
+  const billValueNum = parseFloat(gc.billValue) || 0;
+  const balanceToPayNum = parseFloat(gc.balanceToPay) || 0; // <-- This is the value we need
+  const freightNum = parseFloat(gc.freight) || 0;
+  const godownChargeNum = parseFloat(gc.godownCharge) || 0;
+  const statisticChargeNum = parseFloat(gc.statisticCharge) || 0;
+  const tollFeeNum = parseFloat(gc.tollFee) || 0;
+
+  const totalCharges =
+    freightNum + godownChargeNum + statisticChargeNum + tollFeeNum;
+  
+  const marks = `${gc.prefix} ${fromNoNum} to ${
+    (fromNoNum > 0 && quantityNum > 0) ? (fromNoNum + quantityNum - 1) : ''
+  }`;
+  
+  const invoiceNo = gc.billNo ?? "N/A";
   
   // --- THIS IS THE FIX ---
-  // The errors were because I was reading 'consignee.proof' which no longer exists.
-  // The correct proof is saved in the 'gc' object.
-  const consigneeProofDisplay = `${gc.consigneeProofType.toUpperCase()}: ${gc.consigneeProofValue}`;
+  // Both "Balance To Pay" (number) and "To pay Rs." (words)
+  // are now based on the 'balanceToPayNum' from the form.
+  const printBalanceToPay = `Rs. ${balanceToPayNum.toLocaleString("en-IN")}`;
+  const printToPayWords = numberToWordsInRupees(balanceToPayNum);
   // --- END FIX ---
+  
+  const description = `${numberToWords(quantityNum)} ${gc.packing} of ${gc.contents}`;
+  
+  const proofLabel = gc.consigneeProofType === 'gst' 
+    ? 'GSTIN' 
+    : gc.consigneeProofType.toUpperCase();
+    
+  const consigneeProofDisplay = `${proofLabel} : ${gc.consigneeProofValue}`;
+
 
   return (
-    <div className="print-page font-sans text-black">
-      {/* Header */}
-      <div className="grid grid-cols-3 gap-4 items-center border-b-2 border-black pb-2">
-        <div className="col-span-1">
-          <img src={Logo} alt="Company Logo" className="h-16" />
-        </div>
-        <div className="col-span-2 text-center">
-          <h1 className="text-3xl font-bold">S.C. Transport</h1>
-          <p className="text-sm">123 Main Road, Sivakasi, Tamil Nadu - 626123</p>
-          <p className="text-sm font-semibold">GSTIN: 33ABCDE1234F1Z5</p>
-        </div>
-      </div>
-      
-      {/* Top Section */}
-      <div className="flex justify-between items-center my-2">
-        <h2 className="text-2xl font-bold">GC No: {gc.id}</h2>
-        <span className="text-lg font-bold border border-black px-4 py-1">{copyType}</span>
-      </div>
-      <div className="grid grid-cols-4 gap-2 border-y border-black py-2">
-        <PrintField label="GC Date" value={gc.gcDate} />
-        <PrintField label="From" value={gc.from} />
-        <PrintField label="To (Destination)" value={gc.destination} />
-        <PrintField label="Bill Date" value={gc.billDate} />
-      </div>
-      
-      {/* Consignor/Consignee Section */}
-      <div className="grid grid-cols-2 gap-px my-2 bg-black border border-black">
-        <BorderedBox className="bg-white">
-          <span className="text-xs font-semibold uppercase text-gray-600">Consignor</span>
-          <p className="text-sm font-bold">{consignor.name}</p>
-          <p className="text-xs">{consignor.address}</p>
-          <p className="text-xs font-semibold mt-1">GSTIN: {consignor.gst}</p>
-        </BorderedBox>
-        <BorderedBox className="bg-white">
-          <span className="text-xs font-semibold uppercase text-gray-600">Consignee</span>
-          <p className="text-sm font-bold">{consignee.name}</p>
-          <p className="text-xs">{consignee.address}</p>
-          {/* This line is now fixed */}
-          <p className="text-xs font-semibold mt-1">Proof: {consigneeProofDisplay}</p>
-        </BorderedBox>
-      </div>
-      
-      {/* Routing Section */}
-      <div className="grid grid-cols-3 gap-px bg-black border border-black">
-        <BorderedBox className="bg-white"><PrintField label="Delivery At" value={gc.deliveryAt} /></BorderedBox>
-        <BorderedBox className="bg-white"><PrintField label="Freight Upto At" value={gc.freightUptoAt} /></BorderedBox>
-        <BorderedBox className="bg-white"><PrintField label="Bill No" value={gc.billNo} /></BorderedBox>
-      </div>
+    <div
+      className="print-page font-sans text-black"
+      style={{ fontSize: "10pt", padding: "10mm", boxSizing: "border-box" }}
+    >
+      <div className="w-full border-2 border-black">
+        {/* HEADER */}
+        <div className="flex border-b-2 border-black">
+          <div className="w-1/4 p-1 border-r-2 border-black">
+            <span className="text-sm font-bold">
+              {copyType}{" "}
+             <div className="mt-1 leading-tight">
+                <div className="text-xs font-semibold">GSTIN: 33ABLPV5082H3Z8</div>
+                <div className="text-xs font-semibold">Mobile: 9787718433</div>
+              </div>
+            </span>
+          </div>
 
-      {/* Contents Section */}
-      <div className="grid grid-cols-5 gap-px my-2 bg-black border border-black">
-        <BorderedBox className="bg-white"><PrintField label="Quantity" value={gc.quantity} /></BorderedBox>
-        <BorderedBox className="bg-white"><PrintField label="Packing" value={gc.packing} /></BorderedBox>
-        <BorderedBox className="bg-white col-span-2"><PrintField label="Contents" value={gc.contents} /></BorderedBox>
-        <BorderedBox className="bg-white"><PrintField label="Net Qty" value={gc.netQty} /></BorderedBox>
-        <BorderedBox className="bg-white col-span-5">
-          <PrintField 
-            label="Prefix / Marks" 
-            value={`${gc.prefix} ${gc.fromNo} to ${(gc.fromNo > 0 && gc.quantity > 0) ? (gc.fromNo + gc.quantity) - 1 : ''}`} 
-          />
-        </BorderedBox>
-      </div>
-      
-      {/* Billing Section */}
-      <div className="grid grid-cols-3 gap-2">
-        <div className="col-span-2 space-y-2">
-          <BorderedBox>
-            <span className="text-xs font-semibold uppercase text-gray-600">To pay Rs. (in words)</span>
-            <p className="text-sm font-bold">{printToPayWords}</p>
-          </BorderedBox>
-          <BorderedBox>
-            <p className="text-xs">Note: Goods are carried at owner's risk. No responsibility for leakage, breakage, or fire.</p>
-          </BorderedBox>
+          <div className="w-1/2 text-center p-1 border-r-2 border-black">
+            <div className="text-sm font-bold">UNITED TRANSPORT COMPANY</div>
+            <div className="text-xs font-semibold mt-1" style={{ fontSize: '8pt' }}>
+              TRANSPORT CONTRACTORS & GOODS, FORWARDERS
+            </div>
+            <div className="text-xs mt-1" style={{ fontSize: '8pt' }}>
+              164-A, Arumugam Road, Near A.V.T. School, SIVAKASI - 626123
+            </div>
+          </div>
+
+          <div className="w-1/4">
+            <div className="flex border-b-2 border-black">
+              <span className="w-1/3 p-1 text-xs font-semibold border-r-2 border-black">
+                G.C. No.
+              </span>
+              <span className="w-2/3 p-1 text-sm font-bold">{gc.id}</span>
+            </div>
+
+            <div className="flex">
+              <span className="w-1/3 p-1 text-xs font-semibold border-r-2 border-black">
+                Date :
+              </span>
+              <span className="w-2/3 p-1 text-sm font-bold">{gc.gcDate}</span>
+            </div>
+          </div>
         </div>
-        <div className="col-span-1 space-y-px bg-black border border-black">
-          <BorderedBox className="bg-white flex justify-between items-center"><span className="text-xs">Toll Fee</span> <span className="text-sm font-bold">{gc.tollFee}</span></BorderedBox>
-          <BorderedBox className="bg-white flex justify-between items-center"><span className="text-xs">Freight</span> <span className="text-sm font-bold">{gc.freight}</span></BorderedBox>
-          <BorderedBox className="bg-white flex justify-between items-center"><span className="text-xs">Godown Charge</span> <span className="text-sm font-bold">{gc.godownCharge}</span></BorderedBox>
-          <BorderedBox className="bg-white flex justify-between items-center"><span className="text-xs">Statistic Charge</span> <span className="text-sm font-bold">{gc.statisticCharge}</span></BorderedBox>
-          <BorderedBox className="bg-white flex justify-between items-center"><span className="text-xs">Advance None</span> <span className="text-sm font-bold">{gc.advanceNone}</span></BorderedBox>
-          <BorderedBox className="bg-gray-100 flex justify-between items-center">
-            <span className="text-sm font-bold">Balance To Pay</span>
-            <span className="text-lg font-bold">₹{printBalanceToPay}</span>
-          </BorderedBox>
-          <BorderedBox className="bg-gray-100 flex justify-center items-center">
-            <span className="text-lg font-bold">{gc.paidType}</span>
-          </BorderedBox>
+
+        {/* FROM / RISK */}
+        <div className="flex border-b-2 border-black">
+          <div className="w-1/4 p-1 border-r-2 border-black">
+            <span className="text-xs font-semibold">FROM</span>
+            <span className="text-sm font-bold ml-2">{gc.from}</span>
+          </div>
+
+          <div className="w-1/2 text-center p-1 border-r-2 border-black" style={{ fontSize: '8pt' }}>
+            <span className="text-xs font-semibold">
+              TRANSPORT CONTRACTORS & GOODS, FORWARDERS
+            </span>
+          </div>
+
+          <div className="w-1/4 p-1">
+            <span className="text-xs">AT OWNER'S RISK TO</span>
+            <span className="text-sm font-bold ml-2">{gc.destination}</span>
+          </div>
         </div>
-      </div>
-      
-      {/* Footer */}
-      <div className="grid grid-cols-2 gap-4 mt-20 pt-2 border-t border-dashed border-black">
-        <div className="text-center">
-          <p className="text-sm font-bold">(Signature)</p>
-          <p className="text-xs">Consignor / Sender</p>
+
+        {/* CONSIGNOR / CONSIGNEE */}
+        <div className="flex border-b-2 border-black" style={{ minHeight: '6rem' }}>
+          <div className="w-1/2 border-r-2 border-black p-1">
+            <AddressBlock
+              title="Consignor :"
+              name={consignor.name}
+              place={consignor.address}
+              gst={consignor.gst}
+              mobile={consignor.mobile}
+            />
+          </div>
+
+          <div className="w-1/2 p-1">
+            <AddressBlock
+              title="Consignee :"
+              name={consignee.name}
+              place={consignee.address}
+              dynamicProof={consigneeProofDisplay} 
+              mobile={consignee.phone}
+            />
+          </div>
         </div>
-        <div className="text-center">
-          <p className="text-sm font-bold">For S.C. Transport</p>
-          <p className="text-xs">Authorised Signatory</p>
+
+        {/* TABLE */}
+        <table className="w-full table-fixed border-b-2 border-black">
+          <thead>
+            <tr className="border-b-2 border-black">
+              <th className="w-1/5 text-center border-r-2 border-black p-1 text-xs font-semibold">
+                No. of Packages
+              </th>
+              <th className="w-3/5 text-center border-r-2 border-black p-1 text-xs font-semibold">
+                DESCRIPTION (said to Contain - Contents not known)
+              </th>
+              <th className="w-1/5 text-center p-1 text-xs font-semibold">
+                WEIGHT (APPROX)
+              </th>
+            </tr>
+          </thead>
+
+          <tbody>
+            <tr className="h-28 align-top">
+              <td className="border-r-2 border-black text-center font-bold p-1">
+                {gc.quantity}
+              </td>
+              <td className="border-r-2 border-black font-bold p-1">
+                {description}
+              </td>
+              <td className="text-center font-bold p-1">---</td>
+            </tr>
+          </tbody>
+        </table>
+
+        {/* CHARGES */}
+        <div className="flex border-b-2 border-black">
+          <div className="w-1/5 border-r-2 border-black p-1">&nbsp;</div>
+          <div className="w-3/5 border-r-2 border-black p-1">&nbsp;</div>
+
+          <div className="w-1/5 p-1">
+            <div className="flex justify-between">
+              <span className="text-xs font-semibold">Freight :</span>
+              <span className="text-sm font-bold">{gc.freight}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-xs font-semibold">Godown Charge :</span>
+              <span className="text-sm font-bold">{gc.godownCharge}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-xs font-semibold">Statistical Charge :</span>
+              <span className="text-sm font-bold">{gc.statisticCharge}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-xs font-semibold">Toll Fee :</span>
+              <span className="text-sm font-bold">{gc.tollFee}</span>
+            </div>
+            <div className="flex justify-between border-t border-black mt-1 pt-1">
+              <span className="text-xs font-semibold">Total :</span>
+              <span className="text-sm font-bold">{totalCharges}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* FOOTER */}
+        <div className="flex border-b-2 border-black">
+          <div className="w-3/4 border-r-2 border-black p-1">
+            <div className="flex">
+              <Field label="INVOICE No.:" value={invoiceNo} className="w-1/2" />
+              <Field label="Dated:" value={gc.billDate} className="w-1/2" />
+            </div>
+
+            <div className="flex">
+              <Field label="Advance Paid:" value={gc.advanceNone} className="w-1/2" />
+              <Field
+                label="Value of the goods:"
+                value={`Rs. ${billValueNum.toLocaleString("en-IN")}`}
+                className="w-1/2"
+              />
+            </div>
+
+            <Field label="Identification Marks:" value={marks} />
+          </div>
+
+          <div className="w-1/4 p-1">
+            <span className="text-lg font-bold">
+              {gc.paidType?.toUpperCase()}
+            </span>
+            {/* Data Mapping: "Balance To Pay" field shows "Balance ToPay" */}
+            <Field label="Balance To Pay:" value={printBalanceToPay} />
+          </div>
+        </div>
+
+        {/* LAST LINE */}
+        <div className="flex">
+          <div className="w-3/4 p-1 border-r-2 border-black">
+             {/* Data Mapping: "To pay Rs." field shows "Balance ToPay" in words */}
+            <Field label="To pay Rs." value={printToPayWords} />
+            <Field label="Delivery at :" value={gc.deliveryAt} />
+            <Field label="Freight fixed upto" value={gc.freightUptoAt} />
+
+            <p className="text-xs mt-2">
+              Consignment booked subject to the terms & conditions printed overleaf.
+            </p>
+          </div>
+
+          <div className="w-1/4 p-1 text-right flex flex-col justify-end" style={{minHeight: '6rem'}}>
+            <span className="text-xs font-bold">For UNITED TRANSPORT COMPANY</span>
+          </div>
         </div>
       </div>
     </div>

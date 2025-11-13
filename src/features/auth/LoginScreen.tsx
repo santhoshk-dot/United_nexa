@@ -1,8 +1,7 @@
 import { useState } from 'react';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, Truck } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 // Make sure to place your logo at this path
-import Logo from '../../assets/company-logo.png'; 
 
 export const LoginScreen = () => {
   const [email, setEmail] = useState('admin@example.com');
@@ -33,12 +32,10 @@ export const LoginScreen = () => {
     <div className="flex items-center justify-center min-h-screen bg-muted">
       <div className="w-full max-w-md p-8 space-y-6 bg-background rounded-lg shadow-md m-4">
         {/* 1. Company Logo */}
-        <div className="flex justify-center">
-          <img src={Logo} alt="Sivakasi Crackers Transport" className="h-12 w-auto" />
+         <div className="flex justify-center items-center mb-4">
+          <Truck size={32} className="text-primary" />
+          <span className="ml-3 text-2xl font-bold text-foreground">United Transport</span>
         </div>
-        <h2 className="text-2xl font-bold text-center text-foreground">
-          Admin Login
-        </h2>
 
         {/* 2. Login Form */}
         <form className="space-y-6" onSubmit={handleSubmit}>

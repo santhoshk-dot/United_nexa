@@ -7,28 +7,39 @@ import { useEffect } from 'react';
 import { LoginScreen } from '../features/auth/LoginScreen';
 import { ConsignorList } from '../features/consignors/ConsignorList';
 import { ConsigneeList } from '../features/consignees/ConsigneeList';
-// --- NEW GC IMPORTS ---
 import { GcEntryList } from '../features/gc-entry/GcEntryList';
 import { GcEntryForm } from '../features/gc-entry/GcEntryForm';
-import { GcPrintView } from '../features/gc-entry/GcPrintView';
-// --- END NEW GC IMPORTS ---
+// --- GcPrintView is no longer imported ---
+import { PendingStockHistory } from '../features/pending-stock/PendingStockHistory';
 
 
 // This component will protect your admin routes
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+const ProtectedRoute = ({
+  children,
+  noLayout = false,
+}: {
+  children: React.ReactNode;
+  noLayout?: boolean;
+}) => {
   const { user, loading } = useAuth();
-  
+
   if (loading) {
-    // You can replace this with a proper loading spinner component
-    return <div className="flex items-center justify-center h-screen">Loading...</div>;
+    return (
+      <div className="flex items-center justify-center h-screen">
+        Loading...
+      </div>
+    );
   }
-  
+
   if (!user) {
-    // Redirect to login if not authenticated
     return <Navigate to="/login" replace />;
   }
-  
-  // Wrap the protected component in the main Layout
+
+  // ⭐ If noLayout = true → DO NOT wrap with Layout
+  if (noLayout) {
+    return <>{children}</>;
+  }
+
   return <Layout>{children}</Layout>;
 };
 
@@ -66,12 +77,7 @@ const AppRouter = () => {
       <Route path="/login" element={<LoginRoute />} />
       <Route path="/logout" element={<LogoutRoute />} />
 
-      {/* --- NEW GC PRINT ROUTE --- */}
-      {/* This route has no Layout, it's for printing only */}
-      <Route 
-        path="/gc-entry/print" 
-        element={<ProtectedRoute><GcPrintView /></ProtectedRoute>} 
-      />
+      {/* --- OLD GC PRINT ROUTE REMOVED --- */}
 
       {/* Protected Admin Routes (wrapped in Layout) */}
       <Route 
@@ -87,7 +93,7 @@ const AppRouter = () => {
         element={<ProtectedRoute><ConsigneeList /></ProtectedRoute>} 
       />
       
-      {/* --- NEW GC ENTRY ROUTES --- */}
+      {/* --- GC ENTRY ROUTES --- */}
       <Route 
         path="/gc-entry" 
         element={<ProtectedRoute><GcEntryList /></ProtectedRoute>} 
@@ -100,8 +106,12 @@ const AppRouter = () => {
         path="/gc-entry/edit/:gcNo" 
         element={<ProtectedRoute><GcEntryForm /></ProtectedRoute>} 
       />
-      {/* --- END NEW GC ROUTES --- */}
 
+      {/* --- PENDING STOCK ROUTE --- */}
+      <Route 
+        path="/pending-stock" 
+        element={<ProtectedRoute><PendingStockHistory /></ProtectedRoute>} 
+      />
 
       {/* Fallback route */}
       <Route path="*" element={<Navigate to="/" replace />} />

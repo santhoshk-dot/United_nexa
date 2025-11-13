@@ -1,98 +1,90 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import type { Consignor, Consignee } from '../../types';
 import { FilePenLine, Trash2, Search } from 'lucide-react';
 import { ConsignorForm } from './ConsignorForm';
 import { DateFilterButtons, getTodayDate, getYesterdayDate, isDateInLast7Days } from '../../components/shared/DateFilterButtons';
 import { ConfirmationDialog } from '../../components/shared/ConfirmationDialog';
-import { useData } from '../../hooks/useData'; // Import the new hook
+import { useData } from '../../hooks/useData';
+import { usePagination } from '../../utils/usePagination';
+import { Pagination } from '../../components/shared/Pagination';
 
 export const ConsignorList = () => {
-  // Use global state from context instead of local state
+  // --- State and Context ---
   const { consignors, addConsignor, updateConsignor, deleteConsignor, addConsignee } = useData();
   
   const [search, setSearch] = useState('');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingConsignor, setEditingConsignor] = useState<Consignor | undefined>(undefined);
   
-  // State for Date Filters
   const [filterType, setFilterType] = useState('all');
   const [customStart, setCustomStart] = useState('');
   const [customEnd, setCustomEnd] = useState('');
 
-  // State for Delete Confirmation
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  const filteredConsignors = consignors.filter(
-    c => 
-      (c.name.toLowerCase().includes(search.toLowerCase()) ||
-      c.gst.toLowerCase().includes(search.toLowerCase())) &&
-      // Date filter logic
-      (() => {
-        const date = c.filingDate;
-        switch (filterType) {
-          case 'today':
-            return date === getTodayDate();
-          case 'yesterday':
-            return date === getYesterdayDate();
-          case 'week':
-            return isDateInLast7Days(date);
-          case 'custom':
-            return (!customStart || date >= customStart) && (!customEnd || date <= customEnd);
-          case 'all':
-          default:
-            return true;
-        }
-      })()
-  );
+  // --- Filtering ---
+  const filteredConsignors = useMemo(() => {
+    return consignors.filter(
+      c => 
+        (c.name.toLowerCase().includes(search.toLowerCase()) ||
+        c.gst.toLowerCase().includes(search.toLowerCase())) &&
+        (() => {
+          const date = c.filingDate;
+          switch (filterType) {
+            case 'today': return date === getTodayDate();
+            case 'yesterday': return date === getYesterdayDate();
+            case 'week': return isDateInLast7Days(date);
+            case 'custom': return (!customStart || date >= customStart) && (!customEnd || date <= customEnd);
+            default: return true;
+          }
+        })()
+    );
+  }, [consignors, search, filterType, customStart, customEnd]);
 
+  // --- Pagination ---
+  const {
+    paginatedData,
+    currentPage,
+    setCurrentPage,
+    totalPages,
+    itemsPerPage,
+    setItemsPerPage,
+    totalItems,
+  } = usePagination({ data: filteredConsignors, initialItemsPerPage: 10 });
+
+  // --- Handlers ---
   const handleEdit = (consignor: Consignor) => {
     setEditingConsignor(consignor);
     setIsFormOpen(true);
   };
-
   const handleDelete = (id: string) => {
     setDeletingId(id);
     setIsConfirmOpen(true);
   };
-
   const handleConfirmDelete = () => {
-    if (deletingId) {
-      deleteConsignor(deletingId); // Use context function
-    }
+    if (deletingId) deleteConsignor(deletingId);
     setIsConfirmOpen(false);
     setDeletingId(null);
   };
-
   const handleCreateNew = () => {
     setEditingConsignor(undefined);
     setIsFormOpen(true);
   };
-
   const handleFormClose = () => {
     setIsFormOpen(false);
     setEditingConsignor(undefined);
   };
-
   const handleFormSave = (savedConsignor: Consignor, firstConsignee?: Consignee) => {
-    if (editingConsignor) {
-      updateConsignor(savedConsignor); // Use context function
-    } else {
-      addConsignor(savedConsignor); // Use context function
-    }
-
-    // *** This is the logic you requested ***
-    if (firstConsignee) {
-      addConsignee(firstConsignee); // Add the new consignee to the global state
-      console.log('Also saved this new consignee to global state:', firstConsignee);
-    }
-    
+    if (editingConsignor) updateConsignor(savedConsignor);
+    else addConsignor(savedConsignor);
+    if (firstConsignee) addConsignee(firstConsignee);
     handleFormClose();
   };
 
   return (
     <div className="space-y-6">
-      {/* 1. Header: Title and Create Button */}
+      {/* 1. Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
         <h1 className="text-3xl font-bold text-foreground">Consignors List</h1>
         <button 
@@ -103,7 +95,7 @@ export const ConsignorList = () => {
         </button>
       </div>
 
-      {/* 2. Search and Filter Section */}
+      {/* 2. Search and Filter */}
       <div className="space-y-4 p-4 bg-background rounded-lg shadow border border-muted">
         <div className="relative">
           <input
@@ -127,8 +119,9 @@ export const ConsignorList = () => {
       </div>
 
 
-      {/* 3. Responsive Data Display */}
+      {/* 3. Responsive Data Display (WITH PAGINATION INSIDE) */}
       <div className="bg-background rounded-lg shadow border border-muted overflow-hidden">
+        
         {/* --- DESKTOP TABLE --- */}
         <div className="hidden md:block overflow-x-auto">
           <table className="min-w-full divide-y divide-muted">
@@ -141,9 +134,11 @@ export const ConsignorList = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-muted">
-              {filteredConsignors.map((consignor, index) => (
+              {paginatedData.map((consignor, index) => (
                 <tr key={consignor.id}>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">{index + 1}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm">
+                    {(currentPage - 1) * itemsPerPage + index + 1}
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-foreground">{consignor.name}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">{consignor.gst}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm space-x-3">
@@ -162,11 +157,13 @@ export const ConsignorList = () => {
 
         {/* --- MOBILE CARD LIST --- */}
         <div className="block md:hidden divide-y divide-muted">
-          {filteredConsignors.map((consignor, index) => (
+          {paginatedData.map((consignor, index) => (
             <div key={consignor.id} className="p-4">
               <div className="flex justify-between items-start">
                 <div>
-                  <div className="text-sm text-muted-foreground">#{index + 1}</div>
+                  <div className="text-sm text-muted-foreground">
+                    #{(currentPage - 1) * itemsPerPage + index + 1}
+                  </div>
                   <div className="text-lg font-semibold text-foreground">{consignor.name}</div>
                   <div className="text-sm text-muted-foreground">{consignor.gst}</div>
                 </div>
@@ -182,16 +179,33 @@ export const ConsignorList = () => {
             </div>
           ))}
         </div>
-      </div>
 
-      {/* No results message */}
+        {/* --- PAGINATION MOVED INSIDE THE CONTAINER --- */}
+        {/* We only show pagination if there are results to paginate */}
+        {totalPages > 0 && (
+          <div className="border-t border-muted p-4">
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+              itemsPerPage={itemsPerPage}
+              onItemsPerPageChange={setItemsPerPage}
+              totalItems={totalItems}
+            />
+          </div>
+        )}
+
+      </div> {/* --- END of "bg-background rounded-lg..." div --- */}
+
+
+      {/* No results message (still outside) */}
       {filteredConsignors.length === 0 && (
         <div className="text-center py-12 text-muted-foreground">
           No consignors found for the selected filters.
         </div>
       )}
 
-      {/* --- The Modal Form --- */}
+      {/* Modals (still outside) */}
       {isFormOpen && (
         <ConsignorForm 
           initialData={editingConsignor}
@@ -199,8 +213,6 @@ export const ConsignorList = () => {
           onSave={handleFormSave}
         />
       )}
-
-      {/* --- The Confirmation Dialog --- */}
       <ConfirmationDialog
         open={isConfirmOpen}
         onClose={() => setIsConfirmOpen(false)}

@@ -1,20 +1,28 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FilePenLine, Trash2, Search, Printer } from 'lucide-react';
+import { FilePenLine, Trash2, Search, Printer, FileText } from 'lucide-react';
 import { DateFilterButtons, getTodayDate, getYesterdayDate, isDateInLast7Days } from '../../components/shared/DateFilterButtons';
 import { ConfirmationDialog } from '../../components/shared/ConfirmationDialog';
 import { useData } from '../../hooks/useData';
 import { Button } from '../../components/shared/Button';
 import { AutocompleteInput } from '../../components/shared/AutocompleteInput';
 import { MultiSelect } from '../../components/shared/MultiSelect';
-import { GcPrintManager, type GcPrintJob } from './GcPrintManager';
+import { StockReportPrint } from './StockReportView';
+import { GcPrintManager, type GcPrintJob } from '../gc-entry/GcPrintManager';
+import type { GcEntry, Consignor, Consignee } from '../../types';
 
 // --- NEW IMPORTS ---
 import { usePagination } from '../../utils/usePagination';
 import { Pagination } from '../../components/shared/Pagination';
 // --- END NEW IMPORTS ---
 
-export const GcEntryList = () => {
+type ReportJob = {
+  gc: GcEntry;
+  consignor?: Consignor;
+  consignee?: Consignee;
+};
+
+export const PendingStockHistory = () => {
   const navigate = useNavigate();
   const { gcEntries, deleteGcEntry, consignors, consignees, getUniqueDests } = useData();
   
@@ -33,15 +41,14 @@ export const GcEntryList = () => {
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   // --- Printing State ---
-  const [printingJobs, setPrintingJobs] = useState<GcPrintJob[] | null>(null);
+  const [reportPrintingJobs, setReportPrintingJobs] = useState<ReportJob[] | null>(null);
+  const [gcPrintingJobs, setGcPrintingJobs] = useState<GcPrintJob[] | null>(null);
   
   // --- Memoized Options ---
   const consignorOptions = useMemo(() => 
     consignors.map(c => ({ value: c.id, label: c.name })), [consignors]);
-    
   const consigneeOptions = useMemo(() => 
     consignees.map(c => ({ value: c.id, label: c.name })), [consignees]);
-    
   const destinationOptions = useMemo(getUniqueDests, [getUniqueDests]);
 
   // --- Filtering (Memoized) ---
@@ -104,7 +111,7 @@ export const GcEntryList = () => {
     const consignor = consignors.find(c => c.id === gc.consignorId);
     const consignee = consignees.find(c => c.id === gc.consigneeId);
     
-    if (consignor && consignee) setPrintingJobs([{ gc, consignor, consignee }]);
+    if (consignor && consignee) setGcPrintingJobs([{ gc, consignor, consignee }]);
     else alert("Error: Consignor or Consignee data missing for this GC.");
   };
   
@@ -121,18 +128,26 @@ export const GcEntryList = () => {
     }).filter(Boolean) as GcPrintJob[];
 
     if (jobs.length > 0) {
-      setPrintingJobs(jobs);
+      setGcPrintingJobs(jobs);
       setSelectedGcIds([]);
     }
   };
 
+  const handleShowReport = () => {
+    if (filteredGcEntries.length === 0) return;
+    
+    const jobs: ReportJob[] = filteredGcEntries.map(gc => {
+      const consignor = consignors.find(c => c.id === gc.consignorId);
+      const consignee = consignees.find(c => c.id === gc.consigneeId);
+      return { gc, consignor, consignee };
+    });
+    setReportPrintingJobs(jobs);
+  };
+
   // --- Selection Handlers ---
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.checked) {
-      setSelectedGcIds(filteredGcEntries.map(gc => gc.id));
-    } else {
-      setSelectedGcIds([]);
-    }
+    if (e.target.checked) setSelectedGcIds(filteredGcEntries.map(gc => gc.id));
+    else setSelectedGcIds([]);
   };
   const handleSelectRow = (e: React.ChangeEvent<HTMLInputElement>, id: string) => {
     if (e.target.checked) setSelectedGcIds(prev => [...prev, id]);
@@ -145,8 +160,19 @@ export const GcEntryList = () => {
     <div className="space-y-6">
       {/* 1. Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
-        <h1 className="text-3xl font-bold text-foreground">GC Entry Listing</h1>
+        <h1 className="text-3xl font-bold text-foreground">Pending Stock History</h1>
         <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+          
+          <Button 
+            variant="secondary"
+            onClick={handleShowReport}
+            disabled={filteredGcEntries.length === 0}
+            className="w-full sm:w-auto"
+          >
+            <FileText size={16} className="mr-2" />
+            Show Report
+          </Button>
+
           <Button 
             variant="secondary"
             onClick={handlePrintSelected}
@@ -156,6 +182,7 @@ export const GcEntryList = () => {
             <Printer size={16} className="mr-2" />
             Print Selected ({selectedGcIds.length})
           </Button>
+          
           <Button 
             variant="primary"
             onClick={() => navigate('/gc-entry/new')}
@@ -233,11 +260,13 @@ export const GcEntryList = () => {
                   />
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">GC No</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Consignor Name</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Consignee Name</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Destination</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Bill Value</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">GC Date</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">From Place</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">To Place</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Consignor</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Consignee</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Case Qty</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
@@ -257,11 +286,13 @@ export const GcEntryList = () => {
                       />
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-primary">{gc.id}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">{gc.gcDate}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">{gc.from}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">{gc.destination}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-foreground">{consignor?.name || 'N/A'}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">{consignee?.name || 'N/A'}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">{gc.destination}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">₹{(parseFloat(gc.billValue) || 0).toLocaleString('en-IN')}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">{gc.quantity}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">0</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm space-x-3">
                       <button onClick={() => handleEdit(gc.id)} className="text-blue-600 hover:text-blue-800" title="Edit">
                         <FilePenLine size={18} />
@@ -300,6 +331,7 @@ export const GcEntryList = () => {
                       <div className="text-lg font-semibold text-primary">GC #{gc.id}</div>
                       <div className="text-md font-medium text-foreground">{consignor?.name || 'N/A'}</div>
                       <div className="text-sm text-muted-foreground">To: {consignee?.name || 'N/A'}</div>
+                      <div className="text-sm text-muted-foreground">From: {gc.from}</div>
                       <div className="text-sm text-muted-foreground">At: {gc.destination}</div>
                     </div>
                   </div>
@@ -316,14 +348,14 @@ export const GcEntryList = () => {
                   </div>
                 </div>
                 <div className="flex justify-between mt-2 pt-2 border-t border-muted">
-                  <span className="text-sm font-medium">Bill Value: <span className="text-foreground">₹{(parseFloat(gc.billValue) || 0).toLocaleString('en-IN')}</span></span>
                   <span className="text-sm font-medium">Qty: <span className="text-foreground">{gc.quantity}</span></span>
+                  <span className="text-sm font-medium">Status: <span className="text-foreground">0</span></span>
                 </div>
               </div>
             );
           })}
         </div>
-        
+
         {/* --- PAGINATION MOVED INSIDE THE CONTAINER --- */}
         {totalPages > 0 && (
           <div className="border-t border-muted p-4">
@@ -354,10 +386,16 @@ export const GcEntryList = () => {
         title="Delete GC Entry"
         description={`Are you sure you want to delete GC No: ${deletingId}? This action cannot be undone.`}
       />
-      {printingJobs && (
+      {reportPrintingJobs && (
+        <StockReportPrint 
+          jobs={reportPrintingJobs} 
+          onClose={() => setReportPrintingJobs(null)} 
+        />
+      )}
+      {gcPrintingJobs && (
         <GcPrintManager
-          jobs={printingJobs}
-          onClose={() => setPrintingJobs(null)}
+          jobs={gcPrintingJobs}
+          onClose={() => setGcPrintingJobs(null)}
         />
       )}
     </div>

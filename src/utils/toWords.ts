@@ -9,7 +9,8 @@ const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 
 
 function toWords(num: number): string {
   if (num === 0) return 'Zero';
-  return convertToWords(num);
+  // Convert to UPPERCASE to match the PDF example
+  return convertToWords(num).toUpperCase();
 }
 
 function convertToWords(num: number): string {
@@ -49,9 +50,13 @@ function convertToWords(num: number): string {
   return words.trim();
 }
 
+// Export the base toWords function for use in the "DESCRIPTION" field
+export const numberToWords = toWords;
+
 export function numberToWordsInRupees(num: number): string {
   if (typeof num !== 'number') return '';
   const wholePart = Math.floor(num);
   const words = toWords(wholePart);
-  return `Rupees ${words} Only`;
+  // Format as UPPERCASE to match the PDF example
+  return `RUPEES ${words} ONLY`;
 }

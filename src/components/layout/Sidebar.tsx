@@ -1,12 +1,15 @@
 import { NavLink } from 'react-router-dom';
-// Make sure your logo is at src/assets/company-logo.png
-import Logo from '../../assets/company-logo.png'; 
-import { Truck, Users, X, FileText } from 'lucide-react'; // Added FileText icon
+// --- IMPORT NEW ICON ---
+import { Truck, Users, X, FileText, Archive } from 'lucide-react'; 
+// --- END IMPORT ---
 
 const navLinks = [
   { name: 'Consignors', href: '/consignors', icon: Truck },
   { name: 'Consignees', href: '/consignees', icon: Users },
-  { name: 'GC Entry', href: '/gc-entry', icon: FileText }, // New GC Entry link
+  { name: 'GC Entry', href: '/gc-entry', icon: FileText },
+  // --- ADD NEW LINK ---
+  { name: 'Pending Stock', href: '/pending-stock', icon: Archive },
+  // --- END NEW LINK ---
 ];
 
 interface SidebarProps {
@@ -42,12 +45,10 @@ export const Sidebar = ({ isSidebarOpen, setIsSidebarOpen }: SidebarProps) => {
         <div className="flex flex-col h-full">
           {/* Sidebar Header */}
           <div className="flex items-center justify-between h-16 px-4 border-b border-muted">
-            <div className="flex items-center">
-              <img className="h-8 w-auto" src={Logo} alt="Sivakasi Transport" />
-              <span className="ml-3 text-lg font-bold text-foreground">
-                S.C.T. Admin
-              </span>
-            </div>
+             <div className="flex items-center">
+            <Truck size={28} className="text-primary" />
+            <span className="ml-3 text-xl font-bold">United Transport</span>
+          </div>
             {/* Mobile close button */}
             <button 
               onClick={() => setIsSidebarOpen(false)} 
@@ -74,7 +75,7 @@ export const Sidebar = ({ isSidebarOpen, setIsSidebarOpen }: SidebarProps) => {
           
           {/* Sidebar Footer (Optional) */}
           <div className="p-4 border-t border-muted">
-            <div className="text-sm text-muted-foreground">© 2025 S.C. Transport</div>
+            <div className="text-sm text-muted-foreground">© 2025 United Transport</div>
           </div>
         </div>
       </aside>

@@ -27,9 +27,13 @@ export interface Consignee {
   address: string;
   phone: string;
   destination: string;
+  mobile?: string; // Added this property as it was in GcPrintCopy
 }
 
+// --- THIS IS THE FIX ---
 // This interface holds all the data for a single GC Entry
+// - `godown` field added
+// - All number fields changed to `string`
 export interface GcEntry {
   id: string; // This will be the GC No
   gcDate: string; // ISO date string
@@ -47,25 +51,26 @@ export interface GcEntry {
   billDate: string; // ISO date string
   deliveryAt: string;
   freightUptoAt: string;
+  godown: string; // <-- NEW FIELD
 
   // Billing & Charges
   billNo: string;
-  billValue: number;
-  tollFee: number;
-  freight: number;
-  godownCharge: number;
-  statisticCharge: number;
-  advanceNone: number;
-  balanceToPay: number;
+  billValue: string;
+  tollFee: string;
+  freight: string;
+  godownCharge: string;
+  statisticCharge: string;
+  advanceNone: string;
+  balanceToPay: string;
 
   // Quantity & Contents
-  quantity: number;
+  quantity: string;
   packing: string; // e.g., "BOXES"
   contents: string; // e.g., "FW"
   prefix: string; // e.g., "Case No."
-  fromNo: number;
+  fromNo: string;
   // toNo is calculated: (fromNo + quantity) - 1
-  netQty: number;
+  netQty: string;
 
   // Payment Type
   paidType: 'To Pay' | 'Paid';
