@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+
 export interface Consignor {
   id: string;
   name: string;
@@ -35,6 +37,7 @@ export interface Consignee {
 // - `godown` field added
 // - All number fields changed to `string`
 export interface GcEntry {
+  gcNo: ReactNode;
   id: string; // This will be the GC No
   gcDate: string; // ISO date string
   from: string;
@@ -74,4 +77,16 @@ export interface GcEntry {
 
   // Payment Type
   paidType: 'To Pay' | 'Paid';
+}
+
+export interface FromPlace {
+    id: string;
+    placeName: string;
+    shortName: string;
+}
+
+export interface ToPlace {
+    id: string;
+    placeName: string;
+    shortName: string;
 }

@@ -1,5 +1,5 @@
 import React, { createContext, useState, useMemo, useEffect } from 'react';
-import type { Consignor, Consignee, GcEntry } from '../types';
+import type { Consignor, Consignee, GcEntry, FromPlace, ToPlace } from '../types';
 import { getTodayDate, getYesterdayDate } from '../utils/dateHelpers';
 
 // --- MOCK DATA ---
@@ -25,6 +25,7 @@ const MOCK_GC_ENTRIES: GcEntry[] = [
     billNo: 'B-101', billValue: "57500", tollFee: "150", freight: "1200", godownCharge: "50", statisticCharge: "10", advanceNone: "0", balanceToPay: "57500",
     quantity: "50", packing: 'BOXES', contents: 'FW', prefix: 'Case No.', fromNo: "1", netQty: "50",
     paidType: 'To Pay',
+    gcNo: undefined
   },
   {
     id: '1051', gcDate: getTodayDate(), from: 'Madurai', destination: 'Bangalore',
@@ -34,42 +35,65 @@ const MOCK_GC_ENTRIES: GcEntry[] = [
     billNo: 'B-102', billValue: "120000", tollFee: "200", freight: "2500", godownCharge: "100", statisticCharge: "10", advanceNone: "50000", balanceToPay: "70000",
     quantity: "100", packing: 'CARTONS', contents: 'SPARKLERS', prefix: 'Marks', fromNo: "1", netQty: "100",
     paidType: 'Paid',
+    gcNo: undefined
   },
+];
+
+const MOCK_FROM_PLACES: FromPlace[] = [
+  { id: 'fp1', placeName: 'Sivakasi', shortName: 'SVK' },
+  { id: 'fp2', placeName: 'Madurai', shortName: 'MDU' },
+];
+
+const MOCK_TO_PLACES: ToPlace[] = [
+  { id: 'tp1', placeName: 'Chennai', shortName: 'MAA' },
+  { id: 'tp2', placeName: 'Bangalore', shortName: 'BLR' },
+  { id: 'tp3', placeName: 'Hyderabad', shortName: 'HYD' },
+  { id: 'tp4', placeName: 'TERKHEDA', shortName: 'TRK' },
 ];
 // --- END MOCK DATA ---
 
-// --- THIS IS THE FIX ---
 // Helper function to load data from localStorage or use mock data as a fallback
 const loadFromStorage = (key: string, mockData: any[]) => {
   try {
     const storedValue = localStorage.getItem(key);
-    // If we have stored data, use it.
     if (storedValue) {
       return JSON.parse(storedValue);
     }
   } catch (e) {
     console.error(`Failed to parse ${key} from localStorage`, e);
   }
-  // Otherwise, return the initial mock data
   return mockData;
 };
-// --- END FIX ---
 
 interface DataContextType {
   consignors: Consignor[];
   consignees: Consignee[];
   gcEntries: GcEntry[];
+  fromPlaces: FromPlace[];
+  toPlaces: ToPlace[];
+  
   addConsignor: (consignor: Consignor) => void;
   updateConsignor: (consignor: Consignor) => void;
   deleteConsignor: (id: string) => void;
+  
   addConsignee: (consignee: Consignee) => void;
   updateConsignee: (consignee: Consignee) => void;
   deleteConsignee: (id: string) => void;
+  
   getNextGcNo: () => string;
   getGcEntry: (id: string) => GcEntry | undefined;
   addGcEntry: (gcEntry: GcEntry) => void;
   updateGcEntry: (gcEntry: GcEntry) => void;
   deleteGcEntry: (id: string) => void;
+
+  addFromPlace: (fromPlace: FromPlace) => void;
+  updateFromPlace: (fromPlace: FromPlace) => void;
+  deleteFromPlace: (id: string) => void;
+
+  addToPlace: (toPlace: ToPlace) => void;
+  updateToPlace: (toPlace: ToPlace) => void;
+  deleteToPlace: (id: string) => void;
+  
   getUniqueDests: () => { value: string, label: string }[];
   getPackingTypes: () => { value: string, label: string }[];
   getContentsTypes: () => { value: string, label: string }[];
@@ -78,27 +102,19 @@ interface DataContextType {
 export const DataContext = createContext<DataContextType | undefined>(undefined);
 
 export const DataProvider = ({ children }: { children: React.ReactNode }) => {
-  // --- THIS IS THE FIX ---
-  // State is now initialized from localStorage
+  // State initialized from localStorage
   const [consignors, setConsignors] = useState<Consignor[]>(() => loadFromStorage('consignors', MOCK_CONSIGNORS));
   const [consignees, setConsignees] = useState<Consignee[]>(() => loadFromStorage('consignees', MOCK_CONSIGNEES));
   const [gcEntries, setGcEntries] = useState<GcEntry[]>(() => loadFromStorage('gcEntries', MOCK_GC_ENTRIES));
-  // --- END FIX ---
+  const [fromPlaces, setFromPlaces] = useState<FromPlace[]>(() => loadFromStorage('fromPlaces', MOCK_FROM_PLACES));
+  const [toPlaces, setToPlaces] = useState<ToPlace[]>(() => loadFromStorage('toPlaces', MOCK_TO_PLACES));
 
-  // --- THIS IS THE FIX ---
-  // Add useEffect hooks to save to localStorage whenever data changes
-  useEffect(() => {
-    localStorage.setItem('consignors', JSON.stringify(consignors));
-  }, [consignors]);
-
-  useEffect(() => {
-    localStorage.setItem('consignees', JSON.stringify(consignees));
-  }, [consignees]);
-
-  useEffect(() => {
-    localStorage.setItem('gcEntries', JSON.stringify(gcEntries));
-  }, [gcEntries]);
-  // --- END FIX ---
+  // Save to localStorage whenever data changes
+  useEffect(() => { localStorage.setItem('consignors', JSON.stringify(consignors)); }, [consignors]);
+  useEffect(() => { localStorage.setItem('consignees', JSON.stringify(consignees)); }, [consignees]);
+  useEffect(() => { localStorage.setItem('gcEntries', JSON.stringify(gcEntries)); }, [gcEntries]);
+  useEffect(() => { localStorage.setItem('fromPlaces', JSON.stringify(fromPlaces)); }, [fromPlaces]);
+  useEffect(() => { localStorage.setItem('toPlaces', JSON.stringify(toPlaces)); }, [toPlaces]);
 
   // --- Consignor Functions ---
   const addConsignor = (consignor: Consignor) => {
@@ -122,7 +138,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
     setConsignees(prev => prev.filter(c => c.id !== id));
   };
 
-  // --- NEW GC FUNCTIONS ---
+  // --- GC Functions ---
   const getNextGcNo = () => {
     if (gcEntries.length === 0) return '1001';
     const maxId = Math.max(...gcEntries.map(gc => parseInt(gc.id, 10)).filter(num => !isNaN(num)));
@@ -145,14 +161,40 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
   const deleteGcEntry = (id: string) => {
     setGcEntries(prev => prev.filter(gc => gc.id !== id));
   };
-  
-  // --- NEW HELPERS ---
-  const getUniqueDests = () => {
-    const allDests = new Set(consignees.map(c => c.destination).concat(gcEntries.map(gc => gc.destination)));
-    return Array.from(allDests).map(d => ({ value: d, label: d }));
+
+  // --- From Place Functions ---
+  const addFromPlace = (fromPlace: FromPlace) => {
+    setFromPlaces(prev => [...prev, fromPlace]);
+  };
+  const updateFromPlace = (updatedFromPlace: FromPlace) => {
+    setFromPlaces(prev => prev.map(fp => fp.id === updatedFromPlace.id ? updatedFromPlace : fp));
+  };
+  const deleteFromPlace = (id: string) => {
+    setFromPlaces(prev => prev.filter(fp => fp.id !== id));
+  };
+
+  // --- To Place Functions ---
+  const addToPlace = (toPlace: ToPlace) => {
+    setToPlaces(prev => [...prev, toPlace]);
+  };
+  const updateToPlace = (updatedToPlace: ToPlace) => {
+    setToPlaces(prev => prev.map(tp => tp.id === updatedToPlace.id ? updatedToPlace : tp));
+  };
+  const deleteToPlace = (id: string) => {
+    setToPlaces(prev => prev.filter(tp => tp.id !== id));
   };
   
-  // These are now used again in GcEntryForm
+  // --- Helpers ---
+  const getUniqueDests = () => {
+    // Combine destinations from To Places and Consignees
+    const dests = new Set([
+      ...toPlaces.map(tp => tp.placeName),
+      ...consignees.map(c => c.destination),
+      ...gcEntries.map(gc => gc.destination)
+    ]);
+    return Array.from(dests).map(d => ({ value: d, label: d }));
+  };
+  
   const getPackingTypes = () => [
     { value: 'BAGS', label: 'BAGS' },
     { value: 'BOXES', label: 'BOXES' },
@@ -171,21 +213,35 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
     consignors,
     consignees,
     gcEntries,
+    fromPlaces,
+    toPlaces,
+    
     addConsignor,
     updateConsignor,
     deleteConsignor,
+    
     addConsignee,
     updateConsignee,
     deleteConsignee,
+    
     getNextGcNo,
     getGcEntry,
     addGcEntry,
     updateGcEntry,
     deleteGcEntry,
+
+    addFromPlace,
+    updateFromPlace,
+    deleteFromPlace,
+
+    addToPlace,
+    updateToPlace,
+    deleteToPlace,
+    
     getUniqueDests,
     getPackingTypes,
     getContentsTypes,
-  }), [consignors, consignees, gcEntries]); // Dependencies remain the same
+  }), [consignors, consignees, gcEntries, fromPlaces, toPlaces]);
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
 };

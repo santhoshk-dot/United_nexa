@@ -9,7 +9,6 @@ import { usePagination } from '../../utils/usePagination';
 import { Pagination } from '../../components/shared/Pagination';
 
 export const ConsignorList = () => {
-  // --- State and Context ---
   const { consignors, addConsignor, updateConsignor, deleteConsignor, addConsignee } = useData();
   
   const [search, setSearch] = useState('');
@@ -23,7 +22,6 @@ export const ConsignorList = () => {
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  // --- Filtering ---
   const filteredConsignors = useMemo(() => {
     return consignors.filter(
       c => 
@@ -42,7 +40,6 @@ export const ConsignorList = () => {
     );
   }, [consignors, search, filterType, customStart, customEnd]);
 
-  // --- Pagination ---
   const {
     paginatedData,
     currentPage,
@@ -53,7 +50,6 @@ export const ConsignorList = () => {
     totalItems,
   } = usePagination({ data: filteredConsignors, initialItemsPerPage: 10 });
 
-  // --- Handlers ---
   const handleEdit = (consignor: Consignor) => {
     setEditingConsignor(consignor);
     setIsFormOpen(true);
@@ -75,16 +71,23 @@ export const ConsignorList = () => {
     setIsFormOpen(false);
     setEditingConsignor(undefined);
   };
+  
+  // --- SAVE LOGIC: Checks if ID exists to determine Update vs Add ---
   const handleFormSave = (savedConsignor: Consignor, firstConsignee?: Consignee) => {
-    if (editingConsignor) updateConsignor(savedConsignor);
-    else addConsignor(savedConsignor);
+    const exists = consignors.some(c => c.id === savedConsignor.id);
+
+    if (exists) {
+      updateConsignor(savedConsignor);
+    } else {
+      addConsignor(savedConsignor);
+    }
+
     if (firstConsignee) addConsignee(firstConsignee);
     handleFormClose();
   };
 
   return (
     <div className="space-y-6">
-      {/* 1. Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
         <h1 className="text-3xl font-bold text-foreground">Consignors List</h1>
         <button 
@@ -95,7 +98,6 @@ export const ConsignorList = () => {
         </button>
       </div>
 
-      {/* 2. Search and Filter */}
       <div className="space-y-4 p-4 bg-background rounded-lg shadow border border-muted">
         <div className="relative">
           <input
@@ -118,11 +120,7 @@ export const ConsignorList = () => {
         />
       </div>
 
-
-      {/* 3. Responsive Data Display (WITH PAGINATION INSIDE) */}
       <div className="bg-background rounded-lg shadow border border-muted overflow-hidden">
-        
-        {/* --- DESKTOP TABLE --- */}
         <div className="hidden md:block overflow-x-auto">
           <table className="min-w-full divide-y divide-muted">
             <thead className="bg-muted/50">
@@ -155,7 +153,6 @@ export const ConsignorList = () => {
           </table>
         </div>
 
-        {/* --- MOBILE CARD LIST --- */}
         <div className="block md:hidden divide-y divide-muted">
           {paginatedData.map((consignor, index) => (
             <div key={consignor.id} className="p-4">
@@ -180,8 +177,6 @@ export const ConsignorList = () => {
           ))}
         </div>
 
-        {/* --- PAGINATION MOVED INSIDE THE CONTAINER --- */}
-        {/* We only show pagination if there are results to paginate */}
         {totalPages > 0 && (
           <div className="border-t border-muted p-4">
             <Pagination
@@ -194,18 +189,14 @@ export const ConsignorList = () => {
             />
           </div>
         )}
+      </div>
 
-      </div> {/* --- END of "bg-background rounded-lg..." div --- */}
-
-
-      {/* No results message (still outside) */}
       {filteredConsignors.length === 0 && (
         <div className="text-center py-12 text-muted-foreground">
           No consignors found for the selected filters.
         </div>
       )}
 
-      {/* Modals (still outside) */}
       {isFormOpen && (
         <ConsignorForm 
           initialData={editingConsignor}

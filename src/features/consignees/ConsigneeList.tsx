@@ -1,18 +1,14 @@
-import { useState, useMemo } from 'react'; // Added useMemo
+import { useState, useMemo } from 'react';
 import type { Consignee } from '../../types';
 import { FilePenLine, Trash2, Search } from 'lucide-react';
 import { ConsigneeForm } from './ConsigneeForm';
 import { DateFilterButtons, getTodayDate, getYesterdayDate, isDateInLast7Days } from '../../components/shared/DateFilterButtons';
 import { ConfirmationDialog } from '../../components/shared/ConfirmationDialog';
 import { useData } from '../../hooks/useData';
-
-// --- NEW IMPORTS ---
 import { usePagination } from '../../utils/usePagination';
 import { Pagination } from '../../components/shared/Pagination';
-// --- END NEW IMPORTS ---
 
 export const ConsigneeList = () => {
-  // --- State and Context ---
   const { consignees, addConsignee, updateConsignee, deleteConsignee } = useData();
 
   const [search, setSearch] = useState('');
@@ -26,7 +22,6 @@ export const ConsigneeList = () => {
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  // --- Filtering (Memoized) ---
   const filteredConsignees = useMemo(() => {
     return consignees.filter(
       c => 
@@ -46,7 +41,6 @@ export const ConsigneeList = () => {
     );
   }, [consignees, search, filterType, customStart, customEnd]);
 
-  // --- Pagination ---
   const {
     paginatedData,
     currentPage,
@@ -57,7 +51,6 @@ export const ConsigneeList = () => {
     totalItems,
   } = usePagination({ data: filteredConsignees, initialItemsPerPage: 10 });
 
-  // --- Handlers ---
   const handleEdit = (consignee: Consignee) => {
     setEditingConsignee(consignee);
     setIsFormOpen(true);
@@ -79,15 +72,22 @@ export const ConsigneeList = () => {
     setIsFormOpen(false);
     setEditingConsignee(undefined);
   };
+  
+  // --- SAVE LOGIC: Checks if ID exists to determine Update vs Add ---
   const handleFormSave = (savedConsignee: Consignee) => {
-    if (editingConsignee) updateConsignee(savedConsignee);
-    else addConsignee(savedConsignee);
+    const exists = consignees.some(c => c.id === savedConsignee.id);
+
+    if (exists) {
+      updateConsignee(savedConsignee);
+    } else {
+      addConsignee(savedConsignee);
+    }
+    
     handleFormClose();
   };
 
   return (
     <div className="space-y-6">
-      {/* 1. Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
         <h1 className="text-3xl font-bold text-foreground">Consignees List</h1>
         <button 
@@ -98,7 +98,6 @@ export const ConsigneeList = () => {
         </button>
       </div>
 
-      {/* 2. Search and Filter */}
       <div className="space-y-4 p-4 bg-background rounded-lg shadow border border-muted">
         <div className="relative">
           <input
@@ -121,9 +120,7 @@ export const ConsigneeList = () => {
         />
       </div>
 
-      {/* 3. Responsive Data Display (WITH PAGINATION INSIDE) */}
       <div className="bg-background rounded-lg shadow border border-muted overflow-hidden">
-        {/* --- DESKTOP TABLE --- */}
         <div className="hidden md:block overflow-x-auto">
           <table className="min-w-full divide-y divide-muted">
             <thead className="bg-muted/50">
@@ -136,10 +133,8 @@ export const ConsigneeList = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-muted">
-              {/* Map over paginatedData */}
               {paginatedData.map((consignee, index) => (
                 <tr key={consignee.id}>
-                  {/* Fix S.No calculation */}
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
                     {(currentPage - 1) * itemsPerPage + index + 1}
                   </td>
@@ -160,14 +155,11 @@ export const ConsigneeList = () => {
           </table>
         </div>
 
-        {/* --- MOBILE CARD LIST --- */}
         <div className="block md:hidden divide-y divide-muted">
-          {/* Map over paginatedData */}
           {paginatedData.map((consignee, index) => (
             <div key={consignee.id} className="p-4">
               <div className="flex justify-between items-start">
                 <div>
-                  {/* Fix S.No calculation */}
                   <div className="text-sm text-muted-foreground">
                     #{(currentPage - 1) * itemsPerPage + index + 1}
                   </div>
@@ -188,7 +180,6 @@ export const ConsigneeList = () => {
           ))}
         </div>
 
-        {/* --- PAGINATION MOVED INSIDE THE CONTAINER --- */}
         {totalPages > 0 && (
           <div className="border-t border-muted p-4">
             <Pagination
@@ -203,14 +194,12 @@ export const ConsigneeList = () => {
         )}
       </div>
 
-      {/* No results message */}
       {filteredConsignees.length === 0 && (
         <div className="text-center py-12 text-muted-foreground">
           No consignees found for the selected filters.
         </div>
       )}
 
-      {/* Modals */}
       {isFormOpen && (
         <ConsigneeForm 
           initialData={editingConsignee}

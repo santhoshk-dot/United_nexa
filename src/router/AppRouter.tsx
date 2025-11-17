@@ -3,125 +3,105 @@ import { Layout } from '../components/layout/Layout';
 import { useAuth } from '../hooks/useAuth';
 import { useEffect } from 'react';
 
-// Import features directly
+// Import Existing Features
 import { LoginScreen } from '../features/auth/LoginScreen';
 import { ConsignorList } from '../features/consignors/ConsignorList';
 import { ConsigneeList } from '../features/consignees/ConsigneeList';
 import { GcEntryList } from '../features/gc-entry/GcEntryList';
 import { GcEntryForm } from '../features/gc-entry/GcEntryForm';
 import { PendingStockHistory } from '../features/pending-stock/PendingStockHistory';
+
+// Import New Features (Injected)
+import { LoadingSheetEntry } from '../features/loading-sheet/LoadingSheetEntry';
+import { FromPlaceList } from '../features/from-places-entry/FromPlacesList';
+import { ToPlacesList } from '../features/to-places-entry/ToPlacesList';
+
+// Import Dashboards
 import { DashboardPage } from '../features/dashboard/DashboardPage';
+import { MasterDashboardPage } from '../features/dashboard/MasterDashboardPage';
 
-// --- NEW LOADING SCREEN IMPORT ---
 import { LoadingScreen } from '../components/shared/LoadingScreen';
-// --- END NEW IMPORT ---
 
 
-// This component will protect your admin routes
-const ProtectedRoute = ({
-  children,
-  noLayout = false,
-}: {
-  children: React.ReactNode;
-  noLayout?: boolean;
-}) => {
+// --- AUTH PROTECTION ---
+const ProtectedRoute = ({ children, noLayout = false }: { children: React.ReactNode; noLayout?: boolean }) => {
   const { user, loading } = useAuth();
 
-  if (loading) {
-    // --- THIS IS THE FIX ---
-    return <LoadingScreen />;
-    // --- END FIX ---
-  }
-
-  if (!user) {
-    return <Navigate to="/login" replace />;
-  }
-
-  // ⭐ If noLayout = true → DO NOT wrap with Layout
-  if (noLayout) {
-    return <>{children}</>;
-  }
-
+  if (loading) return <LoadingScreen />;
+  if (!user) return <Navigate to="/login" replace />;
+  if (noLayout) return <>{children}</>;
   return <Layout>{children}</Layout>;
 };
 
-// This component handles the /login route
 const LoginRoute = () => {
   const { user, loading } = useAuth();
-
-  if (loading) {
-    // --- THIS IS THE FIX ---
-    return <LoadingScreen />;
-    // --- END FIX ---
-  }
-
-  if (user) {
-    // If user is already logged in, redirect to dashboard
-    return <Navigate to="/" replace />;
-  }
-
+  if (loading) return <LoadingScreen />;
+  if (user) return <Navigate to="/" replace />;
   return <LoginScreen />;
 };
 
-// This component handles the logout logic
 const LogoutRoute = () => {
   const { logout } = useAuth();
-
-  useEffect(() => {
-    logout();
-  }, [logout]);
-
-  // --- THIS IS THE FIX ---
-  // Show loading screen while logging out
+  useEffect(() => { logout(); }, [logout]);
   return <LoadingScreen />;
-  // --- END FIX ---
 }
 
+// --- ROUTER DEFINITION ---
 const AppRouter = () => {
   return (
     <Routes>
-      {/* Login route doesn't have the main Layout */}
+      {/* Auth Routes */}
       <Route path="/login" element={<LoginRoute />} />
       <Route path="/logout" element={<LogoutRoute />} />
 
-      {/* Protected Admin Routes (wrapped in Layout) */}
+      {/* ===================================================
+          OPERATIONS WORKSPACE (Default)
+         =================================================== */}
       
-      {/* '/' now points to the new DashboardPage */}
-      <Route 
-        path="/" 
-        element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} 
-      />
+      {/* Main Dashboard */}
+      <Route path="/" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
 
-      <Route 
-        path="/consignors" 
-        element={<ProtectedRoute><ConsignorList /></ProtectedRoute>} 
-      />
-      <Route 
-        path="/consignees" 
-        element={<ProtectedRoute><ConsigneeList /></ProtectedRoute>} 
-      />
+      {/* GC Entry */}
+      <Route path="/gc-entry" element={<ProtectedRoute><GcEntryList /></ProtectedRoute>} />
+      <Route path="/gc-entry/new" element={<ProtectedRoute><GcEntryForm /></ProtectedRoute>} />
+      <Route path="/gc-entry/edit/:gcNo" element={<ProtectedRoute><GcEntryForm /></ProtectedRoute>} />
       
-      {/* --- GC ENTRY ROUTES --- */}
+      {/* Pending Stock */}
+      <Route path="/pending-stock" element={<ProtectedRoute><PendingStockHistory /></ProtectedRoute>} />
+
+      {/* Loading Sheet (Injected) */}
+      <Route path="/loading-sheet" element={<ProtectedRoute><LoadingSheetEntry /></ProtectedRoute>} />
+      
+      {/* Placeholders for future Operations screens */}
+      <Route path="/trip-sheet" element={<ProtectedRoute><div className="p-8 text-xl text-muted-foreground">Trip Sheet Module (Coming Soon)</div></ProtectedRoute>} />
+
+
+      {/* ===================================================
+          MASTER WORKSPACE (Admin)
+         =================================================== */}
+      
+      {/* Master Dashboard */}
+      <Route path="/master" element={<ProtectedRoute><MasterDashboardPage /></ProtectedRoute>} />
+
+      {/* Consignor/Consignee */}
+      <Route path="/master/consignors" element={<ProtectedRoute><ConsignorList /></ProtectedRoute>} />
+      <Route path="/master/consignees" element={<ProtectedRoute><ConsigneeList /></ProtectedRoute>} />
+
+      {/* From/To Places (Injected) */}
+      <Route path="/master/from-places" element={<ProtectedRoute><FromPlaceList /></ProtectedRoute>} />
+      <Route path="/master/to-places" element={<ProtectedRoute><ToPlacesList /></ProtectedRoute>} />
+
+      {/* PLACEHOLDERS FOR OTHER MASTERS */}
       <Route 
-        path="/gc-entry" 
-        element={<ProtectedRoute><GcEntryList /></ProtectedRoute>} 
+        path="/master/packings" 
+        element={<ProtectedRoute><div className="p-8 text-xl font-bold text-muted-foreground">Packings Entry Screen (Under Construction)</div></ProtectedRoute>} 
       />
       <Route 
-        path="/gc-entry/new" 
-        element={<ProtectedRoute><GcEntryForm /></ProtectedRoute>} 
-      />
-      <Route 
-        path="/gc-entry/edit/:gcNo" 
-        element={<ProtectedRoute><GcEntryForm /></ProtectedRoute>} 
+        path="/master/contents" 
+        element={<ProtectedRoute><div className="p-8 text-xl font-bold text-muted-foreground">Contents Entry Screen (Under Construction)</div></ProtectedRoute>} 
       />
 
-      {/* --- PENDING STOCK ROUTE --- */}
-      <Route 
-        path="/pending-stock" 
-        element={<ProtectedRoute><PendingStockHistory /></ProtectedRoute>} 
-      />
-
-      {/* Fallback route */}
+      {/* Fallback */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

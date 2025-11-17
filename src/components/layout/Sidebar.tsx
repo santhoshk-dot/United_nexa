@@ -1,24 +1,17 @@
-import { NavLink } from 'react-router-dom';
-// --- IMPORT NEW ICON ---
+import { useState, useEffect } from 'react';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { 
   Truck, 
   Users, 
   X, 
   FileText, 
   Archive, 
-  LayoutDashboard // <-- NEW ICON
+  LayoutDashboard, 
+  MapPin, 
+  Package, 
+  ClipboardList, 
+  Settings 
 } from 'lucide-react'; 
-// --- END IMPORT ---
-
-const navLinks = [
-  // --- ADD NEW LINK ---
-  { name: 'Dashboard', href: '/', icon: LayoutDashboard },
-  // --- END NEW LINK ---
-  { name: 'Consignors', href: '/consignors', icon: Truck },
-  { name: 'Consignees', href: '/consignees', icon: Users },
-  { name: 'GC Entry', href: '/gc-entry', icon: FileText },
-  { name: 'Pending Stock', href: '/pending-stock', icon: Archive },
-];
 
 interface SidebarProps {
   isSidebarOpen: boolean;
@@ -26,6 +19,31 @@ interface SidebarProps {
 }
 
 export const Sidebar = ({ isSidebarOpen, setIsSidebarOpen }: SidebarProps) => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  
+  // Determine active mode based on URL path
+  const [mode, setMode] = useState<'operations' | 'master'>('operations');
+
+  // Sync the toggle switch with the current URL
+  useEffect(() => {
+    if (location.pathname.startsWith('/master')) {
+      setMode('master');
+    } else {
+      setMode('operations');
+    }
+  }, [location.pathname]);
+
+  const handleModeSwitch = (newMode: 'operations' | 'master') => {
+    setMode(newMode);
+    if (newMode === 'operations') {
+      navigate('/');
+    } else {
+      navigate('/master');
+    }
+    // Close sidebar on mobile after switching
+    setIsSidebarOpen(false);
+  };
   
   const getLinkClass = ({ isActive }: { isActive: boolean }) =>
     `flex items-center px-4 py-3 rounded-lg transition-colors duration-200 ${
@@ -34,15 +52,39 @@ export const Sidebar = ({ isSidebarOpen, setIsSidebarOpen }: SidebarProps) => {
         : 'text-muted-foreground hover:bg-muted hover:text-foreground'
     }`;
 
+  // --- MENU DEFINITIONS ---
+  
+  // 1. Operations Menu (Daily Work)
+  const operationsLinks = [
+    { name: 'Dashboard', href: '/', icon: LayoutDashboard },
+    { name: 'GC Entry', href: '/gc-entry', icon: FileText },
+    { name: 'Loading Sheet', href: '/loading-sheet', icon: ClipboardList },
+    { name: 'Trip Sheet', href: '/trip-sheet', icon: Truck },
+    { name: 'Pending Stock', href: '/pending-stock', icon: Archive },
+  ];
+
+  // 2. Master Menu (Admin/Setup)
+  const masterLinks = [
+    { name: 'Master Dashboard', href: '/master', icon: Settings },
+    { name: 'Consignors', href: '/master/consignors', icon: Truck },
+    { name: 'Consignees', href: '/master/consignees', icon: Users },
+    { name: 'From Places', href: '/master/from-places', icon: MapPin },
+    { name: 'To Places', href: '/master/to-places', icon: MapPin },
+    { name: 'Packings', href: '/master/packings', icon: Package },
+    { name: 'Contents', href: '/master/contents', icon: FileText },
+  ];
+
+  const currentLinks = mode === 'operations' ? operationsLinks : masterLinks;
+
   return (
     <>
-      {/* Mobile Sidebar (Overlay) */}
+      {/* Mobile Sidebar Overlay */}
       <div 
         className={`fixed inset-0 z-30 bg-black/50 transition-opacity md:hidden ${
           isSidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
         onClick={() => setIsSidebarOpen(false)}
-      ></div>
+      />
 
       {/* Sidebar Content */}
       <aside 
@@ -51,13 +93,12 @@ export const Sidebar = ({ isSidebarOpen, setIsSidebarOpen }: SidebarProps) => {
         }`}
       >
         <div className="flex flex-col h-full">
-          {/* Sidebar Header */}
+          {/* Header */}
           <div className="flex items-center justify-between h-16 px-4 border-b border-muted">
-             <div className="flex items-center">
-            <Truck size={28} className="text-primary" />
-            <span className="ml-3 text-xl font-bold">United Transport</span>
-          </div>
-            {/* Mobile close button */}
+            <div className="flex items-center">
+              <Truck size={28} className="text-primary" />
+              <span className="ml-3 text-xl font-bold">United Trans</span>
+            </div>
             <button 
               onClick={() => setIsSidebarOpen(false)} 
               className="md:hidden text-muted-foreground hover:text-foreground"
@@ -66,14 +107,46 @@ export const Sidebar = ({ isSidebarOpen, setIsSidebarOpen }: SidebarProps) => {
             </button>
           </div>
 
+          {/* --- TAB SWITCHER --- */}
+          <div className="p-4 pb-2">
+            <div className="flex rounded-md bg-muted/50 p-1">
+              <button
+                onClick={() => handleModeSwitch('operations')}
+                className={`flex-1 py-1.5 text-sm font-medium rounded transition-all ${
+                  mode === 'operations' 
+                    ? 'bg-primary text-white shadow' 
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                Operations
+              </button>
+              <button
+                onClick={() => handleModeSwitch('master')}
+                className={`flex-1 py-1.5 text-sm font-medium rounded transition-all ${
+                  mode === 'master' 
+                    ? 'bg-primary text-white shadow' 
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                Master
+              </button>
+            </div>
+          </div>
+
           {/* Navigation Links */}
-          <nav className="flex-1 p-4 space-y-2">
-            {navLinks.map((item) => (
+          <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
+            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 pl-2">
+              {mode === 'operations' ? 'Daily Tasks' : 'Data Management'}
+            </div>
+            
+            {currentLinks.map((item) => (
               <NavLink 
                 key={item.name} 
                 to={item.href} 
+                // Use 'end' to match specific paths (like /master) without matching subpaths
+                end={item.href === '/master' || item.href === '/'} 
                 className={getLinkClass}
-                onClick={() => setIsSidebarOpen(false)} // Close on mobile nav click
+                onClick={() => setIsSidebarOpen(false)}
               >
                 <item.icon className="mr-3" size={18} />
                 {item.name}
@@ -81,9 +154,11 @@ export const Sidebar = ({ isSidebarOpen, setIsSidebarOpen }: SidebarProps) => {
             ))}
           </nav>
           
-          {/* Sidebar Footer (Optional) */}
-          <div className="p-4 border-t border-muted">
-            <div className="text-sm text-muted-foreground">© 2025 United Transport</div>
+          {/* Sidebar Footer */}
+          <div className="p-4 border-t border-muted text-center">
+            <div className="text-xs text-muted-foreground">
+              System Mode: <span className="font-bold text-primary">{mode.toUpperCase()}</span>
+            </div>
           </div>
         </div>
       </aside>
