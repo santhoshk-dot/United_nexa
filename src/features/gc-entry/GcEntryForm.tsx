@@ -90,8 +90,6 @@ export const GcEntryForm = () => {
       }
       setLoading(false);
     }
-    // We add 'getGcEntry' etc. to the dependency array for completeness
-    // Note: 'loading' is set to false, so this effect shouldn't re-run.
   }, [isEditMode, gcNo, getGcEntry, consignors, consignees, navigate]);
 
   const consignorOptions = useMemo(() => 
@@ -104,12 +102,19 @@ export const GcEntryForm = () => {
   const packingOptions = useMemo(getPackingTypes, [getPackingTypes]);
   const contentsOptions = useMemo(getContentsTypes, [getContentsTypes]);
 
+  // --- UPDATED HANDLE CHANGE ---
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setForm(prev => ({
-      ...prev,
-      [name]: value,
-    }));
+    setForm(prev => {
+      const newData = { ...prev, [name]: value };
+      
+      // Auto-fill Net Qty when Quantity changes
+      if (name === 'quantity') {
+        newData.netQty = value;
+      }
+      
+      return newData;
+    });
   };
 
   const handleFormValueChange = (name: keyof typeof form, value: string | number) => {
@@ -194,15 +199,16 @@ export const GcEntryForm = () => {
   const fromNoNum = parseFloat(form.fromNo) || 0;
   const quantityNum = parseFloat(form.quantity) || 0;
   const toNo = (fromNoNum > 0 && quantityNum > 0) ? (fromNoNum + quantityNum) - 1 : 0;
-  
-  const finalGcNo = isEditMode ? gcNo! : getNextGcNo();
 
-  // --- UPDATED SAVE HANDLER ---
   const handleSave = (andPrint = false) => {
     if (!form.consignorId || !form.consigneeId) {
       alert('Please select a Consignor and Consignee.');
       return;
     }
+
+    // --- ID Generation Logic ---
+    // If creating (not editing), we get the next ID *now* to minimize conflicts.
+    const finalGcNo = isEditMode ? gcNo! : getNextGcNo();
     
     const gcData: GcEntry = { ...form, id: finalGcNo };
     
@@ -217,7 +223,6 @@ export const GcEntryForm = () => {
 
       if (consignor && consignee) {
         // Set state to trigger print manager
-        // We do NOT navigate here
         setPrintingJobs([{ gc: gcData, consignor, consignee }]);
       } else {
         alert("Error: Cannot find consignor/consignee data. Navigating without printing.");
@@ -238,18 +243,18 @@ export const GcEntryForm = () => {
       <form onSubmit={(e) => e.preventDefault()} className="space-y-6">
 
         {/* HEADER — Back Arrow LEFT, Title RIGHT */}
-      <div className="w-full flex items-center justify-between px-1 mb-6">
-        <button
-          type="button"
-          onClick={() => navigate('/gc-entry')}
-          className="p-2 rounded-md hover:bg-muted transition"
-        >
-          <ArrowLeft size={22} />
-        </button>
-        <h1 className="text-2xl md:text-3xl font-bold text-foreground whitespace-nowrap">
-          {isEditMode ? `Edit GC No: ${gcNo}` : 'Add New GC Entry'}
-        </h1>
-      </div>
+        <div className="w-full flex items-center justify-between px-1 mb-6">
+          <button
+            type="button"
+            onClick={() => navigate('/gc-entry')}
+            className="p-2 rounded-md hover:bg-muted transition"
+          >
+            <ArrowLeft size={22} />
+          </button>
+          <h1 className="text-2xl md:text-3xl font-bold text-foreground whitespace-nowrap">
+            {isEditMode ? `Edit GC No: ${gcNo}` : 'Add New GC Entry'}
+          </h1>
+        </div>
 
         {/* FORM BODY */}
         <div className="bg-background rounded-lg shadow border border-muted p-4 md:p-8">
@@ -259,17 +264,20 @@ export const GcEntryForm = () => {
             <div>
               <h2 className="text-xl font-semibold text-foreground border-b border-muted pb-3 mb-6">GC Details</h2>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                <Input label="GC No" id="gcNo" name="gcNo" value={finalGcNo} disabled />
+                
                 <Input label="GC Date" id="gcDate" name="gcDate" type="date" value={form.gcDate} onChange={handleChange} required />
                 <Input label="From (GC)" id="from-gc" name="from" value={form.from} onChange={handleChange} required disabled />
-                <AutocompleteInput
-                  label="Destination (GC)"
-                  options={destinationOptions}
-                  value={form.destination}
-                  onSelect={handleDestinationSelect}
-                  placeholder="Type to search destination..."
-                  required
-                />
+                
+                <div className="md:col-span-2">
+                  <AutocompleteInput
+                    label="Destination (GC)"
+                    options={destinationOptions}
+                    value={form.destination}
+                    onSelect={handleDestinationSelect}
+                    placeholder="Type to search destination..."
+                    required
+                  />
+                </div>
               </div>
             </div>
 

@@ -1,12 +1,12 @@
 import { useState } from 'react';
-import { Eye, EyeOff, Truck, Mail, Lock } from 'lucide-react';
+import { Eye, EyeOff, Truck, Mail, Lock, Calendar } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 
 export const LoginScreen = () => {
   const [email, setEmail] = useState('admin@example.com');
   const [password, setPassword] = useState('password');
+  const [year, setYear] = useState('2024-2025'); // Default year
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
   
   const { login, loading, error } = useAuth();
 
@@ -17,7 +17,7 @@ export const LoginScreen = () => {
     if (isButtonDisabled) return;
 
     try {
-      await login(email, password);
+      await login(email, password, year);
       // Navigation is handled inside AuthContext on success
     } catch (err) {
       // Error is set in AuthContext
@@ -43,12 +43,33 @@ export const LoginScreen = () => {
             United Transport
           </h1>
           <p className="text-muted-foreground">
-            Sign in 
+            Sign in to your account
           </p>
         </div>
 
         {/* Login Form */}
         <form className="space-y-6" onSubmit={handleSubmit}>
+          
+          {/* Financial Year Field (NEW) */}
+          <div>
+            <label htmlFor="year" className="block text-sm font-medium text-muted-foreground mb-2">
+              Financial Year
+            </label>
+            <div className="relative">
+              <Calendar size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <select
+                id="year"
+                name="year"
+                value={year}
+                onChange={(e) => setYear(e.target.value)}
+                className="w-full pl-10 pr-3 py-3 bg-transparent border border-border/50 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary appearance-none"
+              >
+                <option value="2023-2024">2023 - 2024</option>
+                <option value="2024-2025">2024 - 2025</option>
+                <option value="2025-2026">2025 - 2026</option>
+              </select>
+            </div>
+          </div>
           
           {/* Email Field */}
           <div>
@@ -96,23 +117,6 @@ export const LoginScreen = () => {
               >
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
-            </div>
-          </div>
-
-          {/* Options */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <input
-                id="remember-me"
-                name="remember-me"
-                type="checkbox"
-                checked={rememberMe}
-                onChange={(e) => setRememberMe(e.target.checked)}
-                className="h-4 w-4 text-primary bg-transparent border-muted-foreground/30 rounded focus:ring-primary"
-              />
-              <label htmlFor="remember-me" className="ml-2 block text-sm text-muted-foreground">
-                Remember me
-              </label>
             </div>
           </div>
 

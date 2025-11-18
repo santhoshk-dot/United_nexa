@@ -1,10 +1,21 @@
 import type { ReactNode } from "react";
 
+// --- NEW: User Interface ---
+export interface AppUser {
+  id: string;
+  name: string;
+  email: string;
+  password: string; 
+  mobile: string;
+  role: 'admin' | 'user';
+}
+// --- END NEW ---
+
 export interface Consignor {
   id: string;
   name: string;
-  from: string; // This is used for the GC Form
-  filingDate: string; // ISO date string (e.g., "2025-11-12")
+  from: string;
+  filingDate: string;
   gst: string;
   pan?: string;
   aadhar?: string;
@@ -14,49 +25,38 @@ export interface Consignor {
 
 export interface Consignee {
   id: string;
-  consignorId?: string; // To link to a consignor (now optional)
+  consignorId?: string;
   name: string;
   
-  // --- THIS IS THE FIX ---
-  // The 'proof' object is removed
-  // We now use optional, separate fields for each proof
   gst?: string;
   pan?: string;
   aadhar?: string;
-  // --- END FIX ---
 
-  filingDate: string; // ISO date string
+  filingDate: string;
   address: string;
   phone: string;
   destination: string;
-  mobile?: string; // Added this property as it was in GcPrintCopy
+  mobile?: string;
 }
 
-// --- THIS IS THE FIX ---
-// This interface holds all the data for a single GC Entry
-// - `godown` field added
-// - All number fields changed to `string`
 export interface GcEntry {
   gcNo: ReactNode;
-  id: string; // This will be the GC No
-  gcDate: string; // ISO date string
+  id: string;
+  gcDate: string;
   from: string;
   destination: string;
 
   consignorId: string;
   consigneeId: string;
 
-  // Stores which proof was selected *for this specific GC*
   consigneeProofType: 'gst' | 'pan' | 'aadhar';
   consigneeProofValue: string;
 
-  // Editable location fields
-  billDate: string; // ISO date string
+  billDate: string;
   deliveryAt: string;
   freightUptoAt: string;
-  godown: string; // <-- NEW FIELD
+  godown: string;
 
-  // Billing & Charges
   billNo: string;
   billValue: string;
   tollFee: string;
@@ -66,16 +66,13 @@ export interface GcEntry {
   advanceNone: string;
   balanceToPay: string;
 
-  // Quantity & Contents
   quantity: string;
-  packing: string; // e.g., "BOXES"
-  contents: string; // e.g., "FW"
-  prefix: string; // e.g., "Case No."
+  packing: string;
+  contents: string;
+  prefix: string;
   fromNo: string;
-  // toNo is calculated: (fromNo + quantity) - 1
   netQty: string;
 
-  // Payment Type
   paidType: 'To Pay' | 'Paid';
 }
 

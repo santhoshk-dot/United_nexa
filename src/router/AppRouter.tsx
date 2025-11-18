@@ -22,13 +22,22 @@ import { MasterDashboardPage } from '../features/dashboard/MasterDashboardPage';
 
 import { LoadingScreen } from '../components/shared/LoadingScreen';
 
+// --- NEW IMPORT ---
+import { UserList } from '../features/users/UserList';
+
 
 // --- AUTH PROTECTION ---
-const ProtectedRoute = ({ children, noLayout = false }: { children: React.ReactNode; noLayout?: boolean }) => {
+const ProtectedRoute = ({ children, noLayout = false, requireAdmin = false }: { children: React.ReactNode; noLayout?: boolean; requireAdmin?: boolean }) => {
   const { user, loading } = useAuth();
 
   if (loading) return <LoadingScreen />;
   if (!user) return <Navigate to="/login" replace />;
+  
+  // NEW: Role Check for Admin routes
+  if (requireAdmin && user.role !== 'admin') {
+    return <Navigate to="/" replace />; 
+  }
+
   if (noLayout) return <>{children}</>;
   return <Layout>{children}</Layout>;
 };
@@ -99,6 +108,16 @@ const AppRouter = () => {
       <Route 
         path="/master/contents" 
         element={<ProtectedRoute><div className="p-8 text-xl font-bold text-muted-foreground">Contents Entry Screen (Under Construction)</div></ProtectedRoute>} 
+      />
+
+      {/* --- NEW: USER MANAGEMENT (Admin Only) --- */}
+      <Route 
+        path="/users" 
+        element={
+          <ProtectedRoute requireAdmin={true}>
+            <UserList />
+          </ProtectedRoute>
+        } 
       />
 
       {/* Fallback */}

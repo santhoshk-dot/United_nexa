@@ -27,9 +27,9 @@ export const Header = ({ setIsSidebarOpen }: HeaderProps) => {
 
         {/* Desktop-only Title (or breadcrumbs) */}
         <div className="hidden md:block">
-          <h1 className="text-xl font-semibold text-foreground">
+          {/* <h1 className="text-xl font-semibold text-foreground">
             Admin Dashboard
-          </h1>
+          </h1> */}
         </div>
 
         {/* Right-side items (e.g., User Menu) */}

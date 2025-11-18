@@ -10,8 +10,10 @@ import {
   MapPin, 
   Package, 
   ClipboardList, 
-  Settings 
+  Settings,
+  ShieldCheck 
 } from 'lucide-react'; 
+import { useAuth } from '../../hooks/useAuth';
 
 interface SidebarProps {
   isSidebarOpen: boolean;
@@ -21,13 +23,12 @@ interface SidebarProps {
 export const Sidebar = ({ isSidebarOpen, setIsSidebarOpen }: SidebarProps) => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { user } = useAuth(); 
   
-  // Determine active mode based on URL path
   const [mode, setMode] = useState<'operations' | 'master'>('operations');
 
-  // Sync the toggle switch with the current URL
   useEffect(() => {
-    if (location.pathname.startsWith('/master')) {
+    if (location.pathname.startsWith('/master') || location.pathname === '/users') {
       setMode('master');
     } else {
       setMode('operations');
@@ -41,7 +42,6 @@ export const Sidebar = ({ isSidebarOpen, setIsSidebarOpen }: SidebarProps) => {
     } else {
       navigate('/master');
     }
-    // Close sidebar on mobile after switching
     setIsSidebarOpen(false);
   };
   
@@ -53,8 +53,6 @@ export const Sidebar = ({ isSidebarOpen, setIsSidebarOpen }: SidebarProps) => {
     }`;
 
   // --- MENU DEFINITIONS ---
-  
-  // 1. Operations Menu (Daily Work)
   const operationsLinks = [
     { name: 'Dashboard', href: '/', icon: LayoutDashboard },
     { name: 'GC Entry', href: '/gc-entry', icon: FileText },
@@ -63,7 +61,6 @@ export const Sidebar = ({ isSidebarOpen, setIsSidebarOpen }: SidebarProps) => {
     { name: 'Pending Stock', href: '/pending-stock', icon: Archive },
   ];
 
-  // 2. Master Menu (Admin/Setup)
   const masterLinks = [
     { name: 'Master Dashboard', href: '/master', icon: Settings },
     { name: 'Consignors', href: '/master/consignors', icon: Truck },
@@ -73,6 +70,11 @@ export const Sidebar = ({ isSidebarOpen, setIsSidebarOpen }: SidebarProps) => {
     { name: 'Packings', href: '/master/packings', icon: Package },
     { name: 'Contents', href: '/master/contents', icon: FileText },
   ];
+
+  // --- CONDITIONAL LINK: User Management ---
+  if (user?.role === 'admin') {
+    masterLinks.push({ name: 'User Management', href: '/users', icon: ShieldCheck });
+  }
 
   const currentLinks = mode === 'operations' ? operationsLinks : masterLinks;
 
@@ -97,7 +99,7 @@ export const Sidebar = ({ isSidebarOpen, setIsSidebarOpen }: SidebarProps) => {
           <div className="flex items-center justify-between h-16 px-4 border-b border-muted">
             <div className="flex items-center">
               <Truck size={28} className="text-primary" />
-              <span className="ml-3 text-xl font-bold">United Trans</span>
+              <span className="ml-3 text-xl font-bold">United Transport</span>
             </div>
             <button 
               onClick={() => setIsSidebarOpen(false)} 
@@ -154,10 +156,17 @@ export const Sidebar = ({ isSidebarOpen, setIsSidebarOpen }: SidebarProps) => {
             ))}
           </nav>
           
-          {/* Sidebar Footer */}
+          {/* Sidebar Footer with User Info */}
           <div className="p-4 border-t border-muted text-center">
-            <div className="text-xs text-muted-foreground">
-              System Mode: <span className="font-bold text-primary">{mode.toUpperCase()}</span>
+            <div className="flex items-center gap-3">
+              {/* FIX: Added safe check for user.name before calling charAt */}
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold ${user?.role === 'admin' ? 'bg-purple-500' : 'bg-blue-500'}`}>
+                {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
+              </div>
+              <div className="overflow-hidden text-left">
+                <div className="text-sm font-medium text-foreground truncate">{user?.name || 'User'}</div>
+                <div className="text-xs text-muted-foreground capitalize">{user?.role || 'Role'}</div>
+              </div>
             </div>
           </div>
         </div>

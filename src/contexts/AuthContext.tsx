@@ -1,77 +1,148 @@
 import React, { createContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import type { AppUser } from '../types';
 
-interface User {
-  id: string;
-  email: string;
-}
+// Default Admin User (created if no users exist)
+const DEFAULT_ADMIN: AppUser = {
+  id: 'admin-1',
+  name: 'System Admin',
+  email: 'admin@example.com',
+  password: 'password',
+  mobile: '9876543210',
+  role: 'admin',
+};
 
 interface AuthContextType {
-  user: User | null;
+  user: AppUser | null;
+  users: AppUser[]; // List of all users for management
+  financialYear: string | null; // Store selected year
   loading: boolean;
   error: string | null;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string, year: string) => Promise<void>;
   logout: () => void;
+  
+  // User Management Actions
+  addUser: (user: AppUser) => void;
+  updateUser: (user: AppUser) => void;
+  deleteUser: (id: string) => void;
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true); // Start loading to check auth status
+  const [user, setUser] = useState<AppUser | null>(null);
+  const [users, setUsers] = useState<AppUser[]>([]);
+  const [financialYear, setFinancialYear] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
-  // Effect to check for a logged-in user on app load (e.g., from localStorage)
+  // Initialize Data
   useEffect(() => {
     try {
-      const storedUser = localStorage.getItem('authUser');
-      if (storedUser) {
-        setUser(JSON.parse(storedUser));
+      // 1. Load Users Database from LocalStorage
+      const storedUsers = localStorage.getItem('app_users');
+      if (storedUsers) {
+        setUsers(JSON.parse(storedUsers));
+      } else {
+        // Initialize with default admin if empty
+        setUsers([DEFAULT_ADMIN]);
+        localStorage.setItem('app_users', JSON.stringify([DEFAULT_ADMIN]));
+      }
+
+      // 2. Check for Active Session
+      const storedSession = localStorage.getItem('authUser');
+      const storedYear = localStorage.getItem('authYear');
+      if (storedSession) {
+        setUser(JSON.parse(storedSession));
+      }
+      if (storedYear) {
+        setFinancialYear(storedYear);
       }
     } catch (e) {
-      console.error("Failed to parse auth user from localStorage", e);
+      console.error("Auth initialization error", e);
       localStorage.removeItem('authUser');
+      localStorage.removeItem('authYear');
     } finally {
       setLoading(false);
     }
   }, []);
 
-  const login = async (email: string, password: string) => {
+  // Sync Users to LocalStorage whenever the list changes
+  useEffect(() => {
+    if (users.length > 0) {
+      localStorage.setItem('app_users', JSON.stringify(users));
+    }
+  }, [users]);
+
+  const login = async (email: string, password: string, year: string) => {
     setLoading(true);
     setError(null);
     
-    // Mock API call
     return new Promise<void>((resolve, reject) => {
       setTimeout(() => {
-        if (email === 'admin@example.com' && password === 'password') {
-          const loggedInUser: User = { id: '1', email: 'admin@example.com' };
-          localStorage.setItem('authUser', JSON.stringify(loggedInUser));
-          setUser(loggedInUser);
+        // Find user in the local "database"
+        const foundUser = users.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === password);
+
+        if (foundUser) {
+          localStorage.setItem('authUser', JSON.stringify(foundUser));
+          localStorage.setItem('authYear', year);
+          setUser(foundUser);
+          setFinancialYear(year);
           setLoading(false);
-          navigate('/'); // Redirect to dashboard on successful login
+          navigate('/'); 
           resolve();
         } else {
           setError('Invalid email or password.');
           setLoading(false);
           reject(new Error('Invalid email or password.'));
         }
-      }, 1000);
+      }, 800); // Simulate network delay
     });
   };
 
   const logout = () => {
     setUser(null);
+    setFinancialYear(null);
     localStorage.removeItem('authUser');
-    navigate('/login'); // Redirect to login on logout
+    localStorage.removeItem('authYear');
+    navigate('/login');
+  };
+
+  // --- User Management Functions ---
+
+  const addUser = (newUser: AppUser) => {
+    setUsers(prev => [...prev, newUser]);
+  };
+
+  const updateUser = (updatedUser: AppUser) => {
+    setUsers(prev => prev.map(u => u.id === updatedUser.id ? updatedUser : u));
+    // If updating the currently logged-in user, update session state too
+    if (user && user.id === updatedUser.id) {
+      setUser(updatedUser);
+      localStorage.setItem('authUser', JSON.stringify(updatedUser));
+    }
+  };
+
+  const deleteUser = (id: string) => {
+    if (user && user.id === id) {
+      alert("You cannot delete your own account while logged in.");
+      return;
+    }
+    setUsers(prev => prev.filter(u => u.id !== id));
   };
 
   const value = {
     user,
+    users,
+    financialYear,
     loading,
     error,
     login,
     logout,
+    addUser,
+    updateUser,
+    deleteUser
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
