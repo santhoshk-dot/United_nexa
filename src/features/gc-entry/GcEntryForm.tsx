@@ -34,6 +34,7 @@ export const GcEntryForm = () => {
   const [loading, setLoading] = useState(isEditMode);
   
   const [form, setForm] = useState<Omit<GcEntry, 'id'>>({
+    gcNo: '',
     gcDate: getTodayDate(),
     from: 'Sivakasi',
     destination: '',
