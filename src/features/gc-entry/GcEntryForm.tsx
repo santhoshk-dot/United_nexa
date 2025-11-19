@@ -9,10 +9,8 @@ import { AutocompleteInput } from '../../components/shared/AutocompleteInput';
 import { RadioGroup } from '../../components/shared/RadioGroup';
 import { ArrowLeft, Printer, Save } from 'lucide-react';
 
-// --- Import the new print manager and its job type ---
 import { GcPrintManager, type GcPrintJob } from './GcPrintManager';
 
-// Type for the proof dropdown
 type ProofType = 'gst' | 'pan' | 'aadhar';
 
 export const GcEntryForm = () => {
@@ -68,7 +66,6 @@ export const GcEntryForm = () => {
     marks: '',
   });
   
-  // --- NEW STATE for printing ---
   const [printingJobs, setPrintingJobs] = useState<GcPrintJob[] | null>(null);
 
   const [consignorGst, setConsignorGst] = useState('');
@@ -107,15 +104,42 @@ export const GcEntryForm = () => {
   const packingOptions = useMemo(getPackingTypes, [getPackingTypes]);
   const contentsOptions = useMemo(getContentsTypes, [getContentsTypes]);
 
-  // --- UPDATED HANDLE CHANGE ---
+  // --- UPDATED HANDLE CHANGE WITH NEW FORMULA ---
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
+    
     setForm(prev => {
       const newData = { ...prev, [name]: value };
       
-      // Auto-fill Net Qty when Quantity changes
+      // 1. Auto-fill Net Qty when Quantity changes
       if (name === 'quantity') {
         newData.netQty = value;
+      }
+
+      // 2. Auto-calculate Balance To Pay
+      // Formula: (Bill Value + Toll + Freight + Godown + Statistic) - Advance
+      const calcFields = ['billValue', 'tollFee', 'freight', 'godownCharge', 'statisticCharge', 'advanceNone'];
+      
+      if (calcFields.includes(name)) {
+        // Helper to safely parse string inputs to numbers
+        const getVal = (field: keyof typeof form) => {
+            // Use the *new* value if it's the field currently being edited, otherwise use previous state
+            const v = field === name ? value : prev[field];
+            return parseFloat(v as string) || 0;
+        };
+
+        const bill = getVal('billValue');
+        const toll = getVal('tollFee');
+        const freight = getVal('freight');
+        const godown = getVal('godownCharge');
+        const statistic = getVal('statisticCharge');
+        const advance = getVal('advanceNone');
+
+        // New Calculation Logic
+        const totalAdditions = bill + toll + freight + godown + statistic;
+        const balance = totalAdditions - advance;
+        
+        newData.balanceToPay = balance.toString();
       }
       
       return newData;
@@ -211,35 +235,28 @@ export const GcEntryForm = () => {
       return;
     }
 
-    // --- ID Generation Logic ---
-    // If creating (not editing), we get the next ID *now* to minimize conflicts.
     const finalGcNo = isEditMode ? gcNo! : getNextGcNo();
-    
     const gcData: GcEntry = { ...form, id: finalGcNo };
     
-    // Save the data
     if (isEditMode) updateGcEntry(gcData);
     else addGcEntry(gcData);
     
     if (andPrint) {
-      // Get data for printing
       const consignor = consignors.find(c => c.id === gcData.consignorId);
       const consignee = consignees.find(c => c.id === gcData.consigneeId);
 
       if (consignor && consignee) {
-        // Set state to trigger print manager
         setPrintingJobs([{ gc: gcData, consignor, consignee }]);
       } else {
         alert("Error: Cannot find consignor/consignee data. Navigating without printing.");
-        navigate('/gc-entry'); // Fallback
+        navigate('/gc-entry'); 
       }
     } else {
-      // If not printing, navigate immediately
       navigate('/gc-entry');
     }
   };
 
-  if (loading && isEditMode) { // Only show loading in edit mode
+  if (loading && isEditMode) { 
     return <div className="flex items-center justify-center h-full">Loading GC Data...</div>;
   }
 
@@ -247,7 +264,6 @@ export const GcEntryForm = () => {
     <>
       <form onSubmit={(e) => e.preventDefault()} className="space-y-6">
 
-        {/* HEADER — Back Arrow LEFT, Title RIGHT */}
         <div className="w-full flex items-center justify-between px-1 mb-6">
           <button
             type="button"
@@ -261,7 +277,6 @@ export const GcEntryForm = () => {
           </h1>
         </div>
 
-        {/* FORM BODY */}
         <div className="bg-background rounded-lg shadow border border-muted p-4 md:p-8">
           <div className="space-y-8">
 
@@ -269,10 +284,8 @@ export const GcEntryForm = () => {
             <div>
               <h2 className="text-xl font-semibold text-foreground border-b border-muted pb-3 mb-6">GC Details</h2>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                
                 <Input label="GC Date" id="gcDate" name="gcDate" type="date" value={form.gcDate} onChange={handleChange} required />
                 <Input label="From (GC)" id="from-gc" name="from" value={form.from} onChange={handleChange} required disabled />
-                
                 <div className="md:col-span-2">
                   <AutocompleteInput
                     label="Destination (GC)"
@@ -300,7 +313,6 @@ export const GcEntryForm = () => {
                     required
                   />
                 </div>
-
                 <Input label="Consignor GSTIN" id="consignorGst" name="consignorGst" value={consignorGst} disabled />
                 <Input label="Consignor From" id="consignorFrom" name="consignorFrom" value={form.from} disabled />
 
@@ -314,15 +326,7 @@ export const GcEntryForm = () => {
                     required
                   />
                 </div>
-
-                <Input 
-                  label="Consignee Destination" 
-                  id="consigneeDest" 
-                  name="consigneeDest" 
-                  value={consigneeDestDisplay} 
-                  disabled 
-                />
-
+                <Input label="Consignee Destination" id="consigneeDest" name="consigneeDest" value={consigneeDestDisplay} disabled />
                 <div className="flex items-end gap-2">
                   <div className="flex-grow">
                     <label className="block text-sm font-medium text-muted-foreground mb-1">Proof Type <span className="text-destructive">*</span></label>
@@ -339,16 +343,8 @@ export const GcEntryForm = () => {
                     </select>
                   </div>
                 </div>
-
                 <div className="md:col-span-4">
-                  <Input 
-                    label="Consignee Proof Value" 
-                    id="consigneeProofValue" 
-                    name="consigneeProofValue" 
-                    value={form.consigneeProofValue} 
-                    onChange={handleChange}
-                    required
-                  />
+                  <Input label="Consignee Proof Value" id="consigneeProofValue" name="consigneeProofValue" value={form.consigneeProofValue} onChange={handleChange} required />
                 </div>
               </div>
             </div>
@@ -374,13 +370,7 @@ export const GcEntryForm = () => {
                   placeholder="Type to search destination..."
                   required
                 />
-                <Input 
-                  label="Godown" 
-                  id="godown" 
-                  name="godown" 
-                  value={form.godown} 
-                  onChange={handleChange} 
-                />
+                <Input label="Godown" id="godown" name="godown" value={form.godown} onChange={handleChange} />
               </div>
             </div>
 
@@ -389,7 +379,6 @@ export const GcEntryForm = () => {
               <h2 className="text-xl font-semibold text-foreground border-b border-muted pb-3 mb-6">Contents</h2>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                 <Input label="Quantity" id="quantity" name="quantity" type="text" value={form.quantity} onChange={handleChange} required />
-                
                 <AutocompleteInput
                   label="Packing"
                   options={packingOptions}
@@ -398,7 +387,6 @@ export const GcEntryForm = () => {
                   placeholder="Type to search packing..."
                   required
                 />
-                
                 <div className="md:col-span-2">
                   <AutocompleteInput
                     label="Contents"
@@ -409,7 +397,6 @@ export const GcEntryForm = () => {
                     required
                   />
                 </div>
-
                 <Input label="Prefix" id="prefix" name="prefix" value={form.prefix} onChange={handleChange} />
                 <Input label="From No" id="fromNo" name="fromNo" type="text" value={form.fromNo} onChange={handleChange} required />
                 <Input label="To No" id="toNo" name="toNo" value={toNo > 0 ? toNo : ''} disabled />
@@ -428,6 +415,8 @@ export const GcEntryForm = () => {
                 <Input label="Godown Charge" id="godownCharge" name="godownCharge" type="text" value={form.godownCharge} onChange={handleChange} />
                 <Input label="Statistic Charge" id="statisticCharge" name="statisticCharge" type="text" value={form.statisticCharge} onChange={handleChange} />
                 <Input label="Advance None" id="advanceNone" name="advanceNone" type="text" value={form.advanceNone} onChange={handleChange} />
+                
+                {/* Balance to Pay - Auto Calculated but Editable */}
                 <Input label="Balance ToPay" id="balanceToPay" name="balanceToPay" type="text" value={form.balanceToPay} onChange={handleChange} />
 
                 <div className="md:col-span-4">
@@ -447,44 +436,23 @@ export const GcEntryForm = () => {
 
         {/* FOOTER ACTIONS */}
         <div className="flex flex-col sm:flex-row justify-end gap-4 p-4 bg-background/90 backdrop-blur-sm sticky bottom-0 border-t border-muted rounded-b-lg">
-          <Button 
-            type="button" 
-            variant="secondary" 
-            className="w-full sm:w-auto"
-            onClick={() => navigate('/gc-entry')}
-          >
-            Cancel
-          </Button>
-
-          <Button 
-            type="button" 
-            variant="secondary" 
-            className="w-full sm:w-auto"
-            onClick={() => handleSave(true)}
-          >
+          <Button type="button" variant="secondary" className="w-full sm:w-auto" onClick={() => navigate('/gc-entry')}>Cancel</Button>
+          <Button type="button" variant="secondary" className="w-full sm:w-auto" onClick={() => handleSave(true)}>
             <Printer size={16} className="mr-2" />
             Save & Print GC
           </Button>
-
-          <Button 
-            type="button" 
-            variant="primary" 
-            className="w-full sm:w-auto"
-            onClick={() => handleSave(false)}
-          >
+          <Button type="button" variant="primary" className="w-full sm:w-auto" onClick={() => handleSave(false)}>
             <Save size={16} className="mr-2" />
             {isEditMode ? 'Save Changes' : 'Save GC'}
           </Button>
         </div>
       </form>
 
-      {/* --- NEW: Render the print manager conditionally --- */}
       {printingJobs && (
         <GcPrintManager
           jobs={printingJobs}
           onClose={() => {
             setPrintingJobs(null);
-            // Navigate *after* print dialog is closed
             navigate('/gc-entry');
           }}
         />

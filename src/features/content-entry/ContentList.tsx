@@ -88,7 +88,7 @@ export const ContentList = () => {
           onClick={handleCreateNew}
           className="px-4 py-2 bg-primary text-primary-foreground rounded-md shadow-sm hover:bg-primary/90 font-medium"
         >
-          + Add New Content
+          + Create New Content
         </button>
       </div>
 

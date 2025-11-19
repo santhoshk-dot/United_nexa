@@ -2,30 +2,17 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Check, ChevronsUpDown, X } from 'lucide-react';
 import { Button } from './Button';
 
-// Simple Popover implementation
-const Popover = ({ open, onOpenChange, trigger, children }: { open: boolean, onOpenChange: (open: boolean) => void, trigger: React.ReactNode, children: React.ReactNode }) => {
-  return (
-    <div className="relative w-full">
-      <div onClick={() => onOpenChange(!open)}>{trigger}</div>
-      {open && (
-        <div 
-          className="absolute z-10 top-full mt-1 w-full bg-background border border-muted-foreground/30 rounded-md shadow-lg"
-          onClick={(e) => e.stopPropagation()} // Prevent closing when clicking inside
-        >
-          {children}
-        </div>
-      )}
-    </div>
-  );
-};
-
 // Simple Command-like list implementation
 const CommandList = ({ children }: { children: React.ReactNode }) => (
   <div className="max-h-60 overflow-y-auto">{children}</div>
 );
+
 const CommandItem = ({ onSelect, children, isSelected }: { onSelect: () => void, children: React.ReactNode, isSelected: boolean }) => (
   <div
-    onClick={onSelect}
+    onClick={(e) => {
+      e.stopPropagation(); // Prevent event bubbling
+      onSelect();
+    }}
     className={`flex items-center justify-between p-2 text-sm cursor-pointer hover:bg-muted ${isSelected ? 'font-medium' : ''}`}
   >
     <div className="flex items-center">
@@ -36,17 +23,20 @@ const CommandItem = ({ onSelect, children, isSelected }: { onSelect: () => void,
     </div>
   </div>
 );
+
 const CommandEmpty = ({ children }: { children: React.ReactNode }) => (
   <div className="p-2 text-sm text-center text-muted-foreground">{children}</div>
 );
+
 const CommandInput = React.forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTMLInputElement>>(
   (props, ref) => (
     <div className="p-2 border-b border-muted">
       <input
         {...props}
         ref={ref}
-        // UPDATED CLASSNAME BELOW:
+        // Standardized input classes with background color fix
         className="w-full px-3 py-2 text-sm bg-background text-foreground border border-muted-foreground/30 rounded-md focus:outline-none focus:ring-primary focus:border-primary"
+        onClick={(e) => e.stopPropagation()} // Ensure typing doesn't trigger close logic
       />
     </div>
   )
@@ -73,20 +63,32 @@ export const MultiSelect = ({
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
   
-  // --- THIS IS THE FIX ---
+  // Refs for handling outside clicks and input focus
+  const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Handle clicking outside to close (Backup for touch devices or non-mouse users)
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setOpen(false);
+        setSearch('');
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  // Focus input when opening
   useEffect(() => {
     if (open) {
-      // Auto-focus the search input when the popover opens
       setTimeout(() => {
         inputRef.current?.focus();
-      }, 100); // Small delay to ensure it's rendered
-    } else {
-      setSearch(''); // Clear search on close
+      }, 100);
     }
   }, [open]);
-  // --- END FIX ---
 
   const filteredOptions = options.filter(option =>
     option.label.toLowerCase().includes(search.toLowerCase())
@@ -105,10 +107,17 @@ export const MultiSelect = ({
     .map(option => option.label);
 
   return (
-    <Popover 
-      open={open} 
-      onOpenChange={setOpen}
-      trigger={
+    <div 
+      className="relative w-full" 
+      ref={containerRef}
+      // FIX: Close dropdown when mouse leaves the entire component area
+      onMouseLeave={() => {
+        setOpen(false);
+        setSearch('');
+      }}
+    >
+      {/* Trigger Button */}
+      <div onClick={() => setOpen(!open)}>
         <Button
           type="button"
           variant="secondary"
@@ -123,9 +132,9 @@ export const MultiSelect = ({
                   {label}
                   <X 
                     size={12} 
-                    className="cursor-pointer" 
+                    className="cursor-pointer hover:text-destructive" 
                     onClick={(e) => {
-                      e.stopPropagation(); // Prevent opening/closing popover
+                      e.stopPropagation(); // Prevent dropdown toggle when removing tag
                       const valueToUnselect = options.find(o => o.label === label)?.value;
                       if (valueToUnselect) handleToggle(valueToUnselect);
                     }} 
@@ -136,34 +145,34 @@ export const MultiSelect = ({
           </div>
           <ChevronsUpDown size={16} className="ml-2 opacity-50 flex-shrink-0" />
         </Button>
-      }
-    >
-      {/* Popover Content (as children) */}
-      <CommandInput
-        ref={inputRef} // <-- Assign the ref
-        placeholder={searchPlaceholder}
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-      />
-      <CommandList>
-        {filteredOptions.length === 0 ? (
-          <CommandEmpty>{emptyPlaceholder}</CommandEmpty>
-        ) : (
-          filteredOptions.map(option => (
-            <CommandItem
-              key={option.value}
-              onSelect={() => {
-                handleToggle(option.value);
-                // We can keep the popover open for multi-selection
-                // setOpen(false); 
-              }}
-              isSelected={selected.includes(option.value)}
-            >
-              {option.label}
-            </CommandItem>
-          ))
-        )}
-      </CommandList>
-    </Popover>
+      </div>
+
+      {/* Dropdown Content */}
+      {open && (
+        <div className="absolute z-10 top-full mt-1 w-full bg-background border border-muted-foreground/30 rounded-md shadow-lg">
+          <CommandInput
+            ref={inputRef}
+            placeholder={searchPlaceholder}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          <CommandList>
+            {filteredOptions.length === 0 ? (
+              <CommandEmpty>{emptyPlaceholder}</CommandEmpty>
+            ) : (
+              filteredOptions.map(option => (
+                <CommandItem
+                  key={option.value}
+                  onSelect={() => handleToggle(option.value)}
+                  isSelected={selected.includes(option.value)}
+                >
+                  {option.label}
+                </CommandItem>
+              ))
+            )}
+          </CommandList>
+        </div>
+      )}
+    </div>
   );
 };

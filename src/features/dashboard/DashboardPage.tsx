@@ -8,25 +8,29 @@ import {
   Archive, 
   TrendingUp, 
   Calendar, 
-  ArrowRight} from 'lucide-react';
-import { getTodayDate } from '../../utils/dateHelpers';
+  ArrowRight
+} from 'lucide-react';
+import { getTodayDate, isDateInLast7Days } from '../../utils/dateHelpers';
 
-// --- Futuristic Stat Card ---
+// --- Futuristic Stat Card (Updated with onClick) ---
 const StatCard = ({ 
   title, 
   value, 
   icon: Icon, 
   gradient, 
-  delay 
+  delay,
+  onClick 
 }: { 
   title: string; 
   value: string | number; 
   icon: any; 
   gradient: string; 
   delay: string;
+  onClick?: () => void;
 }) => (
   <div 
-    className={`relative overflow-hidden rounded-2xl p-6 text-white shadow-lg ${gradient} ${delay} transition-all duration-300 hover:scale-105 hover:shadow-primary/30 animate-in fade-in slide-in-from-bottom-4`}
+    onClick={onClick}
+    className={`relative overflow-hidden rounded-2xl p-6 text-white shadow-lg ${gradient} ${delay} transition-all duration-300 hover:scale-105 hover:shadow-primary/30 animate-in fade-in slide-in-from-bottom-4 ${onClick ? 'cursor-pointer' : ''}`}
   >
     {/* Subtle light bubble effect */}
     <div className="absolute -top-4 -right-4 w-24 h-24 bg-white/10 rounded-full opacity-50 blur-2xl" />
@@ -45,7 +49,7 @@ const StatCard = ({
   </div>
 );
 
-// --- Futuristic Action Card (from Master page, adapted) ---
+// --- Futuristic Action Card ---
 const ActionCard = ({ 
   title, 
   subtitle, 
@@ -95,17 +99,19 @@ const OverviewStat = ({ label, value }: { label: string, value: string | number 
 
 export const DashboardPage = () => {
   const navigate = useNavigate();
-  const { gcEntries } = useData();
+  const { gcEntries, tripSheets } = useData(); 
   
-  // Helper to count today's entries
+  // 1. Today's GC Entries
   const todayCount = gcEntries.filter(g => g.gcDate === getTodayDate()).length;
-  const weekCount = gcEntries.filter(g => {
-    const entryDate = new Date(g.gcDate);
-    const today = new Date();
-    const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
-    return entryDate >= weekAgo && entryDate <= today;
-  }).length;
   
+  // 2. GC Entries (Weekly)
+  const weekCount = gcEntries.filter(g => isDateInLast7Days(g.gcDate)).length;
+
+  // 3. Trip Sheets (Weekly)
+  const tripSheetWeekCount = tripSheets.filter(t => isDateInLast7Days(t.tsDate)).length;
+
+  // 4. Active Trips (Trips created in the last 7 days)
+  const activeTripsCount = tripSheetWeekCount; 
 
   return (
     <div className="min-h-screen space-y-8 p-4 md:p-8 animate-in fade-in duration-500">
@@ -147,13 +153,15 @@ export const DashboardPage = () => {
               icon={FilePlus}
               gradient="bg-gradient-to-br from-blue-500 to-blue-600"
               delay="duration-500"
+              onClick={() => navigate('/gc-entry')}
             />
             <StatCard
               title="Active Trips"
-              value="0"
+              value={activeTripsCount}
               icon={Truck}
               gradient="bg-gradient-to-br from-emerald-500 to-teal-600"
               delay="duration-500 delay-100"
+              onClick={() => navigate('/trip-sheet')}
             />
             <StatCard
               title="Pending Stock"
@@ -161,6 +169,7 @@ export const DashboardPage = () => {
               icon={Archive}
               gradient="bg-gradient-to-br from-purple-500 to-purple-600"
               delay="duration-500 delay-200"
+              onClick={() => navigate('/pending-stock')}
             />
           </div>
 
@@ -176,16 +185,15 @@ export const DashboardPage = () => {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 flex-1">
               <OverviewStat label="GC Entries" value={weekCount} />
               <OverviewStat label="Loading Sheets" value="0" />
-              <OverviewStat label="Trip Sheets" value="0" />
-              <OverviewStat label="Total Records" value={gcEntries.length} />
+              <OverviewStat label="Trip Sheets" value={tripSheetWeekCount} />
+              <OverviewStat label="Total Records" value={gcEntries.length + tripSheets.length} />
             </div>
           </div>
         </div>
 
-        {/* Right Column - Quick Actions & Activity */}
+        {/* Right Column - Quick Actions */}
         <div className="lg:col-span-4">
           
-          {/* Quick Actions */}
           <div className="bg-card/60 backdrop-blur-lg border border-border/30 rounded-2xl shadow-lg animate-in fade-in slide-in-from-right-4 duration-500 delay-200 h-full flex flex-col">
             <h3 className="text-lg font-semibold text-foreground p-6 pb-4">Quick Actions</h3>
             <div className="space-y-3 p-6 pt-0 flex-1">
@@ -211,7 +219,7 @@ export const DashboardPage = () => {
                 icon={Navigation}
                 gradient="from-cyan-500 to-teal-500"
                 delay="duration-300 delay-200"
-                onClick={() => navigate('/trip-sheet')}
+                onClick={() => navigate('/tripsheet/new')}
               />
               <ActionCard
                 title="Pending Stock"
@@ -224,7 +232,6 @@ export const DashboardPage = () => {
             </div>
           </div>
 
-          {/* Recent Activity - REMOVED */}
         </div>
       </div>
     </div>

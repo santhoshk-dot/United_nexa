@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react'; // <-- Added useEffect
+import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FilePenLine, Trash2, Search, Printer } from 'lucide-react';
 import { DateFilterButtons, getTodayDate, getYesterdayDate, isDateInLast7Days } from '../../components/shared/DateFilterButtons';
@@ -9,14 +9,13 @@ import { AutocompleteInput } from '../../components/shared/AutocompleteInput';
 import { MultiSelect } from '../../components/shared/MultiSelect';
 import { GcPrintManager, type GcPrintJob } from './GcPrintManager';
 
-// --- NEW IMPORTS ---
 import { usePagination } from '../../utils/usePagination';
 import { Pagination } from '../../components/shared/Pagination';
-// --- END NEW IMPORTS ---
 
 export const GcEntryList = () => {
   const navigate = useNavigate();
-  const { gcEntries, deleteGcEntry, consignors, consignees, getUniqueDests } = useData();
+  // 1. Added tripSheets to the destructuring
+  const { gcEntries, deleteGcEntry, consignors, consignees, getUniqueDests, tripSheets } = useData();
   
   // --- Filter State ---
   const [search, setSearch] = useState('');
@@ -34,6 +33,14 @@ export const GcEntryList = () => {
 
   // --- Printing State ---
   const [printingJobs, setPrintingJobs] = useState<GcPrintJob[] | null>(null);
+  
+  // --- Helper: Get Status (TS No or 0) ---
+  const getGcStatus = (gcId: string) => {
+    const foundSheet = tripSheets.find(sheet => 
+      sheet.items?.some(item => item.gcNo === gcId)
+    );
+    return foundSheet ? foundSheet.mfNo : '0';
+  };
   
   // --- ALL OPTIONS (Memoized) ---
   const allConsignorOptions = useMemo(() => 
@@ -322,6 +329,8 @@ export const GcEntryList = () => {
                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Destination</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Bill Value</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Case Qty</th>
+                {/* Added Status Column */}
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
@@ -330,6 +339,8 @@ export const GcEntryList = () => {
               {paginatedData.map((gc) => {
                 const consignor = consignors.find(c => c.id === gc.consignorId);
                 const consignee = consignees.find(c => c.id === gc.consigneeId);
+                const status = getGcStatus(gc.id);
+
                 return (
                   <tr key={gc.id}>
                     <td className="px-4 py-4 whitespace-nowrap">
@@ -346,6 +357,12 @@ export const GcEntryList = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">{gc.destination}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">₹{(parseFloat(gc.billValue) || 0).toLocaleString('en-IN')}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">{gc.quantity}</td>
+                    {/* Status Cell */}
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${status !== '0' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                        {status}
+                      </span>
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm space-x-3">
                       <button onClick={() => handleEdit(gc.id)} className="text-blue-600 hover:text-blue-800" title="Edit">
                         <FilePenLine size={18} />
@@ -370,6 +387,7 @@ export const GcEntryList = () => {
           {paginatedData.map((gc) => {
              const consignor = consignors.find(c => c.id === gc.consignorId);
              const consignee = consignees.find(c => c.id === gc.consigneeId);
+             const status = getGcStatus(gc.id);
             return (
               <div key={gc.id} className="p-4">
                 <div className="flex justify-between items-start">
@@ -401,7 +419,7 @@ export const GcEntryList = () => {
                 </div>
                 <div className="flex justify-between mt-2 pt-2 border-t border-muted">
                   <span className="text-sm font-medium">Bill Value: <span className="text-foreground">₹{(parseFloat(gc.billValue) || 0).toLocaleString('en-IN')}</span></span>
-                  <span className="text-sm font-medium">Qty: <span className="text-foreground">{gc.quantity}</span></span>
+                  <span className="text-sm font-medium">Status: <span className={`font-bold ${status !== '0' ? 'text-green-600' : 'text-muted-foreground'}`}>{status}</span></span>
                 </div>
               </div>
             );

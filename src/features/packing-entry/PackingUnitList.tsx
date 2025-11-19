@@ -85,7 +85,7 @@ export const PackingEntryList = () => {
           onClick={handleCreateNew}
           className="px-4 py-2 bg-primary text-primary-foreground rounded-md shadow-sm hover:bg-primary/90 font-medium"
         >
-          + Add New Packing Unit
+        + Create New Packing Unit
         </button>
       </div>
 
