@@ -3,6 +3,7 @@ import { Input } from '../../components/shared/Input';
 import { Button } from '../../components/shared/Button';
 import { X } from 'lucide-react';
 import type { AppUser } from '../../types';
+import { useAuth } from '../../hooks/useAuth'; // Added hook to get user list
 
 interface UserFormProps {
   initialData?: AppUser;
@@ -11,6 +12,9 @@ interface UserFormProps {
 }
 
 export const UserForm = ({ initialData, onClose, onSave }: UserFormProps) => {
+  const { users } = useAuth(); // Get list of all users for validation
+  const [emailError, setEmailError] = useState<string>(""); 
+
   const [formData, setFormData] = useState({
     name: initialData?.name || '',
     email: initialData?.email || '',
@@ -22,10 +26,30 @@ export const UserForm = ({ initialData, onClose, onSave }: UserFormProps) => {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+
+    // --- IMMEDIATE VALIDATION ---
+    if (name === 'email') {
+      const normalizedEmail = value.trim().toLowerCase();
+      
+      // Check if duplicate (exclude current user ID if editing)
+      const exists = users.some(u => 
+        u.email.toLowerCase() === normalizedEmail && 
+        u.id !== initialData?.id
+      );
+
+      if (exists) {
+        setEmailError("This email is already assigned to another user.");
+      } else {
+        setEmailError("");
+      }
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Final guard clause
+    if (emailError) return;
     
     const userToSave: AppUser = {
       id: initialData?.id || `user-${Date.now()}`,
@@ -56,15 +80,26 @@ export const UserForm = ({ initialData, onClose, onSave }: UserFormProps) => {
             onChange={handleChange} 
             required 
           />
-          <Input 
-            label="Email Address" 
-            id="email" 
-            name="email" 
-            type="email" 
-            value={formData.email} 
-            onChange={handleChange} 
-            required 
-          />
+          
+          {/* Email Field with Error Handling */}
+          <div>
+            <Input 
+              label="Email Address" 
+              id="email" 
+              name="email" 
+              type="email" 
+              value={formData.email} 
+              onChange={handleChange} 
+              required 
+              className={emailError ? "border-red-500 focus:border-red-500 focus:ring-red-500" : ""}
+            />
+            {/* Validation Message */}
+            {emailError && (
+              <p className="text-sm text-red-600 mt-1 animate-in fade-in slide-in-from-top-1">
+                {emailError}
+              </p>
+            )}
+          </div>
           
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
              <Input 
@@ -102,7 +137,14 @@ export const UserForm = ({ initialData, onClose, onSave }: UserFormProps) => {
 
           <div className="flex justify-end space-x-3 pt-4 border-t border-muted mt-6">
             <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
-            <Button type="submit" variant="primary">{initialData ? 'Update User' : 'Create User'}</Button>
+            <Button 
+              type="submit" 
+              variant="primary"
+              disabled={!!emailError} // DISABLE SAVE BUTTON IF ERROR EXISTS
+              className={emailError ? "opacity-50 cursor-not-allowed" : ""}
+            >
+              {initialData ? 'Update User' : 'Create User'}
+            </Button>
           </div>
         </form>
       </div>
