@@ -1,111 +1,317 @@
 @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap');
 
-/* ADDED: Standard Tailwind colors to support the new design */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* ============================================
+   🎨 THEME CONFIGURATION
+   Change the @apply rule below to switch themes.
+   
+   Available Options:
+   @apply theme-blue;     (New: Royal Blue & Pure Black OLED)
+   @apply theme-luxury;   (Gold & Black)
+   @apply theme-emerald;  (Green & Dark Grey)
+   @apply theme-royal;    (Purple & Dark Slate)
+   @apply theme-platinum; (Silver & Minimalist)
+   @apply theme-rose;     (Rose Gold & Warm)
+   ============================================ */
+
 @layer base {
   :root {
-    /* --- PREMIUM LIGHT THEME --- */
-    /* A soft, cool white background (Platinum) */
-    --background: 210 40% 98%;
-    
-    /* Deep, rich charcoal-navy text for high readability */
-    --foreground: 222 47% 11%;
-
-    /* Pure white cards for clean separation */
-    --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
-
-    /* ROYAL BLUE: Authoritative and trustworthy */
-    --primary: 221 83% 53%;
-    --primary-foreground: 210 40% 98%;
-
-    /* Subtle cool gray for secondary elements */
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222 47% 11%;
-
-    /* Muted tones for disabled/inactive states */
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215 16% 47%;
-
-    /* A rich blue accent */
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222 47% 11%;
-
-    /* Sophisticated red for errors */
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 210 40% 98%;
-
-    /* Borders match the muted tones */
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
-    
-    /* Ring matches primary for cohesive focus states */
-    --ring: 221 83% 53%;
-    
-    /* Corner radius for a modern feel */
-    --radius: 0.5rem;
+    /* ▼ ACTIVE THEME: Royal Blue & Pure Black ▼ */
+    @apply theme-blue; 
   }
-/* --- ULTRA PREMIUM DARK THEME (Matte Obsidian) --- */
-  /* --- PURE BLACK (OLED) THEME --- */
-  .dark {
-    /* BACKGROUND: Pure #000000 */
-    --background: 0 0% 0%;
-    
-    /* TEXT: Pure White for maximum contrast */
-    --foreground: 0 0% 100%;
 
-    /* CARDS: Also Pure Black 
-       We keep cards black to maintain the "void" aesthetic.
-       We will rely on the --border variable to separate them.
-    */
-    --card: 0 0% 0%;
-    --card-foreground: 0 0% 100%;
-
-    /* PRIMARY: "Neon Blue"
-       Against pure black, colors need to be neon to pop.
-       This is a bright electric blue.
-    */
-    --primary: 217 100% 60%;
-    --primary-foreground: 0 0% 100%;
-
-    /* SECONDARY: Deep Gray 
-       Used for buttons that shouldn't distract.
-    */
-    --secondary: 0 0% 12%;
-    --secondary-foreground: 0 0% 100%;
-
-    /* MUTED: Subtle Gray */
-    --muted: 0 0% 12%;
-    --muted-foreground: 0 0% 60%;
-
-    /* ACCENT: Slightly lighter black for hover states */
-    --accent: 0 0% 15%;
-    --accent-foreground: 0 0% 100%;
-
-    /* DESTRUCTIVE: Bright Red */
-    --destructive: 0 100% 50%;
-    --destructive-foreground: 0 0% 100%;
-
-    /* BORDERS: VISIBLE GRAY
-       CRITICAL: Since bg and card are both black, this border 
-       is the only thing separating your UI elements.
-    */
-    --border: 0 0% 20%;
-    --input: 0 0% 20%;
-    
-    /* RING: Matches primary */
-    --ring: 217 100% 60%;
-  }
-}
-
-@layer base {
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground transition-colors duration-300;
     font-family: 'Manrope', ui-sans-serif, system-ui, sans-serif,
                  "Apple Color Emoji", "Segoe UI Emoji",
                  "Segoe UI Symbol", "Noto Color Emoji";
+  }
+
+  /* Premium Focus States */
+  *:focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+  }
+  
+  /* Smooth Scrolling */
+  * {
+    @apply scroll-smooth;
+  }
+}
+
+/* ============================================
+   🛠️ THEME DEFINITIONS
+   ============================================ */
+
+@layer components {
+
+  /* ===== NEW THEME: ROYAL BLUE & PURE BLACK (OLED) ===== */
+  .theme-blue {
+    /* Light Mode: Platinum & Royal Blue */
+    --background: 210 40% 98%;
+    --foreground: 222 47% 11%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+    --primary: 221 83% 53%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222 47% 11%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215 16% 47%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222 47% 11%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 221 83% 53%;
+    --radius: 0.5rem;
+  }
+
+  .theme-blue.dark, .dark .theme-blue {
+    /* Dark Mode: Pure Black & Neon Blue */
+    --background: 0 0% 0%;
+    --foreground: 0 0% 100%;
+    --card: 0 0% 0%;
+    --card-foreground: 0 0% 100%;
+    --primary: 217 100% 60%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 0 0% 12%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 0 0% 12%;
+    --muted-foreground: 0 0% 60%;
+    --accent: 0 0% 15%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 100% 50%;
+    --destructive-foreground: 0 0% 100%;
+    /* Crucial visible borders for black-on-black separation */
+    --border: 0 0% 20%;
+    --input: 0 0% 20%;
+    --ring: 217 100% 60%;
+  }
+
+  /* ===== THEME 1: LUXURY GOLD ===== */
+  .theme-luxury {
+    --background: 220 30% 97%;
+    --foreground: 220 40% 10%;
+    --card: 0 0% 100%;
+    --card-foreground: 220 40% 10%;
+    --primary: 43 96% 56%;
+    --primary-foreground: 220 40% 10%;
+    --secondary: 220 25% 92%;
+    --secondary-foreground: 220 40% 10%;
+    --muted: 220 25% 92%;
+    --muted-foreground: 220 15% 45%;
+    --accent: 43 96% 95%;
+    --accent-foreground: 43 96% 30%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 20% 88%;
+    --input: 220 20% 88%;
+    --ring: 43 96% 56%;
+    --radius: 0.75rem;
+  }
+
+  .theme-luxury.dark, .dark .theme-luxury {
+    --background: 0 0% 0%; 
+    --foreground: 43 96% 95%;
+    --card: 220 35% 8%;
+    --card-foreground: 43 96% 95%;
+    --primary: 43 96% 56%;
+    --primary-foreground: 220 40% 10%;
+    --secondary: 220 30% 12%;
+    --secondary-foreground: 43 96% 95%;
+    --muted: 220 30% 12%;
+    --muted-foreground: 220 15% 65%;
+    --accent: 220 30% 15%;
+    --accent-foreground: 43 96% 95%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 25% 20%;
+    --input: 220 25% 20%;
+    --ring: 43 96% 56%;
+  }
+
+  /* ===== THEME 2: EMERALD LUXURY ===== */
+  .theme-emerald {
+    --background: 0 0% 98%;
+    --foreground: 240 10% 8%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 8%;
+    --primary: 160 84% 39%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 240 5% 95%;
+    --secondary-foreground: 240 10% 8%;
+    --muted: 240 5% 95%;
+    --muted-foreground: 240 4% 46%;
+    --accent: 160 84% 95%;
+    --accent-foreground: 160 84% 20%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 240 6% 90%;
+    --input: 240 6% 90%;
+    --ring: 160 84% 39%;
+    --radius: 0.75rem;
+  }
+
+  .theme-emerald.dark, .dark .theme-emerald {
+    --background: 240 10% 4%;
+    --foreground: 160 84% 90%;
+    --card: 240 8% 8%;
+    --card-foreground: 160 84% 90%;
+    --primary: 160 84% 45%;
+    --primary-foreground: 240 10% 8%;
+    --secondary: 240 8% 14%;
+    --secondary-foreground: 160 84% 90%;
+    --muted: 240 8% 14%;
+    --muted-foreground: 240 5% 64%;
+    --accent: 240 8% 18%;
+    --accent-foreground: 160 84% 90%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 240 6% 20%;
+    --input: 240 6% 20%;
+    --ring: 160 84% 45%;
+  }
+
+  /* ===== THEME 3: ROYAL PURPLE ===== */
+  .theme-royal {
+    --background: 270 20% 98%;
+    --foreground: 270 30% 10%;
+    --card: 0 0% 100%;
+    --card-foreground: 270 30% 10%;
+    --primary: 270 70% 55%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 270 20% 94%;
+    --secondary-foreground: 270 30% 10%;
+    --muted: 270 20% 94%;
+    --muted-foreground: 270 10% 45%;
+    --accent: 270 70% 95%;
+    --accent-foreground: 270 70% 30%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 270 15% 88%;
+    --input: 270 15% 88%;
+    --ring: 270 70% 55%;
+    --radius: 0.75rem;
+  }
+
+  .theme-royal.dark, .dark .theme-royal {
+    --background: 270 30% 7%;
+    --foreground: 270 70% 95%;
+    --card: 270 25% 11%;
+    --card-foreground: 270 70% 95%;
+    --primary: 270 70% 60%;
+    --primary-foreground: 270 30% 10%;
+    --secondary: 270 20% 16%;
+    --secondary-foreground: 270 70% 95%;
+    --muted: 270 20% 16%;
+    --muted-foreground: 270 10% 65%;
+    --accent: 270 20% 20%;
+    --accent-foreground: 270 70% 95%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 270 18% 23%;
+    --input: 270 18% 23%;
+    --ring: 270 70% 60%;
+  }
+
+  /* ===== THEME 4: PLATINUM SILVER ===== */
+  .theme-platinum {
+    --background: 220 15% 98%;
+    --foreground: 220 20% 10%;
+    --card: 0 0% 100%;
+    --card-foreground: 220 20% 10%;
+    --primary: 220 15% 25%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 12% 93%;
+    --secondary-foreground: 220 20% 10%;
+    --muted: 220 12% 93%;
+    --muted-foreground: 220 10% 45%;
+    --accent: 220 15% 85%;
+    --accent-foreground: 220 20% 10%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 10% 87%;
+    --input: 220 10% 87%;
+    --ring: 220 15% 25%;
+    --radius: 0.5rem;
+  }
+
+  .theme-platinum.dark, .dark .theme-platinum {
+    --background: 220 15% 6%;
+    --foreground: 220 10% 95%;
+    --card: 220 12% 10%;
+    --card-foreground: 220 10% 95%;
+    --primary: 220 10% 85%;
+    --primary-foreground: 220 15% 10%;
+    --secondary: 220 10% 15%;
+    --secondary-foreground: 220 10% 95%;
+    --muted: 220 10% 15%;
+    --muted-foreground: 220 8% 65%;
+    --accent: 220 10% 20%;
+    --accent-foreground: 220 10% 95%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 8% 22%;
+    --input: 220 8% 22%;
+    --ring: 220 10% 85%;
+  }
+
+  /* ===== THEME 5: ROSE GOLD ELEGANCE ===== */
+  .theme-rose {
+    --background: 20 30% 98%;
+    --foreground: 20 30% 12%;
+    --card: 0 0% 100%;
+    --card-foreground: 20 30% 12%;
+    --primary: 340 82% 52%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 20 25% 94%;
+    --secondary-foreground: 20 30% 12%;
+    --muted: 20 25% 94%;
+    --muted-foreground: 20 15% 46%;
+    --accent: 340 82% 96%;
+    --accent-foreground: 340 82% 25%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 20 20% 89%;
+    --input: 20 20% 89%;
+    --ring: 340 82% 52%;
+    --radius: 0.75rem;
+  }
+
+  .theme-rose.dark, .dark .theme-rose {
+    --background: 20 25% 8%;
+    --foreground: 340 82% 92%;
+    --card: 20 20% 12%;
+    --card-foreground: 340 82% 92%;
+    --primary: 340 82% 58%;
+    --primary-foreground: 20 25% 10%;
+    --secondary: 20 18% 17%;
+    --secondary-foreground: 340 82% 92%;
+    --muted: 20 18% 17%;
+    --muted-foreground: 20 12% 65%;
+    --accent: 20 18% 21%;
+    --accent-foreground: 340 82% 92%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 20 15% 24%;
+    --input: 20 15% 24%;
+    --ring: 340 82% 58%;
+  }
+
+  /* Utility Classes */
+  .glass-effect {
+    @apply bg-background/80 backdrop-blur-md border border-border;
+  }
+  
+  .premium-shadow {
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+  }
+  
+  .dark .premium-shadow {
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
   }
 }
