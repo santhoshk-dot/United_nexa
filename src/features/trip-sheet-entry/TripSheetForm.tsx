@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Save, Trash2 } from "lucide-react";
 
@@ -21,11 +21,12 @@ export const TripSheetForm = () => {
     consignors,
     consignees,
     gcEntries,
+    fromPlaces,
+    toPlaces,
   } = useData();
 
   const editing = id ? getTripSheet(id) : undefined;
 
-  // mfNo is only used in editing mode.
   const [mfNo, setMfNo] = useState<string | undefined>(
     editing ? editing.mfNo : undefined
   );
@@ -37,11 +38,8 @@ export const TripSheetForm = () => {
 
   const [items, setItems] = useState<TripSheetGCItem[]>(editing?.items ?? []);
 
-  // Item States
   const [gcNo, setGcNo] = useState("");
-  const [qtyDts, setQtyDts] = useState("");
 
-  // State for current item being added
   const [qty, setQty] = useState(0);
   const [rate, setRate] = useState(0);
   const [packingDts, setPackingDts] = useState("");
@@ -49,14 +47,13 @@ export const TripSheetForm = () => {
   const [itemConsignor, setItemConsignor] = useState("");
   const [itemConsignee, setItemConsignee] = useState("");
 
-  // Load GC details
   const loadGc = (selectedGcNo: string) => {
     const gc = gcEntries.find((g) => g.id === selectedGcNo);
     if (!gc) return null;
 
     return {
-      qty: parseFloat(gc.quantity) || 0, // Convert string to number
-      rate: parseFloat(gc.freight) || 0,  // Convert string to number
+      qty: parseFloat(gc.quantity) || 0,
+      rate: parseFloat(gc.freight) || 0,
       packingDts: gc.packing,
       contentDts: gc.contents,
       consignor: consignors.find((c) => c.id === gc.consignorId)?.name ?? "",
@@ -70,7 +67,7 @@ export const TripSheetForm = () => {
     if (!g) return;
 
     setQty(g.qty);
-    setRate(g.rate);
+    setRate(g.rate); // rate per qty
     setPackingDts(g.packingDts);
     setContentDts(g.contentDts);
     setItemConsignor(g.consignor);
@@ -81,7 +78,6 @@ export const TripSheetForm = () => {
     setGcNo("");
     setQty(0);
     setRate(0);
-    setQtyDts("");
     setPackingDts("");
     setContentDts("");
     setItemConsignor("");
@@ -90,20 +86,16 @@ export const TripSheetForm = () => {
 
   const handleAddGC = () => {
     if (!gcNo) return alert("Please select a GC No");
-    
-    // Ensure we use the current state values which were set in handleGcChange
-    // or manually updated if we allow manual overrides.
-    
+
     const row: TripSheetGCItem = {
       gcNo,
-      qty: qty, // Using the state variable (number)
-      rate: rate, // Using the state variable (number)
-      qtyDts: qtyDts || undefined,
-      packingDts: packingDts,
-      contentDts: contentDts,
+      qty,
+      rate,
+      packingDts,
+      contentDts,
       consignor: itemConsignor,
       consignee: itemConsignee,
-      amount: qty * rate, // Calculate amount based on numbers
+      amount: qty * rate,
     };
 
     setItems((p) => [...p, row]);
@@ -119,7 +111,16 @@ export const TripSheetForm = () => {
     [items]
   );
 
-  const [unloadPlace, setUnloadPlace] = useState(editing?.unloadPlace ?? "");
+  const [unloadPlace, setUnloadPlace] = useState(
+    editing?.unloadPlace ?? ""
+  );
+
+  useEffect(() => {
+    if (!editing) {
+      setUnloadPlace(toPlace);
+    }
+  }, [toPlace]);
+
   const [driverName, setDriverName] = useState(editing?.driverName ?? "");
   const [dlNo, setDlNo] = useState(editing?.dlNo ?? "");
   const [driverMobile, setDriverMobile] = useState(
@@ -132,14 +133,24 @@ export const TripSheetForm = () => {
   const [lorryNo, setLorryNo] = useState(editing?.lorryNo ?? "");
   const [lorryName, setLorryName] = useState(editing?.lorryName ?? "");
 
-
-  // GC Dropdown Options
+  // GC Options
   const gcOptions = gcEntries
     .filter((g) => !items.some((i) => i.gcNo === g.id))
     .map((g) => ({
       value: g.id,
-      label: g.id, 
+      label: g.id,
     }));
+
+  // Place Options
+  const fromPlaceOptions = fromPlaces.map((p) => ({
+    value: p.placeName,
+    label: p.placeName,
+  }));
+
+  const toPlaceOptions = toPlaces.map((p) => ({
+    value: p.placeName,
+    label: p.placeName,
+  }));
 
   const generateNextMfNo = () => {
     const stored = JSON.parse(localStorage.getItem("tripSheets") || "[]");
@@ -177,26 +188,30 @@ export const TripSheetForm = () => {
       ownerMobile,
       lorryNo,
       lorryName,
-      consignorid: undefined,
-      consigneeid: undefined,
     };
 
     if (editing) updateTripSheet(payload);
     else addTripSheet(payload);
 
-    navigate("/trip-sheet");
+    navigate("/tripsheet");
   };
 
   return (
     <div className="space-y-4 p-4">
+
       {/* HEADER */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <Button type="button" variant="secondary" className="px-3"
-            onClick={() => navigate('/trip-sheet')}>
+          <Button
+            type="button"
+            variant="secondary"
+            className="px-3"
+            onClick={() => navigate("/tripsheet")}
+          >
             <ArrowLeft size={18} />
           </Button>
         </div>
+
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-foreground">
             {editing ? `Edit Trip Sheet #${mfNo}` : "Add New Trip Sheet"}
@@ -209,38 +224,77 @@ export const TripSheetForm = () => {
 
           {/* TRIP DETAILS */}
           <div>
-            <h2 className="text-xl font-semibold border-b pb-3 mb-6">Trip Details</h2>
+            <h2 className="text-xl font-semibold border-b pb-3 mb-6">
+              Trip Details
+            </h2>
+
             <div className="grid grid-cols-3 gap-3 mb-3">
-              <Input label="From Place" value={fromPlace} onChange={(e) => setFromPlace(e.target.value)} />
-              <Input label="To Place" value={toPlace} onChange={(e) => setToPlace(e.target.value)} />
+              <AutocompleteInput
+                label="From Place"
+                placeholder="Select From Place"
+                options={fromPlaceOptions}
+                value={fromPlace}
+                onSelect={(v) => setFromPlace(v)}
+              />
+
+              <AutocompleteInput
+                label="To Place"
+                placeholder="Select To Place"
+                options={toPlaceOptions}
+                value={toPlace}
+                onSelect={(v) => setToPlace(v)}
+              />
             </div>
+
             <div className="grid grid-cols-3 gap-3">
-              <Input type="date" label="Trip Date" value={tsDate} onChange={(e) => setTsDate(e.target.value)} />
+              <Input
+                type="date"
+                label="Trip Date"
+                value={tsDate}
+                onChange={(e) => setTsDate(e.target.value)}
+              />
             </div>
           </div>
 
-          {/* GC PANEL */}
+          {/* GC DETAILS PANEL */}
           <div>
-            <h2 className="text-xl font-semibold border-b pb-3 mb-6">GC Details</h2>
+            <h2 className="text-xl font-semibold border-b pb-3 mb-6">
+              GC Details
+            </h2>
+
             <div className="p-3 border rounded-md space-y-3 mb-3">
+
               <div className="grid grid-cols-8 gap-3 items-end">
-                {/* Replaced react-select with AutocompleteInput */}
                 <div className="col-span-3">
-                   <AutocompleteInput
-                      label="Select GC No"
-                      placeholder="Search GC..."
-                      options={gcOptions}
-                      value={gcNo}
-                      onSelect={handleGcChange}
-                    />
+                  <AutocompleteInput
+                    label="Select GC No"
+                    placeholder="Search GC..."
+                    options={gcOptions}
+                    value={gcNo}
+                    onSelect={handleGcChange}
+                  />
                 </div>
-                <Input label="Qty DTS" value={qtyDts} onChange={(e) => setQtyDts(e.target.value)} className="col-span-2" />
-                <Button type="button" variant="primary" className="col-span-2" onClick={handleAddGC}>
+
+                {/* NEW — QTY RATE */}
+                <Input
+                  label="QTY RATE"
+                  type="number"
+                  value={rate}
+                  onChange={(e) => setRate(Number(e.target.value) || 0)}
+                  className="col-span-2"
+                />
+
+                <Button
+                  type="button"
+                  variant="primary"
+                  className="col-span-2"
+                  onClick={handleAddGC}
+                >
                   Add GC
                 </Button>
               </div>
 
-              {/* GC TABLE */}
+              {/* TABLE */}
               <div className="overflow-x-auto">
                 <table className="min-w-full border text-sm">
                   <thead>
@@ -248,7 +302,6 @@ export const TripSheetForm = () => {
                       <th className="border p-2">GCNO</th>
                       <th className="border p-2">QTY</th>
                       <th className="border p-2">RATE</th>
-                      <th className="border p-2">QTY DTS</th>
                       <th className="border p-2">PACKING</th>
                       <th className="border p-2">CONTENT</th>
                       <th className="border p-2">CONSIGNOR</th>
@@ -257,29 +310,38 @@ export const TripSheetForm = () => {
                       <th className="border p-2">DEL</th>
                     </tr>
                   </thead>
+
                   <tbody>
                     {items.map((it, i) => (
                       <tr key={i}>
                         <td className="border p-2">{it.gcNo}</td>
                         <td className="border p-2">{it.qty}</td>
                         <td className="border p-2">{it.rate}</td>
-                        <td className="border p-2">{it.qtyDts}</td>
                         <td className="border p-2">{it.packingDts}</td>
                         <td className="border p-2">{it.contentDts}</td>
                         <td className="border p-2">{it.consignor}</td>
                         <td className="border p-2">{it.consignee}</td>
-                        <td className="border p-2">₹{it.amount.toLocaleString("en-IN")}</td>
+                        <td className="border p-2">
+                          ₹{it.amount.toLocaleString("en-IN")}
+                        </td>
                         <td className="border p-2 text-center">
-                          <button type="button" className="text-red-600"
-                            onClick={() => handleDeleteGC(i)}>
+                          <button
+                            type="button"
+                            className="text-red-600"
+                            onClick={() => handleDeleteGC(i)}
+                          >
                             <Trash2 size={16} />
                           </button>
                         </td>
                       </tr>
                     ))}
+
                     {items.length === 0 && (
                       <tr>
-                        <td colSpan={10} className="text-center p-3 text-muted-foreground">
+                        <td
+                          colSpan={9}
+                          className="text-center p-3 text-muted-foreground"
+                        >
                           No GC rows added.
                         </td>
                       </tr>
@@ -288,38 +350,92 @@ export const TripSheetForm = () => {
                 </table>
               </div>
             </div>
-            
+
             {/* UNLOAD + TOTAL */}
             <div className="grid grid-cols-3 gap-3">
-              <Input label="Unload Place" value={unloadPlace} onChange={(e) => setUnloadPlace(e.target.value)} />
-              <Input label="Total Rs." value={String(totalAmount)} readOnly />
+              <AutocompleteInput
+                label="Unload Place"
+                placeholder="Select Unload Place"
+                options={toPlaceOptions}
+                value={unloadPlace}
+                onSelect={(v) => setUnloadPlace(v)}
+              />
+
+              <Input
+                label="Total Rs."
+                value={String(totalAmount)}
+                readOnly
+              />
             </div>
           </div>
 
           {/* DRIVER / OWNER */}
           <div>
-            <h2 className="text-xl font-semibold border-b pb-3 mb-6">Driver Details</h2>
+            <h2 className="text-xl font-semibold border-b pb-3 mb-6">
+              Driver Details
+            </h2>
+
             <div className="grid grid-cols-3 gap-3 mb-3">
-              <Input label="Driver Name" value={driverName} onChange={(e) => setDriverName(e.target.value)} />
-              <Input label="DL No" value={dlNo} onChange={(e) => setDlNo(e.target.value)} />
-              <Input label="Driver Mobile" value={driverMobile} onChange={(e) => setDriverMobile(e.target.value)} />
+              <Input
+                label="Driver Name"
+                value={driverName}
+                onChange={(e) => setDriverName(e.target.value)}
+              />
+              <Input
+                label="DL No"
+                value={dlNo}
+                onChange={(e) => setDlNo(e.target.value)}
+              />
+              <Input
+                label="Driver Mobile"
+                value={driverMobile}
+                onChange={(e) => setDriverMobile(e.target.value)}
+              />
             </div>
+
             <div className="grid grid-cols-3 gap-3 mb-3">
-              <Input label="Lorry No" value={lorryNo} onChange={(e) => setLorryNo(e.target.value)} />
-              <Input label="Lorry Name" value={lorryName} onChange={(e) => setLorryName(e.target.value)} />
-              <Input label="Carriers" value={carriers} onChange={(e) => setCarriers(e.target.value)} className="col-span-2" />
+              <Input
+                label="Lorry No"
+                value={lorryNo}
+                onChange={(e) => setLorryNo(e.target.value)}
+              />
+              <Input
+                label="Lorry Name"
+                value={lorryName}
+                onChange={(e) => setLorryName(e.target.value)}
+              />
+              <Input
+                label="Carriers"
+                value={carriers}
+                onChange={(e) => setCarriers(e.target.value)}
+                className="col-span-2"
+              />
             </div>
+
             <div className="grid grid-cols-3 gap-3">
-              <Input label="Owner Name" value={ownerName} onChange={(e) => setOwnerName(e.target.value)} />
-              <Input label="Owner Mobile" value={ownerMobile} onChange={(e) => setOwnerMobile(e.target.value)} />
+              <Input
+                label="Owner Name"
+                value={ownerName}
+                onChange={(e) => setOwnerName(e.target.value)}
+              />
+              <Input
+                label="Owner Mobile"
+                value={ownerMobile}
+                onChange={(e) => setOwnerMobile(e.target.value)}
+              />
             </div>
           </div>
 
           {/* SAVE FOOTER */}
           <div className="flex flex-col sm:flex-row justify-end gap-4 p-4 bg-background/90 border-t rounded-b-lg">
-            <Button type="button" variant="secondary" onClick={() => navigate('/trip-sheet')}>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => navigate("/tripsheet")}
+            >
               Cancel
             </Button>
+
             <Button type="submit" variant="primary">
               <Save size={16} className="mr-2" />
               Save Trip Sheet

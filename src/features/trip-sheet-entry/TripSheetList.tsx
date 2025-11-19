@@ -12,7 +12,7 @@ import { Button } from "../../components/shared/Button";
 import { AutocompleteInput } from "../../components/shared/AutocompleteInput";
 import { MultiSelect } from "../../components/shared/MultiSelect";
 import { useData } from "../../hooks/useData";
-import type { TripSheetEntry } from "../../types"; // Import type
+import type { TripSheetEntry } from "../../types"; 
 
 import { usePagination } from "../../utils/usePagination";
 import { Pagination } from "../../components/shared/Pagination";
@@ -123,6 +123,7 @@ export const TripSheetList = () => {
     consignorFilter,
   ]);
 
+  // --- Pagination ---
   const {
     paginatedData,
     currentPage,
@@ -131,10 +132,7 @@ export const TripSheetList = () => {
     itemsPerPage,
     setItemsPerPage,
     totalItems,
-  } = usePagination({
-    data: filtered,
-    initialItemsPerPage: 10,
-  });
+  } = usePagination({ data: filtered, initialItemsPerPage: 10 });
 
   const [delId, setDelId] = useState<string | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -197,12 +195,13 @@ export const TripSheetList = () => {
 
       <div className="space-y-4 p-4 bg-background rounded-lg shadow border border-muted">
         <div className="relative">
+          {/* FIX: Added correct classes for dark mode visibility */}
           <input
             type="text"
             placeholder="Search by TS No or From Place..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border rounded-md"
+            className="w-full pl-10 pr-4 py-2 bg-background text-foreground border border-muted-foreground/30 rounded-md focus:outline-none focus:ring-primary focus:border-primary"
           />
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
         </div>
@@ -267,12 +266,12 @@ export const TripSheetList = () => {
                     onChange={toggleSelectAll}
                   />
                 </th>
-                <th className="px-6 py-3">TS No</th>
-                <th className="px-6 py-3">Date</th>
-                <th className="px-6 py-3">From</th>
-                <th className="px-6 py-3">To</th>
-                <th className="px-6 py-3">Amount</th>
-                <th className="px-6 py-3">Actions</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">TS No</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Date</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">From</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">To</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Amount</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
 
@@ -286,19 +285,19 @@ export const TripSheetList = () => {
                       onChange={() => toggleSelect(ts.mfNo)}
                     />
                   </td>
-                  <td className="px-6 py-4 font-semibold">{ts.mfNo}</td>
-                  <td className="px-6 py-4">{ts.tsDate}</td>
-                  <td className="px-6 py-4">{ts.fromPlace}</td>
-                  <td className="px-6 py-4">{ts.toPlace}</td>
-                  <td className="px-6 py-4">₹{ts.totalAmount.toLocaleString("en-IN")}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-primary">{ts.mfNo}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">{ts.tsDate}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">{ts.fromPlace}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">{ts.toPlace}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">₹{ts.totalAmount.toLocaleString("en-IN")}</td>
                   <td className="px-6 py-4 space-x-3">
-                    <button onClick={() => navigate(`/tripsheet/edit/${ts.mfNo}`)} className="text-blue-600">
+                    <button onClick={() => navigate(`/tripsheet/edit/${ts.mfNo}`)} className="text-blue-600 hover:text-blue-800" title="Edit">
                       <FilePenLine size={18} />
                     </button>
-                    <button onClick={() => handlePrintSingle(ts.mfNo)} className="text-green-600">
+                    <button onClick={() => handlePrintSingle(ts.mfNo)} className="text-green-600 hover:text-green-800" title="Print">
                       <Printer size={18} />
                     </button>
-                    <button onClick={() => onDelete(ts.mfNo)} className="text-destructive">
+                    <button onClick={() => onDelete(ts.mfNo)} className="text-destructive hover:text-destructive/80" title="Delete">
                       <Trash2 size={18} />
                     </button>
                   </td>
@@ -338,7 +337,8 @@ export const TripSheetList = () => {
           ))}
         </div>
 
-        {totalPages > 1 && (
+        {/* --- PAGINATION MOVED INSIDE THE CONTAINER --- */}
+        {totalPages > 0 && (
           <div className="border-t border-muted p-4">
             <Pagination
               currentPage={currentPage}

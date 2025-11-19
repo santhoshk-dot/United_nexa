@@ -48,45 +48,56 @@
     /* Corner radius for a modern feel */
     --radius: 0.5rem;
   }
-
-  /* --- PREMIUM DARK THEME --- */
+/* --- ULTRA PREMIUM DARK THEME (Matte Obsidian) --- */
+  /* --- PURE BLACK (OLED) THEME --- */
   .dark {
-    /* DEEP VOID NAVY: Richer than pure black */
-    --background: 224 71% 4%;
+    /* BACKGROUND: Pure #000000 */
+    --background: 0 0% 0%;
     
-    /* Bright silver text */
-    --foreground: 210 40% 98%;
+    /* TEXT: Pure White for maximum contrast */
+    --foreground: 0 0% 100%;
 
-    /* Slightly lighter navy for cards to create depth */
-    --card: 224 71% 10%;
-    --card-foreground: 210 40% 98%;
+    /* CARDS: Also Pure Black 
+       We keep cards black to maintain the "void" aesthetic.
+       We will rely on the --border variable to separate them.
+    */
+    --card: 0 0% 0%;
+    --card-foreground: 0 0% 100%;
 
-    /* ELECTRIC AZURE: Vibrant contrast against dark bg */
-    --primary: 217 91% 60%;
-    --primary-foreground: 222 47% 11%;
+    /* PRIMARY: "Neon Blue"
+       Against pure black, colors need to be neon to pop.
+       This is a bright electric blue.
+    */
+    --primary: 217 100% 60%;
+    --primary-foreground: 0 0% 100%;
 
-    /* Deep navy-gray for secondary */
-    --secondary: 217 32% 17%;
-    --secondary-foreground: 210 40% 98%;
+    /* SECONDARY: Deep Gray 
+       Used for buttons that shouldn't distract.
+    */
+    --secondary: 0 0% 12%;
+    --secondary-foreground: 0 0% 100%;
 
-    /* Muted backgrounds */
-    --muted: 217 32% 17%;
-    --muted-foreground: 215 20% 65%;
+    /* MUTED: Subtle Gray */
+    --muted: 0 0% 12%;
+    --muted-foreground: 0 0% 60%;
 
-    /* Accents */
-    --accent: 217 32% 17%;
-    --accent-foreground: 210 40% 98%;
+    /* ACCENT: Slightly lighter black for hover states */
+    --accent: 0 0% 15%;
+    --accent-foreground: 0 0% 100%;
 
-    /* Destructive red adjusted for dark mode */
-    --destructive: 0 62% 30%;
-    --destructive-foreground: 210 40% 98%;
+    /* DESTRUCTIVE: Bright Red */
+    --destructive: 0 100% 50%;
+    --destructive-foreground: 0 0% 100%;
 
-    /* Borders slightly visible */
-    --border: 217 32% 17%;
-    --input: 217 32% 17%;
+    /* BORDERS: VISIBLE GRAY
+       CRITICAL: Since bg and card are both black, this border 
+       is the only thing separating your UI elements.
+    */
+    --border: 0 0% 20%;
+    --input: 0 0% 20%;
     
-    /* Ring matches primary */
-    --ring: 224 76% 48%;
+    /* RING: Matches primary */
+    --ring: 217 100% 60%;
   }
 }
 
