@@ -21,7 +21,6 @@ import { PackingEntryList } from '../features/packing-entry/PackingUnitList';
 import { ContentList } from '../features/content-entry/ContentList';
 import { TripSheetList } from '../features/trip-sheet-entry/TripSheetList';
 import { TripSheetForm } from '../features/trip-sheet-entry/TripSheetForm';
-import { TripSheetReportView } from '../features/trip-sheet-entry/TripSheetReportView';
 // -----------------------------------------------
 
 // Import Dashboards
@@ -97,8 +96,7 @@ const AppRouter = () => {
       <Route path="/tripsheet/new" element={<ProtectedRoute><TripSheetForm /></ProtectedRoute>} />
       <Route path="/tripsheet/edit/:id" element={<ProtectedRoute><TripSheetForm /></ProtectedRoute>} />
       
-      {/* Report View (No Layout for Printing) */}
-      <Route path="/tripsheet/report" element={<ProtectedRoute noLayout><TripSheetReportView /></ProtectedRoute>} />
+     
 
 
       {/* ===================================================

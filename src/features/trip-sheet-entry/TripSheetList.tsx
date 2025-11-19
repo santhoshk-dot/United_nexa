@@ -13,11 +13,11 @@ import { AutocompleteInput } from "../../components/shared/AutocompleteInput";
 import { MultiSelect } from "../../components/shared/MultiSelect";
 import { useData } from "../../hooks/useData";
 import type { TripSheetEntry } from "../../types"; 
-
 import { usePagination } from "../../utils/usePagination";
 import { Pagination } from "../../components/shared/Pagination";
-
 import { TripSheetPrintManager } from "./TripSheetPrintManager";
+import { TripSheetReportPrint } from "./TripSheetReportView";
+
 
 export const TripSheetList = () => {
   const navigate = useNavigate();
@@ -31,6 +31,8 @@ export const TripSheetList = () => {
   const [customEnd, setCustomEnd] = useState("");
   const [tsFilter, setTsFilter] = useState("");
   const [toPlaceFilter, setToPlaceFilter] = useState("");
+  const [reportPrintingJobs, setReportPrintingJobs] = useState<TripSheetEntry[] | null>(null);
+
 
   const [consigneeFilter, setConsigneeFilter] = useState<string[]>([]);
   const [consignorFilter, setConsignorFilter] = useState("");
@@ -158,14 +160,16 @@ export const TripSheetList = () => {
   };
 
   const handleShowReport = () => {
-    if (filtered.length === 0) {
-      alert("No data available to show in report.");
-      return;
-    }
+  if (filtered.length === 0) {
+    alert("No data available to show in report.");
+    return;
+  }
 
-    const ids = filtered.map((t) => t.mfNo).join(",");
-    window.open(`/tripsheet/report?ts=${ids}`, "_blank");
-  };
+  // Pass whole entries to the print module (NOT navigation)
+  setReportPrintingJobs(filtered);
+};
+
+
 
   return (
     <div className="space-y-6">
@@ -369,6 +373,13 @@ export const TripSheetList = () => {
       {printIds && (
         <TripSheetPrintManager mfNos={printIds} onClose={() => setPrintIds(null)} />
       )}
+      {reportPrintingJobs && (
+        <TripSheetReportPrint
+          sheets={reportPrintingJobs}
+          onClose={() => setReportPrintingJobs(null)}
+        />
+      )}
+
     </div>
   );
 };

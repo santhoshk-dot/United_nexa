@@ -1,111 +1,204 @@
-// src/features/trip-sheet-entry/TripSheetReportView.tsx
-import { useSearchParams } from "react-router-dom";
-import { useData } from "../../hooks/useData";
+// src/features/trip-sheet-entry/TripSheetReportPrint.tsx
 import { useEffect, useMemo } from "react";
+import ReactDOM from "react-dom";
 import type { TripSheetEntry } from "../../types";
 
-export const TripSheetReportView = () => {
-  const [searchParams] = useSearchParams();
-  const { getTripSheet } = useData();
+// --------------------------------------------------
+// REPORT HEADER (Same Style as Stock Report)
+// --------------------------------------------------
+const ReportHeader = () => (
+  <div
+    className="w-full font-serif mb-0 text-black"
+    style={{ fontFamily: '"Times New Roman", Times, serif' }}
+  >
+    <div className="text-center font-bold text-lg mb-1 uppercase">
+      TRIP SHEET REPORT
+    </div>
 
-  // Read "?ts=1,2,3"
-  const ids = useMemo(() => {
-    const param = searchParams.get("ts");
-    return param ? param.split(",") : [];
-  }, [searchParams]);
+    <div className="border border-black flex">
+      <div className="w-[70%] border-r border-black p-2">
+        <div className="flex justify-between items-baseline text-xs font-bold mb-1 leading-none">
+          <span>GSTIN:33ABLPV5082H3Z8</span>
+          <span>Mobile : 9787718433</span>
+        </div>
 
-  // Resolve trip sheets (type-safe)
-  const sheets = useMemo(() => {
-    return ids
-      .map((id) => getTripSheet(id))
-      .filter((t): t is TripSheetEntry => Boolean(t));
-  }, [ids, getTripSheet]);
+        <h1 className="text-2xl font-bold uppercase text-left tracking-tight mt-1">
+          UNITED TRANSPORT COMPANY
+        </h1>
 
-  // Auto-print
-  useEffect(() => {
-    if (sheets.length > 0) {
-      setTimeout(() => window.print(), 300);
-    }
-  }, [sheets.length]);
-
-  if (sheets.length === 0) {
-    return (
-      <div style={{ padding: 20, fontSize: 18, color: "red" }}>
-        ❌ No TripSheets found.
+        <p className="text-xs font-bold mt-1 text-left">
+          164-A, Arumugam Road, Near A.V.T. School, SIVAKASI - 626123
+        </p>
       </div>
-    );
-  }
 
-  return (
-    <div className="report-container" style={{ padding: "20px" }}>
-      <style>
-        {`
-        body {
-          -webkit-print-color-adjust: exact;
-          print-color-adjust: exact;
-          font-family: Arial, Helvetica, sans-serif;
-        }
+      <div className="w-[30%]"></div>
+    </div>
 
-        .report-title {
-          text-align: center;
-          font-size: 20px;
-          font-weight: 700;
-          margin-bottom: 20px;
-        }
+    <div className="border-x border-b border-black p-1 pl-2 text-sm font-normal">
+      Overall TripSheet Report
+    </div>
+  </div>
+);
 
-        table {
-          width: 100%;
-          border-collapse: collapse;
-          font-size: 12px;
-        }
+// --------------------------------------------------
+// SINGLE PAGE COMPONENT
+// --------------------------------------------------
+interface PageProps {
+  entries: TripSheetEntry[];
+  pageNumber: number;
+  totalPages: number;
+  isLastPage: boolean;
+  grandTotal: number;
+}
 
-        th, td {
-          border: 1px solid #000;
-          padding: 6px 8px;
-        }
+const ReportPage = ({
+  entries,
+  pageNumber,
+  totalPages,
+  isLastPage,
+  grandTotal,
+}: PageProps) => (
+  <div
+    className="report-page bg-white text-black"
+    style={{
+      width: "210mm",
+      minHeight: "297mm",
+      padding: "10mm",
+      boxSizing: "border-box",
+      fontFamily: '"Times New Roman", Times, serif',
+    }}
+  >
+    <ReportHeader />
 
-        th {
-          background: #f2f2f2;
-          font-weight: 700;
-          text-transform: uppercase;
-          font-size: 11px;
-        }
+    {/* TABLE */}
+    <table className="w-full table-fixed border-collapse border-x border-b border-black text-[11px] leading-tight mt-0">
+      <thead>
+        <tr className="h-8">
+          <th className="border border-black w-[12%] p-1 text-left font-bold text-xs">TS No</th>
+          <th className="border border-black w-[12%] p-1 text-left font-bold text-xs">Date</th>
+          <th className="border border-black w-[20%] p-1 text-left font-bold text-xs">From</th>
+          <th className="border border-black w-[20%] p-1 text-left font-bold text-xs">To</th>
+          <th className="border border-black w-[15%] p-1 text-right font-bold text-xs">Amount</th>
+        </tr>
+      </thead>
 
-        td {
-          font-size: 11px;
-        }
-
-        @media print {
-          @page { size: A4; margin: 10mm; }
-        }
-      `}
-      </style>
-
-      <div className="report-title">TRIP SHEET REPORT</div>
-
-      <table>
-        <thead>
-          <tr>
-            <th>TS No</th>
-            <th>Date</th>
-            <th>From</th>
-            <th>To</th>
-            <th>Total Amount</th>
+      <tbody>
+        {entries.map((ts) => (
+          <tr key={ts.mfNo} className="h-6">
+            <td className="border border-black p-1 px-2">{ts.mfNo}</td>
+            <td className="border border-black p-1 px-2">{ts.tsDate}</td>
+            <td className="border border-black p-1 px-2">{ts.fromPlace}</td>
+            <td className="border border-black p-1 px-2">{ts.toPlace}</td>
+            <td className="border border-black p-1 px-2 text-right">
+              ₹{(ts.totalAmount ?? 0).toLocaleString("en-IN")}
+            </td>
           </tr>
-        </thead>
+        ))}
 
-        <tbody>
-          {sheets.map((ts) => (
-            <tr key={ts.mfNo}>
-              <td>{ts.mfNo}</td>
-              <td>{ts.tsDate}</td>
-              <td>{ts.fromPlace}</td>
-              <td>{ts.toPlace}</td>
-              <td>₹{(ts.totalAmount ?? 0).toLocaleString("en-IN")}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+        {isLastPage && (
+          <tr className="h-8 font-bold bg-gray-50">
+            <td className="border border-black p-1 px-2 text-right" colSpan={4}>
+              TOTAL:
+            </td>
+            <td className="border border-black p-1 px-2 text-right">
+              ₹{grandTotal.toLocaleString("en-IN")}
+            </td>
+          </tr>
+        )}
+      </tbody>
+    </table>
+
+    <div className="text-center text-[10px] mt-4 font-sans">
+      Page {pageNumber} of {totalPages}
+    </div>
+  </div>
+);
+
+// --------------------------------------------------
+// MAIN PRINT PORTAL COMPONENT
+// --------------------------------------------------
+export const TripSheetReportPrint = ({
+  sheets,
+  onClose,
+}: {
+  sheets: TripSheetEntry[];
+  onClose: () => void;
+}) => {
+  // ▬▬▬ GRAND TOTAL ▬▬▬
+  const grandTotal = useMemo(
+    () => sheets.reduce((s, ts) => s + (ts.totalAmount ?? 0), 0),
+    [sheets]
+  );
+
+  // ▬▬▬ SPLIT INTO PAGES ▬▬▬
+  const ENTRIES_PER_PAGE = 35;
+  const pages = useMemo(() => {
+    const arr: TripSheetEntry[][] = [];
+    for (let i = 0; i < sheets.length; i += ENTRIES_PER_PAGE) {
+      arr.push(sheets.slice(i, i + ENTRIES_PER_PAGE));
+    }
+    return arr;
+  }, [sheets]);
+
+  // ▬▬▬ PRINT + CLOSE ▬▬▬
+  useEffect(() => {
+    if (sheets.length === 0) return;
+
+    const handleAfterPrint = () => {
+      onClose();
+    };
+
+    window.addEventListener("afterprint", handleAfterPrint);
+
+    setTimeout(() => window.print(), 150);
+
+    return () =>
+      window.removeEventListener("afterprint", handleAfterPrint);
+  }, [sheets, onClose]);
+
+  // ▬▬▬ PORTAL CONTENT ▬▬▬
+  const printContent = (
+    <div className="trip-report-wrapper">
+      <style>{`
+        @media print {
+          #root {
+            display: none !important;
+            visibility: hidden !important;
+          }
+
+          .trip-report-wrapper {
+            display: block !important;
+            visibility: visible !important;
+            position: absolute !important;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background: white;
+          }
+          .report-page {
+            page-break-after: always !important;
+            page-break-inside: avoid !important;
+          }
+          @page { size: A4; margin: 0; }
+        }
+
+        @media screen {
+          .trip-report-wrapper { display: none; }
+        }
+      `}</style>
+
+      {pages.map((p, i) => (
+        <ReportPage
+          key={i}
+          entries={p}
+          pageNumber={i + 1}
+          totalPages={pages.length}
+          isLastPage={i === pages.length - 1}
+          grandTotal={grandTotal}
+        />
+      ))}
     </div>
   );
+
+  return ReactDOM.createPortal(printContent, document.body);
 };

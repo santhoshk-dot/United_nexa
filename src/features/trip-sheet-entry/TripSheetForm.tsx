@@ -7,6 +7,7 @@ import { Button } from "../../components/shared/Button";
 import { Input } from "../../components/shared/Input";
 import { AutocompleteInput } from "../../components/shared/AutocompleteInput";
 import { useData } from "../../hooks/useData";
+import { getTodayDate } from "../../utils/dateHelpers";
 
 const toNum = (v: any) => (Number.isFinite(Number(v)) ? Number(v) : 0);
 
@@ -31,9 +32,9 @@ export const TripSheetForm = () => {
     editing ? editing.mfNo : undefined
   );
 
-  const [tsDate, setTsDate] = useState(editing?.tsDate ?? "");
+const [tsDate, setTsDate] = useState(editing ? editing.tsDate : getTodayDate());
   const [carriers, setCarriers] = useState(editing?.carriers ?? "");
-  const [fromPlace, setFromPlace] = useState(editing?.fromPlace ?? "");
+  const [fromPlace, setFromPlace] = useState( editing ? editing.fromPlace : "Sivakasi");
   const [toPlace, setToPlace] = useState(editing?.toPlace ?? "");
 
   const [items, setItems] = useState<TripSheetGCItem[]>(editing?.items ?? []);
@@ -134,12 +135,39 @@ export const TripSheetForm = () => {
   const [lorryName, setLorryName] = useState(editing?.lorryName ?? "");
 
   // GC Options
+  // --- GET ALL USED GC NUMBERS IN ALL TRIPSHEETS ---
+  const usedGCs = useMemo(() => {
+    const arr: string[] = [];
+    const all = JSON.parse(localStorage.getItem("tripSheets") || "[]");
+
+    all.forEach((ts: TripSheetEntry) => {
+      ts.items?.forEach((it) => arr.push(it.gcNo));
+    });
+
+    return arr;
+  }, []);
+
+  // --- GC OPTIONS (FILTERED) ---
+  // Show only:
+  // 1. Not already in this form (items)
+  // 2. Not used in any other tripsheet
+  // 3. But allow items belonging to this editing form
   const gcOptions = gcEntries
-    .filter((g) => !items.some((i) => i.gcNo === g.id))
+    .filter((g) => {
+      const isInForm = items.some((i) => i.gcNo === g.id);
+      const isUsedElsewhere = usedGCs.includes(g.id);
+
+      // In EDIT MODE — allow own GCs
+      if (editing && isInForm) return true;
+
+      return !isInForm && !isUsedElsewhere;
+    })
     .map((g) => ({
       value: g.id,
       label: g.id,
-    }));
+    }
+  ));
+
 
   // Place Options
   const fromPlaceOptions = fromPlaces.map((p) => ({
@@ -159,42 +187,56 @@ export const TripSheetForm = () => {
     return String(max + 1);
   };
 
-  const handleSave = (e?: React.FormEvent) => {
-    e?.preventDefault();
+ const handleSave = (e?: React.FormEvent) => {
+  e?.preventDefault();
 
-    if (!tsDate) return alert("Please enter TripSheet date");
+  if (!tsDate) return alert("Please enter TripSheet date");
 
-    let finalMfNo = mfNo;
+  if (!toPlace || toPlace.trim() === "") {
+    return alert("Please select To Place.");
+  }
 
-    if (!editing) {
-      finalMfNo = generateNextMfNo();
-      setMfNo(finalMfNo);
-    }
+  if (!unloadPlace || unloadPlace.trim() === "") {
+    return alert("Please select Unload Place.");
+  }
 
-    const payload: TripSheetEntry = {
-      id: finalMfNo!,
-      mfNo: finalMfNo!,
-      tsDate,
-      carriers,
-      fromPlace,
-      toPlace,
-      items,
-      unloadPlace,
-      totalAmount,
-      driverName,
-      dlNo,
-      driverMobile,
-      ownerName,
-      ownerMobile,
-      lorryNo,
-      lorryName,
-    };
+  // NEW VALIDATION — ensure at least 1 GC is added
+  if (items.length === 0) {
+    return alert("Please add at least one GC entry before saving the TripSheet.");
+  }
 
-    if (editing) updateTripSheet(payload);
-    else addTripSheet(payload);
+  let finalMfNo = mfNo;
 
-    navigate("/tripsheet");
+  if (!editing) {
+    finalMfNo = generateNextMfNo();
+    setMfNo(finalMfNo);
+  }
+
+  const payload: TripSheetEntry = {
+    id: finalMfNo!,
+    mfNo: finalMfNo!,
+    tsDate,
+    carriers,
+    fromPlace,
+    toPlace,
+    items,
+    unloadPlace,
+    totalAmount,
+    driverName,
+    dlNo,
+    driverMobile,
+    ownerName,
+    ownerMobile,
+    lorryNo,
+    lorryName,
   };
+
+  if (editing) updateTripSheet(payload);
+  else addTripSheet(payload);
+
+  navigate("/trip-sheet");
+};
+
 
   return (
     <div className="space-y-4 p-4">
@@ -206,7 +248,7 @@ export const TripSheetForm = () => {
             type="button"
             variant="secondary"
             className="px-3"
-            onClick={() => navigate("/tripsheet")}
+            onClick={() => navigate("/trip-sheet")}
           >
             <ArrowLeft size={18} />
           </Button>
@@ -224,7 +266,7 @@ export const TripSheetForm = () => {
 
           {/* TRIP DETAILS */}
           <div>
-            <h2 className="text-xl font-semibold border-b pb-3 mb-6">
+            <h2 className="text-xl font-semibold text-foreground border-b border-muted pb-3 mb-6">
               Trip Details
             </h2>
 
@@ -258,7 +300,7 @@ export const TripSheetForm = () => {
 
           {/* GC DETAILS PANEL */}
           <div>
-            <h2 className="text-xl font-semibold border-b pb-3 mb-6">
+            <h2 className="text-xl font-semibold text-foreground border-b border-muted pb-3 mb-6">
               GC Details
             </h2>
 
@@ -371,7 +413,7 @@ export const TripSheetForm = () => {
 
           {/* DRIVER / OWNER */}
           <div>
-            <h2 className="text-xl font-semibold border-b pb-3 mb-6">
+            <h2 className="text-xl font-semibold text-foreground border-b border-muted pb-3 mb-6">
               Driver Details
             </h2>
 
@@ -427,11 +469,11 @@ export const TripSheetForm = () => {
           </div>
 
           {/* SAVE FOOTER */}
-          <div className="flex flex-col sm:flex-row justify-end gap-4 p-4 bg-background/90 border-t rounded-b-lg">
+          <div className="flex flex-col sm:flex-row justify-end gap-4 p-4 bg-background/90 backdrop-blur-sm sticky bottom-0 border-t border-muted rounded-b-lg">
             <Button
               type="button"
               variant="secondary"
-              onClick={() => navigate("/tripsheet")}
+              onClick={() => navigate("/trip-sheet")}
             >
               Cancel
             </Button>
