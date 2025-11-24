@@ -146,7 +146,7 @@ export const Sidebar = ({ isSidebarOpen, setIsSidebarOpen }: SidebarProps) => {
               >
                 <div className="flex items-center">
                   <Database className="mr-3" size={18} />
-                  Data Management
+                  Settings
                 </div>
                 {isDataMgmtOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
               </button>

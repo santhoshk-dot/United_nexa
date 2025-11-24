@@ -198,9 +198,10 @@ export const TripSheetList = () => {
               <tr>
                 <th className="px-6 py-3 text-left"><input type="checkbox" className="h-4 w-4 accent-primary" checked={selected.length === filtered.length && filtered.length > 0} onChange={toggleSelectAll} /></th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">TS No</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Date</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">From</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">To</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Date</th>
+                
                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Amount</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Actions</th>
               </tr>
@@ -210,9 +211,10 @@ export const TripSheetList = () => {
                 <tr key={ts.mfNo} className="hover:bg-muted/30">
                   <td className="px-6 py-4"><input type="checkbox" className="h-4 w-4 accent-primary" checked={selected.includes(ts.mfNo)} onChange={() => toggleSelect(ts.mfNo)} /></td>
                   <td className="px-6 py-4 font-semibold text-primary">{ts.mfNo}</td>
-                  <td className="px-6 py-4 text-sm">{ts.tsDate}</td>
-                  <td className="px-6 py-4 text-sm">{ts.fromPlace}</td>
+                        <td className="px-6 py-4 text-sm">{ts.fromPlace}</td>
                   <td className="px-6 py-4 text-sm">{ts.toPlace}</td>
+                  <td className="px-6 py-4 text-sm">{ts.tsDate}</td>
+            
                   <td className="px-6 py-4 text-sm">₹{ts.totalAmount.toLocaleString("en-IN")}</td>
                   <td className="px-6 py-4 space-x-3">
                     <button onClick={() => navigate(`/tripsheet/edit/${ts.mfNo}`)} className="text-blue-600 hover:text-blue-800"><FilePenLine size={18} /></button>

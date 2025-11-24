@@ -87,8 +87,20 @@ const MOCK_CONTENT_ENTRIES: ContentEntry[] = [
 ];
 
 const MOCK_VEHICLES: VehicleEntry[] = [
-  { id: 'v1', vehicleNo: 'TN-67-AB-1234', vehicleName: 'Ashok Leyland' },
-  { id: 'v2', vehicleNo: 'KA-01-XY-5678', vehicleName: 'Tata Ace' },
+  {
+    id: 'V-1',
+    vehicleNo: 'TN-67-AB-1234',
+    vehicleName: 'TATA 1412',
+    ownerName: 'RAMESH',
+    ownerMobile: '9876543210'
+  },
+  {
+    id: 'V-2',
+    vehicleNo: 'KA-01-XY-5678',
+    vehicleName: 'EICHER 2517',
+    ownerName: 'SURESH',
+    ownerMobile: '9123456789'
+  }
 ];
 
 const MOCK_DRIVERS: DriverEntry[] = [
@@ -284,9 +296,11 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
   const getTripSheet = (id: string) => tripSheets.find(ts => ts.mfNo === id || ts.id === id);
 
   // Vehicles
-  const addVehicleEntry = (entry: VehicleEntry) => setVehicleEntries(p => [...p, entry]);
-  const updateVehicleEntry = (entry: VehicleEntry) => setVehicleEntries(p => p.map(x => x.id === entry.id ? entry : x));
-  const deleteVehicleEntry = (id: string) => setVehicleEntries(p => p.filter(x => x.id !== id));
+  const addVehicleEntry = (x: VehicleEntry) => setVehicleEntries((p) => [...p, x]);
+  const updateVehicleEntry = (x: VehicleEntry) =>
+    setVehicleEntries((p) => p.map((y) => (y.id === x.id ? x : y)));
+  const deleteVehicleEntry = (id: string) =>
+    setVehicleEntries((p) => p.filter((x) => x.id !== id));
 
   // Drivers
   const addDriverEntry = (entry: DriverEntry) => setDriverEntries(p => [...p, entry]);

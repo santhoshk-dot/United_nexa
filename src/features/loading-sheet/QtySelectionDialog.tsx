@@ -1,13 +1,9 @@
-// Assumed file: ./QtySelectionDialog.tsx
+
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Button } from '../../components/shared/Button';
 import { Upload } from 'lucide-react'; 
 import { processImageForSelection } from '../../utils/imageProcessor';
-
-// Assume you have an Input component for styling consistency
-// import { Input } from '../../components/shared/Input'; 
-// For this example, I'll use a standard HTML input with Tailwind classes.
 
 type QtySelectionDialogProps = {
     open: boolean;
@@ -67,6 +63,12 @@ export const QtySelectionDialog = ({
     if (!open) return null;
 
     const range = useMemo(() => Array.from({ length: maxQty }, (_, i) => i + 1), [maxQty]);
+
+    // Convert Set back to a sorted Array for saving (used for display and logic checks)
+    const finalSelections = useMemo(() => Array.from(selectedSet).sort((a, b) => a - b), [selectedSet]);
+    
+    // Check if all items are currently selected
+    const allSelected = finalSelections.length === maxQty;
 
     // Helper to get the quantities in the drag range
     const getDraggedRange = (start: number, end: number): number[] => {
@@ -138,26 +140,8 @@ export const QtySelectionDialog = ({
         const draggedRange = getDraggedRange(dragStartQty, qty);
 
         setSelectedSet(prev => {
-            // Use the set state saved from handleMouseDown (preDragSet)
-            let newSet = new Set(prev); 
-            
-            // Apply the initial drag action (SELECT/DESELECT) to the entire range
+            let newSet = new Set(preDragSet); 
             newSet = applyAction(newSet, dragAction, draggedRange);
-            
-            // In additive DESELECT mode, preserve items outside the current drag path
-            if (dragAction === 'DESELECT' && preDragSet.size > 0) {
-                 const additiveModeActive = draggedRange.length > 1 || (preDragSet.size > 1 && !draggedRange.every(q => preDragSet.has(q)));
-                
-                 if (additiveModeActive) {
-                    // Re-add items that were in the starting set (preDragSet) but are NOT in the current drag range
-                    preDragSet.forEach(q => {
-                        if (!draggedRange.includes(q)) {
-                            newSet.add(q);
-                        }
-                    });
-                 }
-            }
-
             return newSet;
         });
     };
@@ -171,6 +155,19 @@ export const QtySelectionDialog = ({
             setPreDragSet(new Set<number>()); // Clear temporary state
         }
     };
+
+    // --- HANDLER FOR SELECT ALL ---
+    const handleSelectAll = () => {
+        // Create a new Set containing all quantities in the range
+        setSelectedSet(new Set<number>(range));
+    };
+    
+    // --- NEW HANDLER FOR DESELECT ALL ---
+    const handleDeselectAll = () => {
+        // Clear the selected set
+        setSelectedSet(new Set<number>());
+    };
+    // ------------------------------------
 
     // --- HANDLER FOR IMAGE UPLOAD WITH MERGE LOGIC ---
     const handleImageUpload = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -239,10 +236,6 @@ export const QtySelectionDialog = ({
     // -----------------------------------
 
 
-    // Convert Set back to a sorted Array for saving
-    const finalSelections = useMemo(() => Array.from(selectedSet).sort((a, b) => a - b), [selectedSet]);
-
-
     const handleSave = () => {
         onSelect(finalSelections);
         handleMouseUpOrLeave();
@@ -262,7 +255,6 @@ export const QtySelectionDialog = ({
             onMouseUp={handleMouseUpOrLeave} 
             onMouseLeave={handleMouseUpOrLeave}
         >
-            {/* Increased max-w to 2xl */}
             <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-2xl w-full max-w-4xl">
                 <h2 className="text-xl font-bold mb-4 text-foreground">GC No. {gcId}</h2>
                 
@@ -271,23 +263,36 @@ export const QtySelectionDialog = ({
                         Available quantity: <span className="font-bold">{maxQty}. </span>Currently loaded: <span className="font-bold">{finalSelections.length}</span>
                     </p>
                     
-                    {/* --- IMAGE UPLOAD BUTTON --- */}
-                    <label htmlFor="image-upload" className={`
-                        inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors h-10 px-4 py-2 
-                        ${isProcessingImage ? 'bg-gray-400 cursor-not-allowed' : 'bg-secondary text-secondary-foreground hover:bg-secondary/80 cursor-pointer'}
-                    `}>
-                        <Upload className="mr-2 h-4 w-4" />
-                        {isProcessingImage ? 'Scanning...' : 'Upload Image'}
-                        <input 
-                            id="image-upload"
-                            type="file"
-                            accept="image/*"
-                            className="hidden"
-                            onChange={handleImageUpload}
+                    <div className='flex gap-2'>
+                        {/* --- CONDITIONAL SELECT/DESELECT ALL BUTTON --- */}
+                        <Button 
+                            onClick={allSelected ? handleDeselectAll : handleSelectAll} // TOGGLE HANDLER
+                            variant="secondary" 
                             disabled={isProcessingImage}
-                        />
-                    </label>
-                    {/* --------------------------- */}
+                            className="shrink-0"
+                        >
+                            {allSelected ? 'Deselect All' : 'Select All'} {/* TOGGLE TEXT */}
+                        </Button>
+                        {/* ----------------------------- */}
+
+                        {/* --- IMAGE UPLOAD BUTTON --- */}
+                        <label htmlFor="image-upload" className={`
+                            inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors h-10 px-4 py-2 
+                            ${isProcessingImage ? 'bg-gray-400 cursor-not-allowed' : 'bg-secondary text-secondary-foreground hover:bg-secondary/80 cursor-pointer'}
+                        `}>
+                            <Upload className="mr-2 h-4 w-4" />
+                            {isProcessingImage ? 'Scanning...' : 'Upload Image'}
+                            <input 
+                                id="image-upload"
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={handleImageUpload}
+                                disabled={isProcessingImage}
+                            />
+                        </label>
+                        {/* --------------------------- */}
+                    </div>
                 </div>
                 
                 {/* --- RANGE SELECTION INPUTS --- */}
@@ -346,7 +351,7 @@ export const QtySelectionDialog = ({
                 )}
 
                 <blockquote className="text-sm text-muted-foreground border-l-4 border-primary pl-3 py-1 mb-4 bg-muted/30 rounded-r-md">
-                    <span className="font-bold">Tip:</span> Click and drag to select or deselect items. For faster selection, use <span className="font-bold">Upload Image</span> or <span className="font-bold">Select Range</span>.                
+                    <span className="font-bold">Tip:</span> Click or drag to select or deselect items. For faster selection, use <span className="font-bold">{allSelected ? 'Deselect All' : 'Select All'}</span>, <span className="font-bold">Upload Image</span> or <span className="font-bold">Select Range</span>.
                 </blockquote>
                 
                 {/* Removed max-h-64 to allow dynamic height */}

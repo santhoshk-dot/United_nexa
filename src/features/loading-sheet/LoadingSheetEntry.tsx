@@ -1,3 +1,4 @@
+
 import { useState, useMemo } from 'react';
 import { Trash2, Search, Printer, PackageCheck, Filter, RotateCcw, XCircle } from 'lucide-react'; 
 import { DateFilterButtons, getTodayDate, getYesterdayDate, isDateInLast7Days } from '../../components/shared/DateFilterButtons';
@@ -358,18 +359,18 @@ export const LoadingSheetEntry = () => {
                 <th className="px-4 py-3 text-left">
                   <input
                     type="checkbox"
-                    className="h-4 w-4 text-primary border-muted-foreground/30 rounded focus:ring-primary"
+                    className="h-4 w-4 accent-primary border-muted-foreground/30 rounded focus:ring-primary"
                     checked={isAllSelected}
                     onChange={handleSelectAll}
                   />
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">GC No</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">QTY (Total)</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">QTY (Loaded)</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Consignor</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Consignee</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Packing DTS</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Content DTS</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Consignor Name</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Consignee Name</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">QTY (Total)</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">QTY (Loaded)</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
@@ -388,20 +389,20 @@ export const LoadingSheetEntry = () => {
                     <td className="px-4 py-4 whitespace-nowrap">
                       <input
                         type="checkbox"
-                        className="h-4 w-4 text-primary border-muted-foreground/30 rounded focus:ring-primary"
+                        className="h-4 w-4 accent-primary border-muted-foreground/30 rounded focus:ring-primary"
                         checked={selectedGcIds.includes(gc.id)}
                         onChange={(e) => handleSelectRow(e, gc.id)}
                       />
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-primary">{gc.id}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-foreground">{consignor?.name || 'N/A'}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">{consignee?.name || 'N/A'}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">{gc.packing || '-'}</td> 
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">{gc.contents || '-'}</td> 
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">{totalCount}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-bold" style={{ color: isFullyLoaded ? 'green' : isPartiallyLoaded ? 'orange' : 'inherit' }}>
                         {loadedCount}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">{gc.packing || '-'}</td> 
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">{gc.contents || '-'}</td> 
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-foreground">{consignor?.name || 'N/A'}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">{consignee?.name || 'N/A'}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm space-x-3 flex items-center">
                        {/* Button to open Quantity Selection Dialog */}
                       <button 
@@ -441,7 +442,7 @@ export const LoadingSheetEntry = () => {
                     <div className="flex items-start gap-3">
                       <input
                         type="checkbox"
-                        className="h-4 w-4 text-primary border-muted-foreground/30 rounded focus:ring-primary mt-1.5"
+                        className="h-4 w-4 accent-primary border-muted-foreground/30 rounded focus:ring-primary mt-1.5"
                         checked={selectedGcIds.includes(gc.id)}
                         onChange={(e) => handleSelectRow(e, gc.id)}
                       />

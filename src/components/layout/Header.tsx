@@ -16,13 +16,25 @@ export const Header = ({ setIsSidebarOpen }: HeaderProps) => {
     
     // Operations
     if (pathname.startsWith('/gc-entry/new')) return 'New GC Entry';
-    if (pathname.startsWith('/gc-entry/edit')) return 'Edit GC Entry';
+    
+    // UPDATE 1: Extract GC Number from URL
+    if (pathname.startsWith('/gc-entry/edit')) {
+      const segments = pathname.split('/');
+      const id = segments[segments.length - 1]; // Get the last part (the ID)
+      return `Edit GC Entry #${id}`;
+    }
     if (pathname.startsWith('/gc-entry')) return 'GC Entry Listing';
     
     if (pathname.startsWith('/loading-sheet')) return 'Loading Sheet Entry';
     
     if (pathname.startsWith('/tripsheet/new')) return 'New Trip Sheet';
-    if (pathname.startsWith('/tripsheet/edit')) return 'Edit Trip Sheet';
+    
+    // UPDATE 2: Extract Trip Sheet Number from URL
+    if (pathname.startsWith('/tripsheet/edit')) {
+      const segments = pathname.split('/');
+      const id = segments[segments.length - 1]; // Get the last part (the ID)
+      return `Edit Trip Sheet #${id}`;
+    }
     if (pathname.startsWith('/trip-sheet')) return 'Trip Sheet Listing';
     
     if (pathname.startsWith('/pending-stock')) return 'Pending Stock History';

@@ -112,6 +112,9 @@ export interface VehicleEntry {
   id: string;
   vehicleNo: string;
   vehicleName: string;
+  ownerName?: string;
+  ownerMobile?: string;
+
 }
 
 export interface DriverEntry {

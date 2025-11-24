@@ -129,6 +129,8 @@ export const TripSheetForm = () => {
   const [driverName, setDriverName] = useState<string>(editing?.driverName ?? "");
   const [dlNo, setDlNo] = useState<string>(editing?.dlNo ?? "");
   const [driverMobile, setDriverMobile] = useState<string>(editing?.driverMobile ?? "");
+  const driverNameReadonly = dlNo !== "" || driverMobile !== "";
+
 
   // Drivers data for dropdowns
   const driverDlOptions = driverEntries.map((d) => ({ value: d.dlNo, label: d.dlNo }));
@@ -160,19 +162,23 @@ export const TripSheetForm = () => {
   const vehicleNameOptions = vehicleEntries.map((v) => ({ value: v.vehicleName.toUpperCase(), label: v.vehicleName.toUpperCase() }));
 
   const fillVehicleFromNo = (no: string) => {
-    const v = vehicleEntries.find((x) => x.vehicleNo === no);
-    if (!v) return;
-    setLorryNo(v.vehicleNo);
-    setLorryName(v.vehicleName.toUpperCase());
-  };
+  const v = vehicleEntries.find((x) => x.vehicleNo === no);
+  if (!v) return;
+
+  setLorryNo(v.vehicleNo);
+  setLorryName(v.vehicleName.toUpperCase());
+
+  // Auto-fill owner fields
+  setOwnerName(v.ownerName ? v.ownerName.toUpperCase() : "");
+  setOwnerMobile(v.ownerMobile ?? "");
+};
+
 
   // OWNER
   const [ownerName, setOwnerName] = useState<string>(editing?.ownerName ?? "");
   const [ownerMobile, setOwnerMobile] = useState<string>(editing?.ownerMobile ?? "");
 
   // Enforce uppercase for certain fields on change
-  const onDriverNameChange = (v: string) => setDriverName(v.toUpperCase());
-  const onLorryNameChange = (v: string) => setLorryName(v.toUpperCase());
   const onOwnerNameChange = (v: string) => setOwnerName(v.toUpperCase());
   // (mobile and dl are numeric/strings - do not uppercase)
 
@@ -443,9 +449,10 @@ export const TripSheetForm = () => {
                   options={driverNameOptions}
                   value={driverName}
                   onSelect={(v) => {
-                    // user asked values to be full caps in driver section
-                    onDriverNameChange(String(v));
+                  if (!driverNameReadonly) setDriverName(v);
                   }}
+                  readOnly={driverNameReadonly}
+                  disabled={driverNameReadonly}
                   required
                 />
               </div>
@@ -470,17 +477,31 @@ export const TripSheetForm = () => {
                   placeholder="Select Lorry Name"
                   options={vehicleNameOptions}
                   value={lorryName}
-                  onSelect={(v) => onLorryNameChange(String(v))}
+                  onSelect={setLorryName}
+                  readOnly={!!lorryNo}
+                  disabled={!!lorryNo}
                   required
                 />
               </div>
 
               <div className="col-span-1 lg:col-span-2">
-                <Input label="Owner Name" value={ownerName} onChange={(e) => onOwnerNameChange(e.target.value)} />
+                <Input
+                  label="Owner Name"
+                  value={ownerName}
+                  onChange={(e) => onOwnerNameChange(e.target.value)}
+                  readOnly={!!lorryNo}   // <-- Only OWNER NAME is locked
+                  required
+                />
               </div>
 
               <div className="col-span-1 lg:col-span-2">
-                <Input label="Owner Mobile" value={ownerMobile} onChange={(e) => setOwnerMobile(e.target.value)} />
+                <Input
+                  label="Owner Mobile"
+                  value={ownerMobile}
+                  onChange={(e) => setOwnerMobile(e.target.value)}  // Still editable
+                  required
+                />
+                
               </div>
 
               <div className="col-span-1 lg:col-span-4">

@@ -197,10 +197,11 @@ export const PendingStockHistory = () => {
               <tr>
                 <th className="px-4 py-3 text-left"><input type="checkbox" className="h-4 w-4 accent-primary" checked={isAllSelected} onChange={handleSelectAll} /></th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">GC No</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">From</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">To</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Consignor</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Consignee</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">From</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">To</th>
+                
                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Qty</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Actions</th>
               </tr>
@@ -210,10 +211,11 @@ export const PendingStockHistory = () => {
                 <tr key={gc.id}>
                    <td className="px-4 py-4"><input type="checkbox" className="h-4 w-4 accent-primary" checked={selectedGcIds.includes(gc.id)} onChange={(e) => handleSelectRow(e, gc.id)} /></td>
                    <td className="px-6 py-4 text-primary font-semibold">{gc.id}</td>
+                    <td className="px-6 py-4 text-sm">{consignors.find(c=>c.id===gc.consignorId)?.name}</td>
+                   <td className="px-6 py-4 text-sm">{consignees.find(c=>c.id===gc.consigneeId)?.name}</td>
                    <td className="px-6 py-4 text-sm">{gc.from}</td>
                    <td className="px-6 py-4 text-sm">{gc.destination}</td>
-                   <td className="px-6 py-4 text-sm">{consignors.find(c=>c.id===gc.consignorId)?.name}</td>
-                   <td className="px-6 py-4 text-sm">{consignees.find(c=>c.id===gc.consigneeId)?.name}</td>
+                  
                    <td className="px-6 py-4 text-sm">{gc.quantity}</td>
                    <td className="px-6 py-4 space-x-3">
                       <button onClick={() => handleEdit(gc.id)} className="text-blue-600"><FilePenLine size={18} /></button>

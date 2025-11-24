@@ -174,6 +174,12 @@ export const VehicleList = () => {
                   Vehicle Name
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
+                  Owner Name
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
+                  Owner Mobile
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
                   Actions
                 </th>
               </tr>
@@ -188,6 +194,8 @@ export const VehicleList = () => {
                     </td>
                     <td className="px-6 py-4 text-sm font-semibold text-foreground">{entry.vehicleNo}</td>
                     <td className="px-6 py-4 text-sm text-muted-foreground">{entry.vehicleName}</td>
+                    <td className="px-6 py-4 text-sm">{entry.ownerName || "-"}</td>
+                    <td className="px-6 py-4 text-sm">{entry.ownerMobile || "-"}</td>
                     <td className="px-6 py-4 text-sm space-x-3">
                       <button onClick={() => handleEdit(entry)} className="text-blue-600 hover:text-blue-800">
                         <FilePenLine size={18} />
@@ -222,6 +230,12 @@ export const VehicleList = () => {
                     <div className="text-lg font-semibold text-foreground">{entry.vehicleNo}</div>
                     <div className="text-sm text-muted-foreground">
                       Name: {entry.vehicleName}
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      Owner: {entry.ownerName || "-"}
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      Mobile: {entry.ownerMobile || "-"}
                     </div>
                   </div>
 

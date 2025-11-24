@@ -22,11 +22,15 @@ export const VehicleForm = ({
     id: initialData?.id || "",
     vehicleNo: initialData?.vehicleNo || "",
     vehicleName: initialData?.vehicleName || "",
+    ownerName: initialData?.ownerName || "",
+    ownerMobile: initialData?.ownerMobile || "",
   });
 
   const [errors, setErrors] = useState({
     vehicleNo: "",
     vehicleName: "",
+    ownerName: "",
+    ownerMobile: "",
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -35,7 +39,6 @@ export const VehicleForm = ({
     setEntry((prev) => ({ ...prev, [name]: value }));
 
     //-------------- IMMEDIATE VALIDATION -----------------
-
     if (name === "vehicleNo") {
       const trimmed = value.trim();
 
@@ -65,6 +68,34 @@ export const VehicleForm = ({
         vehicleName: trimmed ? "" : "Vehicle name is required",
       }));
     }
+
+    if (name === "ownerName") {
+      const trimmed = value.trim();
+      setErrors((prev) => ({
+        ...prev,
+        ownerName: trimmed ? "" : "Owner name is required",
+      }));
+    }
+
+    if (name === "ownerMobile") {
+      const trimmed = value.trim();
+      if (!trimmed) {
+        setErrors((prev) => ({
+          ...prev,
+          ownerMobile: "Owner mobile is required",
+        }));
+      } else if (!/^\d{10}$/.test(trimmed)) {
+        setErrors((prev) => ({
+          ...prev,
+          ownerMobile: "Mobile number must be 10 digits",
+        }));
+      } else {
+        setErrors((prev) => ({
+          ...prev,
+          ownerMobile: "",
+        }));
+      }
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -74,10 +105,14 @@ export const VehicleForm = ({
 
     const no = entry.vehicleNo.trim();
     const name = entry.vehicleName.trim();
+    const owner = entry.ownerName.trim();
+    const mobile = entry.ownerMobile.trim();
 
     const newErrors = {
       vehicleNo: "",
       vehicleName: "",
+      ownerName: "",
+      ownerMobile: "",
     };
 
     // Final validations
@@ -102,6 +137,19 @@ export const VehicleForm = ({
       hasError = true;
     }
 
+    if (!owner) {
+      newErrors.ownerName = "Owner name is required";
+      hasError = true;
+    }
+
+    if (!mobile) {
+      newErrors.ownerMobile = "Owner mobile is required";
+      hasError = true;
+    } else if (!/^\d{10}$/.test(mobile)) {
+      newErrors.ownerMobile = "Mobile number must be 10 digits";
+      hasError = true;
+    }
+
     setErrors(newErrors);
 
     if (hasError) return;
@@ -111,6 +159,8 @@ export const VehicleForm = ({
       id: initialData?.id || `VEH-${Date.now()}`,
       vehicleNo: no,
       vehicleName: name,
+      ownerName: owner,
+      ownerMobile: mobile,
     };
 
     onSave(savedEntry);
@@ -168,6 +218,37 @@ export const VehicleForm = ({
                 <p className="text-sm text-red-600 mt-1">{errors.vehicleName}</p>
               )}
             </div>
+
+            {/* Owner Name */}
+            <div>
+              <Input
+                label="Owner Name"
+                id="ownerName"
+                name="ownerName"
+                value={entry.ownerName}
+                onChange={handleChange}
+                className={errors.ownerName ? "border-red-500" : ""}
+              />
+              {errors.ownerName && (
+                <p className="text-sm text-red-600 mt-1">{errors.ownerName}</p>
+              )}
+            </div>
+
+            {/* Owner Mobile */}
+            <div>
+              <Input
+                label="Owner Mobile"
+                id="ownerMobile"
+                name="ownerMobile"
+                value={entry.ownerMobile}
+                onChange={handleChange}
+                className={errors.ownerMobile ? "border-red-500" : ""}
+              />
+              {errors.ownerMobile && (
+                <p className="text-sm text-red-600 mt-1">{errors.ownerMobile}</p>
+              )}
+            </div>
+
           </div>
 
           {/* Footer */}
@@ -179,7 +260,12 @@ export const VehicleForm = ({
             <Button
               type="submit"
               variant="primary"
-              disabled={!!errors.vehicleNo || !!errors.vehicleName}
+              disabled={
+                !!errors.vehicleNo ||
+                !!errors.vehicleName ||
+                !!errors.ownerName ||
+                !!errors.ownerMobile
+              }
             >
               Save Vehicle
             </Button>

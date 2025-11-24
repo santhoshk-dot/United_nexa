@@ -14,14 +14,12 @@ const DEFAULT_ADMIN: AppUser = {
 
 interface AuthContextType {
   user: AppUser | null;
-  users: AppUser[]; // List of all users for management
-  financialYear: string | null; // Store selected year
+  users: AppUser[];
+  financialYear: string | null;
   loading: boolean;
   error: string | null;
   login: (email: string, password: string, year: string) => Promise<void>;
   logout: () => void;
-  
-  // User Management Actions
   addUser: (user: AppUser) => void;
   updateUser: (user: AppUser) => void;
   deleteUser: (id: string) => void;
@@ -30,27 +28,34 @@ interface AuthContextType {
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+  // 1. FIX: Initialize users directly inside useState (Lazy Init)
+  const [users, setUsers] = useState<AppUser[]>(() => {
+    try {
+      const storedUsers = localStorage.getItem('app_users');
+      if (storedUsers) {
+        return JSON.parse(storedUsers);
+      } else {
+        // Immediately return default admin if storage is empty
+        // We also write to localStorage here to ensure it exists for next time
+        localStorage.setItem('app_users', JSON.stringify([DEFAULT_ADMIN]));
+        return [DEFAULT_ADMIN];
+      }
+    } catch (error) {
+      console.error("Error parsing users from local storage", error);
+      return [DEFAULT_ADMIN];
+    }
+  });
+
   const [user, setUser] = useState<AppUser | null>(null);
-  const [users, setUsers] = useState<AppUser[]>([]);
   const [financialYear, setFinancialYear] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
-  // Initialize Data
+  // Initialize Session Data (Active User)
   useEffect(() => {
     try {
-      // 1. Load Users Database from LocalStorage
-      const storedUsers = localStorage.getItem('app_users');
-      if (storedUsers) {
-        setUsers(JSON.parse(storedUsers));
-      } else {
-        // Initialize with default admin if empty
-        setUsers([DEFAULT_ADMIN]);
-        localStorage.setItem('app_users', JSON.stringify([DEFAULT_ADMIN]));
-      }
-
-      // 2. Check for Active Session
+      // Check for Active Session
       const storedSession = localStorage.getItem('authUser');
       const storedYear = localStorage.getItem('authYear');
       if (storedSession) {
@@ -70,9 +75,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   // Sync Users to LocalStorage whenever the list changes
   useEffect(() => {
-    if (users.length > 0) {
-      localStorage.setItem('app_users', JSON.stringify(users));
-    }
+    localStorage.setItem('app_users', JSON.stringify(users));
   }, [users]);
 
   const login = async (email: string, password: string, year: string) => {
@@ -97,7 +100,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           setLoading(false);
           reject(new Error('Invalid email or password.'));
         }
-      }, 800); // Simulate network delay
+      }, 800); 
     });
   };
 
@@ -109,15 +112,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     navigate('/login');
   };
 
-  // --- User Management Functions ---
-
   const addUser = (newUser: AppUser) => {
     setUsers(prev => [...prev, newUser]);
   };
 
   const updateUser = (updatedUser: AppUser) => {
     setUsers(prev => prev.map(u => u.id === updatedUser.id ? updatedUser : u));
-    // If updating the currently logged-in user, update session state too
     if (user && user.id === updatedUser.id) {
       setUser(updatedUser);
       localStorage.setItem('authUser', JSON.stringify(updatedUser));
