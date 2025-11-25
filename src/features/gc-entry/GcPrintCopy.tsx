@@ -1,7 +1,9 @@
+// src/features/gc-entry/GcPrintCopy.tsx
 import React from "react";
 import type { GcEntry, Consignor, Consignee } from "../../types";
 import { numberToWords, numberToWordsInRupees } from "../../utils/toWords";
 import { useAuth } from "../../hooks/useAuth"; 
+import { useData } from "../../hooks/useData"; // <--- Added import
 
 // Helper to format currency
 const formatCurrency = (amount: number | string | undefined) => {
@@ -24,12 +26,26 @@ export const GcPrintCopy: React.FC<Props> = ({
 }) => {
   // Get current user from AuthContext
   const { user } = useAuth();
+  // Get tripSheets to check for overrides
+  const { tripSheets } = useData(); 
 
   // --- Data Parsing & Calculations ---
+  
+  // 1. Check if there is a Trip Sheet Item for this GC
+  // We flatMap all items from all sheets to find a match
+  const linkedTripSheetItem = tripSheets
+    .flatMap(sheet => sheet.items || [])
+    .find(item => item.gcNo === gc.id);
+
   const quantityNum = parseFloat(gc.quantity) || 0;
   const fromNoNum = parseFloat(gc.fromNo) || 0;
   const billValueNum = parseFloat(gc.billValue) || 0;
-  const balanceToPayNum = parseFloat(gc.balanceToPay) || 0;
+  
+  // 2. Determine Balance To Pay
+  // If linked to a trip sheet, use that amount. Otherwise use GC's balance.
+  const balanceToPayNum = linkedTripSheetItem 
+    ? linkedTripSheetItem.amount 
+    : (parseFloat(gc.balanceToPay) || 0);
   
   const freightNum = parseFloat(gc.freight) || 0;
   const godownChargeNum = parseFloat(gc.godownCharge) || 0;
@@ -203,6 +219,7 @@ export const GcPrintCopy: React.FC<Props> = ({
                      </div>
                      <div className="flex justify-between items-center">
                         <span className="font-normal">Balance To Pay :</span>
+                        {/* Uses the computed balance (from Trip Sheet or GC) */}
                         <span className="font-bold">{formatCurrency(balanceToPayNum)}</span>
                      </div>
                   </div>
@@ -246,6 +263,7 @@ export const GcPrintCopy: React.FC<Props> = ({
                  <div className="flex items-baseline gap-2">
                     <span className="text-xs font-normal whitespace-nowrap">To pay Rs.</span>
                     <span className="text-xs font-bold uppercase leading-tight break-words">
+                        {/* Uses the computed balance (from Trip Sheet or GC) */}
                         {numberToWordsInRupees(balanceToPayNum)}
                     </span>
                  </div>

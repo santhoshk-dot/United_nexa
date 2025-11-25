@@ -18,6 +18,7 @@ export const GcEntryForm = () => {
   const { 
     consignors, 
     consignees, 
+    tripSheets, // <-- Added tripSheets to check for existing trips
     getNextGcNo, 
     addGcEntry, 
     updateGcEntry, 
@@ -70,11 +71,33 @@ export const GcEntryForm = () => {
   const [consigneeDestDisplay, setConsigneeDestDisplay] = useState('');
   const [selectedConsignee, setSelectedConsignee] = useState<Consignee | null>(null);
 
+  // Check if this GC is already attached to a Trip Sheet
+  const linkedTripSheetItem = useMemo(() => {
+    if (!isEditMode || !gcNo) return null;
+    // Flatten all items from all trip sheets and find if this GC exists
+    for (const sheet of tripSheets) {
+      const found = sheet.items?.find(item => item.gcNo === gcNo);
+      if (found) return found;
+    }
+    return null;
+  }, [isEditMode, gcNo, tripSheets]);
+
   useEffect(() => {
     if (isEditMode && gcNo) {
       const gc = getGcEntry(gcNo);
       if (gc) {
-        setForm(gc);
+        // Determine initial form state
+        // If linked to a Trip Sheet, force balanceToPay to match the Trip Sheet amount
+        let initialBalance = gc.balanceToPay;
+        if (linkedTripSheetItem) {
+            initialBalance = linkedTripSheetItem.amount.toString();
+        }
+
+        setForm({
+            ...gc,
+            balanceToPay: initialBalance
+        });
+
         const consignor = consignors.find(c => c.id === gc.consignorId);
         if (consignor) setConsignorGst(consignor.gst);
         const consignee = consignees.find(c => c.id === gc.consigneeId);
@@ -88,7 +111,7 @@ export const GcEntryForm = () => {
       }
       setLoading(false);
     }
-  }, [isEditMode, gcNo, getGcEntry, consignors, consignees, navigate]);
+  }, [isEditMode, gcNo, getGcEntry, consignors, consignees, navigate, linkedTripSheetItem]);
 
   const consignorOptions = useMemo(() => consignors.map(c => ({ value: c.id, label: c.name })), [consignors]);
   const consigneeOptions = useMemo(() => consignees.map(c => ({ value: c.id, label: c.name })), [consignees]);
@@ -104,7 +127,11 @@ export const GcEntryForm = () => {
       if (name === 'quantity') newData.netQty = value;
 
       const calcFields = ['billValue', 'tollFee', 'freight', 'godownCharge', 'statisticCharge', 'advanceNone'];
-      if (calcFields.includes(name)) {
+      
+      // LOGIC CHANGE: Only auto-calculate balance if NO Trip Sheet is linked.
+      // If a Trip Sheet exists, the balance is fixed to the Trip Sheet amount (set in useEffect)
+      // and should not change based on these fields.
+      if (calcFields.includes(name) && !linkedTripSheetItem) {
         const getVal = (field: keyof typeof form) => {
             const v = field === name ? value : prev[field];
             return parseFloat(v as string) || 0;
@@ -197,10 +224,7 @@ export const GcEntryForm = () => {
           {/* GC Details */}
           <div>
             <h3 className="text-base font-bold text-primary border-b border-border pb-2 mb-4">GC Details</h3>
-            {/* Mobile: 1 col
-               Tablet (sm): 2 cols
-               Desktop (lg): 12 cols (restoring original layout)
-            */}
+            {/* Mobile: 1 col, Tablet: 2 cols, Desktop: 12 cols */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-4">
               <div className="col-span-1 lg:col-span-2">
                 <Input label="GC Date" type="date" name="gcDate" value={form.gcDate} onChange={handleChange} required />
@@ -208,7 +232,6 @@ export const GcEntryForm = () => {
               <div className="col-span-1 lg:col-span-3">
                 <Input label="From (GC)" name="from" value={form.from} onChange={handleChange} required disabled />
               </div>
-              {/* Destination takes full width on tablet/mobile row if needed, or shares space */}
               <div className="col-span-1 sm:col-span-2 lg:col-span-5">
                 <AutocompleteInput label="Destination" options={destinationOptions} value={form.destination} onSelect={handleDestinationSelect} placeholder="" required />
               </div>
@@ -216,11 +239,10 @@ export const GcEntryForm = () => {
             </div>
           </div>
 
-          {/* Parties (Combined Section) */}
+          {/* Parties */}
           <div>
             <h3 className="text-base font-bold text-primary border-b border-border pb-2 mb-4">Parties</h3>
             
-            {/* Consignor Row */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-4 mb-4">
               <div className="col-span-1 sm:col-span-2 lg:col-span-5">
                 <AutocompleteInput label="Consignor Name" options={consignorOptions} value={form.consignorId} onSelect={handleConsignorSelect} placeholder="" required />
@@ -233,7 +255,6 @@ export const GcEntryForm = () => {
               </div>
             </div>
 
-            {/* Consignee Row */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-4">
               <div className="col-span-1 sm:col-span-2 lg:col-span-5">
                 <AutocompleteInput label="Consignee Name" options={consigneeOptions} value={form.consigneeId} onSelect={handleConsigneeSelect} placeholder="" required />
@@ -258,7 +279,6 @@ export const GcEntryForm = () => {
           {/* Routing */}
           <div>
              <h3 className="text-base font-bold text-primary border-b border-border pb-2 mb-4">Routing</h3>
-             {/* 1 col on mobile, 3 cols on sm+ */}
              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="col-span-1">
                 <AutocompleteInput label="Delivery At" options={destinationOptions} value={form.deliveryAt} onSelect={(v) => handleFormValueChange('deliveryAt', v)} placeholder="" required />
@@ -273,60 +293,37 @@ export const GcEntryForm = () => {
             </div>
           </div>
 
-          {/* Contents - REORDERED & EQUAL WIDTH */}
+          {/* Contents */}
           <div>
              <h3 className="text-base font-bold text-primary border-b border-border pb-2 mb-4">Contents</h3>
-             {/* Mobile: 2 cols 
-                Tablet: 4 cols 
-                Desktop: 7 cols (for equal width)
-             */}
              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
-              
-              {/* 1. Qty */}
               <div className="col-span-1">
                 <Input label="Qty" name="quantity" value={form.quantity} onChange={handleChange} required />
               </div>
-
-              {/* 2. From No */}
               <div className="col-span-1">
                 <Input label="From No" name="fromNo" value={form.fromNo} onChange={handleChange} required />
               </div>
-
-              {/* 3. To No */}
               <div className="col-span-1">
                 <Input label="To No" value={toNo > 0 ? toNo : ''} disabled />
               </div>
-
-              {/* 4. Net Qty */}
               <div className="col-span-1">
                 <Input label="Net Qty" name="netQty" value={form.netQty} onChange={handleChange} required />
               </div>
-
-              {/* 5. Packing */}
               <div className="col-span-1">
                 <AutocompleteInput label="Packing" options={packingOptions} value={form.packing} onSelect={(v) => handleFormValueChange('packing', v)} placeholder="" required />
               </div>
-
-              {/* 6. Contents */}
               <div className="col-span-1">
                 <AutocompleteInput label="Contents" options={contentsOptions} value={form.contents} onSelect={(v) => handleFormValueChange('contents', v)} placeholder="" required />
               </div>
-
-              {/* 7. Prefix */}
               <div className="col-span-1">
                 <Input label="Prefix" name="prefix" value={form.prefix} onChange={handleChange} />
               </div>
-
             </div>
           </div>
 
           {/* Billing & Payment */}
           <div>
              <h3 className="text-base font-bold text-primary border-b border-border pb-2 mb-4">Billing & Payment</h3>
-             {/* Mobile: 2 cols
-                Tablet: 4 cols
-                Desktop: 8 cols
-             */}
              <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-4">
               <div className="col-span-1">
                 <Input label="Bill No" name="billNo" value={form.billNo} onChange={handleChange} />
@@ -350,6 +347,11 @@ export const GcEntryForm = () => {
                 <Input label="Advance" name="advanceNone" value={form.advanceNone} onChange={handleChange} />
               </div>
               <div className="col-span-1">
+                {/* Balance Field:
+                   - If linkedTripSheetItem exists, this field displays the trip amount.
+                   - The auto-calculation logic in handleChange is skipped.
+                   - It remains editable if the user manually changes it (though discouraged), but it won't auto-update from freight/charges.
+                */}
                 <Input label="Balance" name="balanceToPay" value={form.balanceToPay} onChange={handleChange} />
               </div>
             </div>
@@ -373,7 +375,6 @@ export const GcEntryForm = () => {
       </div>
 
       {/* FOOTER */}
-      {/* Added flex-col sm:flex-row to wrap buttons on mobile */}
       <div className="p-4 border-t border-muted bg-background flex flex-col sm:flex-row justify-end gap-3 mt-auto shadow-md z-10">
         <Button type="button" variant="secondary" onClick={() => navigate('/gc-entry')}>
           <X size={16} className="mr-2" />
