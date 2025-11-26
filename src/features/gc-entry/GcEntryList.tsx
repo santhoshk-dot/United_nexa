@@ -1,3 +1,4 @@
+
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FilePenLine, Trash2, Search, Printer, Filter, XCircle, RotateCcw } from 'lucide-react';
@@ -15,7 +16,6 @@ export const GcEntryList = () => {
   const navigate = useNavigate();
   const { gcEntries, deleteGcEntry, consignors, consignees, getUniqueDests, tripSheets } = useData();
   
-  // --- Filter State ---
   const [showFilters, setShowFilters] = useState(false);
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState('all');
@@ -25,7 +25,6 @@ export const GcEntryList = () => {
   const [consignorFilter, setConsignorFilter] = useState('');
   const [consigneeFilter, setConsigneeFilter] = useState<string[]>([]);
 
-  // --- Selection and Delete State ---
   const [selectedGcIds, setSelectedGcIds] = useState<string[]>([]);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -34,22 +33,17 @@ export const GcEntryList = () => {
   
   const getGcStatus = (gcId: string) => {
     const foundSheet = tripSheets.find(sheet => 
+      // Matches based on the stored gcNo string
       sheet.items?.some(item => item.gcNo === gcId)
     );
     return foundSheet ? foundSheet.mfNo : '0';
   };
 
-  // --- OPTIONS ---
   const allConsignorOptions = useMemo(() => consignors.map(c => ({ value: c.id, label: c.name })), [consignors]);
   const allConsigneeOptions = useMemo(() => consignees.map(c => ({ value: c.id, label: c.name })), [consignees]);
   const allDestinationOptions = useMemo(getUniqueDests, [getUniqueDests]);
 
-  // --- CASCADING FILTER LOGIC ---
-  const {
-    filteredConsignorOptions,
-    filteredConsigneeOptions,
-    filteredDestinationOptions,
-  } = useMemo(() => {
+  const { filteredConsignorOptions, filteredConsigneeOptions, filteredDestinationOptions } = useMemo(() => {
     let relevantConsignors = new Set(consignors.map(c => c.id));
     let relevantConsignees = new Set(consignees.map(c => c.id));
     let relevantDests = new Set(allDestinationOptions.map(d => d.value));
@@ -100,7 +94,7 @@ export const GcEntryList = () => {
       
       const searchStr = search.toLowerCase();
       const rowData = [
-        gc.id,
+        gc.gcNo, // Search by GC No string
         consignor?.name,
         consignee?.name,
         gc.destination,
@@ -108,7 +102,7 @@ export const GcEntryList = () => {
         gc.quantity,
         gc.packing,
         gc.contents,
-        getGcStatus(gc.id)
+        getGcStatus(gc.gcNo)
       ].join(' ').toLowerCase();
 
       const searchMatch = !search || rowData.includes(searchStr);
@@ -149,7 +143,7 @@ export const GcEntryList = () => {
   };
   
   const handlePrintSingle = (gcNo: string) => {
-    const gc = gcEntries.find(g => g.id === gcNo);
+    const gc = gcEntries.find(g => g.gcNo === gcNo);
     if (!gc) return;
     const consignor = consignors.find(c => c.id === gc.consignorId);
     const consignee = consignees.find(c => c.id === gc.consigneeId);
@@ -159,7 +153,7 @@ export const GcEntryList = () => {
   const handlePrintSelected = () => {
     if (selectedGcIds.length === 0) return;
     const jobs = selectedGcIds.map(id => {
-      const gc = gcEntries.find(g => g.id === id);
+      const gc = gcEntries.find(g => g.gcNo === id);
       if (!gc) return null;
       const consignor = consignors.find(c => c.id === gc.consignorId);
       const consignee = consignees.find(c => c.id === gc.consigneeId);
@@ -169,7 +163,8 @@ export const GcEntryList = () => {
   };
 
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSelectedGcIds(e.target.checked ? filteredGcEntries.map(gc => gc.id) : []);
+    // Select by gcNo
+    setSelectedGcIds(e.target.checked ? filteredGcEntries.map(gc => gc.gcNo) : []);
   };
   const handleSelectRow = (e: React.ChangeEvent<HTMLInputElement>, id: string) => {
     setSelectedGcIds(prev => e.target.checked ? [...prev, id] : prev.filter(x => x !== id));
@@ -178,16 +173,12 @@ export const GcEntryList = () => {
 
   const hasActiveFilters = destFilter || consignorFilter || consigneeFilter.length > 0 || filterType !== 'all' || search !== '';
 
-  // --- RESPONSIVE BUTTON STYLE HELPER ---
   const responsiveBtnClass = "flex-1 md:flex-none text-[10px] xs:text-xs sm:text-sm h-8 sm:h-10 px-1 sm:px-4 whitespace-nowrap";
 
   return (
     <div className="space-y-6">
       
-      {/* 1. Top Control Bar */}
       <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-background p-4 rounded-lg shadow border border-muted">
-        
-        {/* LEFT: Search & Filter */}
         <div className="flex items-center gap-2 w-full md:w-1/2">
            <div className="relative flex-1">
             <input
@@ -199,7 +190,6 @@ export const GcEntryList = () => {
             />
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
           </div>
-          
           <Button 
             variant={hasActiveFilters ? 'primary' : 'outline'}
             onClick={() => setShowFilters(!showFilters)}
@@ -211,7 +201,6 @@ export const GcEntryList = () => {
           </Button>
         </div>
 
-        {/* RIGHT: Action Buttons - CHANGED */}
         <div className="flex gap-2 w-full md:w-auto justify-between md:justify-end">
           <Button 
             variant="secondary"
@@ -232,7 +221,6 @@ export const GcEntryList = () => {
         </div>
       </div>
 
-      {/* 2. Collapsible Advanced Filters */}
       {showFilters && (
         <div className="p-4 bg-muted/20 rounded-lg border border-muted animate-in fade-in slide-in-from-top-2">
           <div className="flex justify-between items-center mb-4">
@@ -249,7 +237,6 @@ export const GcEntryList = () => {
               </button>
             </div>
           </div>
-          
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
             <AutocompleteInput label="Filter by Destination" options={filteredDestinationOptions} value={destFilter} onSelect={setDestFilter} placeholder="Search destination..." />
             <AutocompleteInput label="Filter by Consignor" options={filteredConsignorOptions} value={consignorFilter} onSelect={setConsignorFilter} placeholder="Search consignor..." />
@@ -258,12 +245,10 @@ export const GcEntryList = () => {
               <MultiSelect options={filteredConsigneeOptions} selected={consigneeFilter} onChange={setConsigneeFilter} placeholder="Select consignees..." searchPlaceholder="Search..." emptyPlaceholder="None found." />
             </div>
           </div>
-          
           <DateFilterButtons filterType={filterType} setFilterType={setFilterType} customStart={customStart} setCustomStart={setCustomStart} customEnd={customEnd} setCustomEnd={setCustomEnd} />
         </div>
       )}
 
-      {/* 3. Data Table */}
       <div className="bg-background rounded-lg shadow border border-muted overflow-hidden">
         <div className="hidden md:block overflow-x-auto">
           <table className="min-w-full divide-y divide-muted">
@@ -284,11 +269,11 @@ export const GcEntryList = () => {
               {paginatedData.map((gc) => {
                 const consignor = consignors.find(c => c.id === gc.consignorId);
                 const consignee = consignees.find(c => c.id === gc.consigneeId);
-                const status = getGcStatus(gc.id);
+                const status = getGcStatus(gc.gcNo);
                 return (
                   <tr key={gc.id} className="hover:bg-muted/30 transition-colors">
-                    <td className="px-4 py-4"><input type="checkbox" className="h-4 w-4 accent-primary" checked={selectedGcIds.includes(gc.id)} onChange={(e) => handleSelectRow(e, gc.id)} /></td>
-                    <td className="px-6 py-4 text-sm font-semibold text-primary">{gc.id}</td>
+                    <td className="px-4 py-4"><input type="checkbox" className="h-4 w-4 accent-primary" checked={selectedGcIds.includes(gc.gcNo)} onChange={(e) => handleSelectRow(e, gc.gcNo)} /></td>
+                    <td className="px-6 py-4 text-sm font-semibold text-primary">{gc.gcNo}</td>
                     <td className="px-6 py-4 text-sm">{consignor?.name}</td>
                     <td className="px-6 py-4 text-sm">{consignee?.name}</td>
                     <td className="px-6 py-4 text-sm">{gc.destination}</td>
@@ -296,9 +281,9 @@ export const GcEntryList = () => {
                     <td className="px-6 py-4 text-sm">{gc.quantity}</td>
                     <td className="px-6 py-4 text-sm"><span className={`px-2 py-1 rounded-full text-xs font-medium ${status !== '0' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>{status !== '0' ? `TS# ${status}` : 'Pending'}</span></td>
                     <td className="px-6 py-4 text-sm space-x-2">
-                      <button onClick={() => handleEdit(gc.id)} className="text-blue-600 hover:text-blue-800"><FilePenLine size={18} /></button>
-                      <button onClick={() => handlePrintSingle(gc.id)} className="text-green-600 hover:text-green-800"><Printer size={18} /></button>
-                      <button onClick={() => handleDelete(gc.id)} className="text-destructive hover:text-destructive/80"><Trash2 size={18} /></button>
+                      <button onClick={() => handleEdit(gc.gcNo)} className="text-blue-600 hover:text-blue-800"><FilePenLine size={18} /></button>
+                      <button onClick={() => handlePrintSingle(gc.gcNo)} className="text-green-600 hover:text-green-800"><Printer size={18} /></button>
+                      <button onClick={() => handleDelete(gc.gcNo)} className="text-destructive hover:text-destructive/80"><Trash2 size={18} /></button>
                     </td>
                   </tr>
                 );
@@ -311,7 +296,7 @@ export const GcEntryList = () => {
            {paginatedData.map((gc) => {
              const consignor = consignors.find(c => c.id === gc.consignorId);
              const consignee = consignees.find(c => c.id === gc.consigneeId);
-             const status = getGcStatus(gc.id);
+             const status = getGcStatus(gc.gcNo);
              return (
              <div key={gc.id} className="p-4 hover:bg-muted/30 transition-colors">
                 <div className="flex justify-between items-start">
@@ -320,12 +305,12 @@ export const GcEntryList = () => {
                       <input 
                         type="checkbox" 
                         className="h-5 w-5 accent-primary" 
-                        checked={selectedGcIds.includes(gc.id)} 
-                        onChange={(e) => handleSelectRow(e, gc.id)} 
+                        checked={selectedGcIds.includes(gc.gcNo)} 
+                        onChange={(e) => handleSelectRow(e, gc.gcNo)} 
                       />
                     </div>
                     <div className="space-y-1 w-full">
-                      <div className="font-bold text-blue-600 text-lg">GC #{gc.id}</div>
+                      <div className="font-bold text-blue-600 text-lg">GC #{gc.gcNo}</div>
                       <div className="font-semibold text-foreground">{consignor?.name}</div>
                       <div className="text-sm text-muted-foreground">To: {consignee?.name}</div>
                       <div className="text-sm text-muted-foreground">From: {gc.from}</div>
@@ -334,13 +319,13 @@ export const GcEntryList = () => {
                   </div>
 
                   <div className="flex flex-col gap-3 pl-2">
-                    <button onClick={() => handleEdit(gc.id)} className="text-blue-600 p-1 hover:bg-blue-50 rounded">
+                    <button onClick={() => handleEdit(gc.gcNo)} className="text-blue-600 p-1 hover:bg-blue-50 rounded">
                       <FilePenLine size={20} />
                     </button>
-                    <button onClick={() => handlePrintSingle(gc.id)} className="text-green-600 p-1 hover:bg-green-50 rounded">
+                    <button onClick={() => handlePrintSingle(gc.gcNo)} className="text-green-600 p-1 hover:bg-green-50 rounded">
                       <Printer size={20} />
                     </button>
-                    <button onClick={() => handleDelete(gc.id)} className="text-destructive p-1 hover:bg-red-50 rounded">
+                    <button onClick={() => handleDelete(gc.gcNo)} className="text-destructive p-1 hover:bg-red-50 rounded">
                       <Trash2 size={20} />
                     </button>
                   </div>

@@ -1,16 +1,7 @@
-import React, { createContext, useState, useEffect } from 'react';
+import React, { createContext, useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { AppUser } from '../types';
-
-// Default Admin User (created if no users exist)
-const DEFAULT_ADMIN: AppUser = {
-  id: 'admin-1',
-  name: 'System Admin',
-  email: 'admin@example.com',
-  password: 'password',
-  mobile: '9876543210',
-  role: 'admin',
-};
+import api from '../utils/api';
 
 interface AuthContextType {
   user: AppUser | null;
@@ -20,116 +11,133 @@ interface AuthContextType {
   error: string | null;
   login: (email: string, password: string, year: string) => Promise<void>;
   logout: () => void;
-  addUser: (user: AppUser) => void;
-  updateUser: (user: AppUser) => void;
-  deleteUser: (id: string) => void;
+  addUser: (user: AppUser) => Promise<void>;
+  updateUser: (user: AppUser) => Promise<void>;
+  deleteUser: (id: string) => Promise<void>;
+  refreshUsers: () => Promise<void>;
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  // 1. FIX: Initialize users directly inside useState (Lazy Init)
-  const [users, setUsers] = useState<AppUser[]>(() => {
-    try {
-      const storedUsers = localStorage.getItem('app_users');
-      if (storedUsers) {
-        return JSON.parse(storedUsers);
-      } else {
-        // Immediately return default admin if storage is empty
-        // We also write to localStorage here to ensure it exists for next time
-        localStorage.setItem('app_users', JSON.stringify([DEFAULT_ADMIN]));
-        return [DEFAULT_ADMIN];
-      }
-    } catch (error) {
-      console.error("Error parsing users from local storage", error);
-      return [DEFAULT_ADMIN];
-    }
-  });
-
   const [user, setUser] = useState<AppUser | null>(null);
+  const [users, setUsers] = useState<AppUser[]>([]);
   const [financialYear, setFinancialYear] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
-  // Initialize Session Data (Active User)
-  useEffect(() => {
+  // 1. Fetch Users (Admin Only)
+  const fetchUsers = useCallback(async () => {
     try {
-      // Check for Active Session
-      const storedSession = localStorage.getItem('authUser');
-      const storedYear = localStorage.getItem('authYear');
-      if (storedSession) {
-        setUser(JSON.parse(storedSession));
-      }
-      if (storedYear) {
-        setFinancialYear(storedYear);
-      }
-    } catch (e) {
-      console.error("Auth initialization error", e);
-      localStorage.removeItem('authUser');
-      localStorage.removeItem('authYear');
-    } finally {
-      setLoading(false);
+      const { data } = await api.get('/users');
+      setUsers(data);
+    } catch (err) {
+      console.error("Failed to fetch users", err);
     }
   }, []);
 
-  // Sync Users to LocalStorage whenever the list changes
+  // 2. Initialize Session
   useEffect(() => {
-    localStorage.setItem('app_users', JSON.stringify(users));
-  }, [users]);
+    const initAuth = async () => {
+      const storedSession = localStorage.getItem('authUser');
+      const storedYear = localStorage.getItem('authYear');
+      
+      if (storedSession) {
+        const parsedUser = JSON.parse(storedSession);
+        setUser(parsedUser);
+        
+        // If admin, fetch user list immediately
+        if (parsedUser.role === 'admin') {
+          try {
+            const { data } = await api.get('/users');
+            setUsers(data);
+          } catch (e) {
+            console.error("Could not load users on init", e);
+          }
+        }
+      }
+      
+      if (storedYear) setFinancialYear(storedYear);
+      setLoading(false);
+    };
+    initAuth();
+  }, []);
 
+  // 3. Login Logic
   const login = async (email: string, password: string, year: string) => {
     setLoading(true);
     setError(null);
-    
-    return new Promise<void>((resolve, reject) => {
-      setTimeout(() => {
-        // Find user in the local "database"
-        const foundUser = users.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === password);
-
-        if (foundUser) {
-          localStorage.setItem('authUser', JSON.stringify(foundUser));
-          localStorage.setItem('authYear', year);
-          setUser(foundUser);
-          setFinancialYear(year);
-          setLoading(false);
-          navigate('/'); 
-          resolve();
-        } else {
-          setError('Invalid email or password.');
-          setLoading(false);
-          reject(new Error('Invalid email or password.'));
-        }
-      }, 800); 
-    });
+    try {
+      const { data } = await api.post('/auth/login', { email, password });
+      
+      setUser(data); // Data includes token and role
+      setFinancialYear(year);
+      
+      localStorage.setItem('authUser', JSON.stringify(data));
+      localStorage.setItem('authYear', year);
+      
+      if (data.role === 'admin') {
+        await fetchUsers();
+      }
+      
+      navigate('/');
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Invalid email or password');
+      throw err;
+    } finally {
+      setLoading(false);
+    }
   };
 
+  // 4. Logout Logic
   const logout = () => {
     setUser(null);
     setFinancialYear(null);
+    setUsers([]);
     localStorage.removeItem('authUser');
     localStorage.removeItem('authYear');
-    navigate('/login');
+    navigate('/login'); // <--- This is crucial
   };
 
-  const addUser = (newUser: AppUser) => {
-    setUsers(prev => [...prev, newUser]);
-  };
-
-  const updateUser = (updatedUser: AppUser) => {
-    setUsers(prev => prev.map(u => u.id === updatedUser.id ? updatedUser : u));
-    if (user && user.id === updatedUser.id) {
-      setUser(updatedUser);
-      localStorage.setItem('authUser', JSON.stringify(updatedUser));
+  // 5. User Management (API Calls)
+  const addUser = async (userData: AppUser) => {
+    try {
+      const { data } = await api.post('/users', userData);
+      setUsers(prev => [...prev, data]);
+    } catch (err: any) {
+      alert(err.response?.data?.message || "Failed to add user");
     }
   };
 
-  const deleteUser = (id: string) => {
+  const updateUser = async (userData: AppUser) => {
+    try {
+      // Password is optional in update, backend handles hashing
+      const { data } = await api.put(`/users/${userData.id}`, userData);
+      setUsers(prev => prev.map(u => u.id === data.id ? data : u));
+      
+      // Update current session if modifying self
+      if (user && user.id === data.id) {
+        const updatedSession = { ...user, ...data, token: user['token' as keyof AppUser] }; 
+        setUser(updatedSession);
+        localStorage.setItem('authUser', JSON.stringify(updatedSession));
+      }
+    } catch (err: any) {
+      alert(err.response?.data?.message || "Failed to update user");
+    }
+  };
+
+  const deleteUser = async (id: string) => {
     if (user && user.id === id) {
-      alert("You cannot delete your own account while logged in.");
+      alert("You cannot delete your own account.");
       return;
     }
-    setUsers(prev => prev.filter(u => u.id !== id));
+    try {
+      await api.delete(`/users/${id}`);
+      setUsers(prev => prev.filter(u => u.id !== id));
+    } catch (err: any) {
+      alert(err.response?.data?.message || "Failed to delete user");
+    }
   };
 
   const value = {
@@ -142,7 +150,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     logout,
     addUser,
     updateUser,
-    deleteUser
+    deleteUser,
+    refreshUsers: fetchUsers
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

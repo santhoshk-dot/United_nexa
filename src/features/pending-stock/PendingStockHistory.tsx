@@ -59,7 +59,7 @@ export const PendingStockHistory = () => {
 
       const searchStr = search.toLowerCase();
       const rowData = [
-        gc.id,
+        gc.gcNo, // Use gcNo
         consignor?.name,
         consignee?.name,
         gc.destination,
@@ -102,7 +102,7 @@ export const PendingStockHistory = () => {
   };
   
   const handlePrintSingle = (gcNo: string) => {
-    const gc = gcEntries.find(g => g.id === gcNo);
+    const gc = gcEntries.find(g => g.gcNo === gcNo);
     if (gc) {
       const consignor = consignors.find(c => c.id === gc.consignorId);
       const consignee = consignees.find(c => c.id === gc.consigneeId);
@@ -113,7 +113,7 @@ export const PendingStockHistory = () => {
   const handlePrintSelected = () => {
     if (selectedGcIds.length === 0) return;
     const jobs = selectedGcIds.map(id => {
-      const gc = gcEntries.find(g => g.id === id);
+      const gc = gcEntries.find(g => g.gcNo === id);
       if (!gc) return null;
       const consignor = consignors.find(c => c.id === gc.consignorId);
       const consignee = consignees.find(c => c.id === gc.consigneeId);
@@ -129,21 +129,18 @@ export const PendingStockHistory = () => {
     setReportPrintingJobs(jobs);
   };
 
-  const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => setSelectedGcIds(e.target.checked ? filteredGcEntries.map(gc => gc.id) : []);
+  const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => setSelectedGcIds(e.target.checked ? filteredGcEntries.map(gc => gc.gcNo) : []);
   const handleSelectRow = (e: React.ChangeEvent<HTMLInputElement>, id: string) => setSelectedGcIds(prev => e.target.checked ? [...prev, id] : prev.filter(x => x !== id));
   const isAllSelected = filteredGcEntries.length > 0 && selectedGcIds.length === filteredGcEntries.length;
   
   const hasActiveFilters = destFilter || consignorFilter || consigneeFilter.length > 0 || filterType !== 'all' || search !== '';
 
-  // --- RESPONSIVE BUTTON STYLE HELPER ---
   const responsiveBtnClass = "flex-1 md:flex-none text-[10px] xs:text-xs sm:text-sm h-8 sm:h-10 px-1 sm:px-4 whitespace-nowrap";
 
   return (
     <div className="space-y-6">
       
-      {/* 1. Top Control Bar */}
       <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-background p-4 rounded-lg shadow border border-muted">
-         {/* LEFT: Search + Filter */}
          <div className="flex items-center gap-2 w-full md:w-1/2">
             <div className="relative flex-1">
                <input type="text" placeholder="Search all data..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full pl-10 pr-4 py-2 bg-background text-foreground border border-muted-foreground/30 rounded-md focus:outline-none focus:ring-primary focus:border-primary"/>
@@ -155,7 +152,6 @@ export const PendingStockHistory = () => {
             </Button>
           </div>
           
-        {/* RIGHT: Actions - CHANGED */}
         <div className="flex gap-2 w-full md:w-auto justify-between md:justify-end">
           <Button 
             variant="secondary" 
@@ -185,7 +181,6 @@ export const PendingStockHistory = () => {
         </div>
       </div>
 
-      {/* 2. Collapsible Filters */}
       {showFilters && (
         <div className="p-4 bg-muted/20 rounded-lg border border-muted animate-in fade-in slide-in-from-top-2">
            <div className="flex justify-between items-center mb-4">
@@ -209,7 +204,6 @@ export const PendingStockHistory = () => {
         </div>
       )}
 
-      {/* 3. Data Table */}
       <div className="bg-background rounded-lg shadow border border-muted overflow-hidden">
          <div className="hidden md:block overflow-x-auto">
           <table className="min-w-full divide-y divide-muted">
@@ -229,8 +223,8 @@ export const PendingStockHistory = () => {
             <tbody className="divide-y divide-muted">
               {paginatedData.map((gc) => (
                 <tr key={gc.id}>
-                   <td className="px-4 py-4"><input type="checkbox" className="h-4 w-4 accent-primary" checked={selectedGcIds.includes(gc.id)} onChange={(e) => handleSelectRow(e, gc.id)} /></td>
-                   <td className="px-6 py-4 text-primary font-semibold">{gc.id}</td>
+                   <td className="px-4 py-4"><input type="checkbox" className="h-4 w-4 accent-primary" checked={selectedGcIds.includes(gc.gcNo)} onChange={(e) => handleSelectRow(e, gc.gcNo)} /></td>
+                   <td className="px-6 py-4 text-primary font-semibold">{gc.gcNo}</td>
                     <td className="px-6 py-4 text-sm">{consignors.find(c=>c.id===gc.consignorId)?.name}</td>
                    <td className="px-6 py-4 text-sm">{consignees.find(c=>c.id===gc.consigneeId)?.name}</td>
                    <td className="px-6 py-4 text-sm">{gc.from}</td>
@@ -238,9 +232,9 @@ export const PendingStockHistory = () => {
                   
                    <td className="px-6 py-4 text-sm">{gc.quantity}</td>
                    <td className="px-6 py-4 space-x-3">
-                      <button onClick={() => handleEdit(gc.id)} className="text-blue-600"><FilePenLine size={18} /></button>
-                      <button onClick={() => handlePrintSingle(gc.id)} className="text-green-600"><Printer size={18} /></button>
-                      <button onClick={() => handleDelete(gc.id)} className="text-destructive"><Trash2 size={18} /></button>
+                      <button onClick={() => handleEdit(gc.gcNo)} className="text-blue-600"><FilePenLine size={18} /></button>
+                      <button onClick={() => handlePrintSingle(gc.gcNo)} className="text-green-600"><Printer size={18} /></button>
+                      <button onClick={() => handleDelete(gc.gcNo)} className="text-destructive"><Trash2 size={18} /></button>
                    </td>
                 </tr>
               ))}
@@ -248,7 +242,6 @@ export const PendingStockHistory = () => {
           </table>
          </div>
 
-         {/* 4. Mobile Card View */}
          <div className="block md:hidden divide-y divide-muted">
            {paginatedData.map((gc) => {
              const consignor = consignors.find(c => c.id === gc.consignorId);
@@ -256,13 +249,12 @@ export const PendingStockHistory = () => {
              return (
              <div key={gc.id} className="p-4 hover:bg-muted/30 transition-colors">
                 <div className="flex justify-between items-start">
-                   {/* Left Info */}
                    <div className="flex gap-3 flex-1">
                       <div className="pt-1">
-                         <input type="checkbox" className="h-5 w-5 accent-primary" checked={selectedGcIds.includes(gc.id)} onChange={(e) => handleSelectRow(e, gc.id)} />
+                         <input type="checkbox" className="h-5 w-5 accent-primary" checked={selectedGcIds.includes(gc.gcNo)} onChange={(e) => handleSelectRow(e, gc.gcNo)} />
                       </div>
                       <div className="space-y-1 w-full">
-                         <div className="font-bold text-blue-600 text-lg">GC #{gc.id}</div>
+                         <div className="font-bold text-blue-600 text-lg">GC #{gc.gcNo}</div>
                          <div className="font-semibold text-foreground">{consignor?.name}</div>
                          <div className="text-sm text-muted-foreground">To: {consignee?.name}</div>
                          <div className="text-sm text-muted-foreground">From: {gc.from}</div>
@@ -270,15 +262,13 @@ export const PendingStockHistory = () => {
                       </div>
                    </div>
 
-                   {/* Right Actions */}
                    <div className="flex flex-col gap-3 pl-2">
-                      <button onClick={() => handleEdit(gc.id)} className="text-blue-600 p-1 hover:bg-blue-50 rounded"><FilePenLine size={20}/></button>
-                      <button onClick={() => handlePrintSingle(gc.id)} className="text-green-600 p-1 hover:bg-green-50 rounded"><Printer size={20}/></button>
-                      <button onClick={() => handleDelete(gc.id)} className="text-destructive p-1 hover:bg-red-50 rounded"><Trash2 size={20}/></button>
+                      <button onClick={() => handleEdit(gc.gcNo)} className="text-blue-600 p-1 hover:bg-blue-50 rounded"><FilePenLine size={20}/></button>
+                      <button onClick={() => handlePrintSingle(gc.gcNo)} className="text-green-600 p-1 hover:bg-green-50 rounded"><Printer size={20}/></button>
+                      <button onClick={() => handleDelete(gc.gcNo)} className="text-destructive p-1 hover:bg-red-50 rounded"><Trash2 size={20}/></button>
                    </div>
                 </div>
 
-                {/* Footer */}
                 <div className="flex justify-between items-center mt-3 pt-3 border-t border-dashed border-muted">
                    <div className="text-sm font-medium">Qty: {gc.quantity}</div>
                    <div className="text-sm font-bold text-muted-foreground">Status: 0</div>

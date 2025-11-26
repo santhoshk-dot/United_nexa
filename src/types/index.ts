@@ -1,4 +1,3 @@
-import type { ReactNode } from "react";
 
 // --- User Interface ---
 export interface AppUser {
@@ -44,7 +43,7 @@ export interface GcEntry {
   invoiceNo: string;
   pkgDesc: string;
   marks: any;
-  gcNo: ReactNode;
+  gcNo: string; // CHANGED from ReactNode to string
   id: string;
   gcDate: string;
   from: string;

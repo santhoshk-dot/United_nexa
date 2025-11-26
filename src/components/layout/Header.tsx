@@ -1,14 +1,15 @@
 import { useState, useEffect } from 'react';
 import { Menu, LogOut, Sun, Moon } from 'lucide-react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
+import { useAuth } from '../../hooks/useAuth'; // Import useAuth
 
 interface HeaderProps {
   setIsSidebarOpen: (isOpen: boolean) => void;
 }
 
 export const Header = ({ setIsSidebarOpen }: HeaderProps) => {
-  const navigate = useNavigate();
   const location = useLocation();
+  const { logout } = useAuth(); // Get logout function
 
   // --- DYNAMIC TITLE LOGIC ---
   const getPageTitle = (pathname: string) => {
@@ -16,27 +17,20 @@ export const Header = ({ setIsSidebarOpen }: HeaderProps) => {
     
     // Operations
     if (pathname.startsWith('/gc-entry/new')) return 'New GC Entry';
-    
-    // UPDATE 1: Extract GC Number from URL
     if (pathname.startsWith('/gc-entry/edit')) {
       const segments = pathname.split('/');
-      const id = segments[segments.length - 1]; // Get the last part (the ID)
+      const id = segments[segments.length - 1];
       return `Edit GC Entry #${id}`;
     }
     if (pathname.startsWith('/gc-entry')) return 'GC Entry Listing';
-    
     if (pathname.startsWith('/loading-sheet')) return 'Loading Sheet Entry';
-    
     if (pathname.startsWith('/tripsheet/new')) return 'New Trip Sheet';
-    
-    // UPDATE 2: Extract Trip Sheet Number from URL
     if (pathname.startsWith('/tripsheet/edit')) {
       const segments = pathname.split('/');
-      const id = segments[segments.length - 1]; // Get the last part (the ID)
+      const id = segments[segments.length - 1];
       return `Edit Trip Sheet #${id}`;
     }
     if (pathname.startsWith('/trip-sheet')) return 'Trip Sheet Listing';
-    
     if (pathname.startsWith('/pending-stock')) return 'Pending Stock History';
 
     // Masters
@@ -47,8 +41,6 @@ export const Header = ({ setIsSidebarOpen }: HeaderProps) => {
     if (pathname.startsWith('/master/to-places')) return 'To Places Management';
     if (pathname.startsWith('/master/packings')) return 'Packing Units Management';
     if (pathname.startsWith('/master/contents')) return 'Contents Management';
-    
-    // ADDED TITLES FOR NEW MODULES
     if (pathname.startsWith('/master/vehicles')) return 'Vehicle Management';
     if (pathname.startsWith('/master/drivers')) return 'Driver Management';
     
@@ -83,8 +75,9 @@ export const Header = ({ setIsSidebarOpen }: HeaderProps) => {
     setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
   };
 
+  // CHANGE: Call logout directly instead of navigating to /logout
   const handleLogout = () => {
-    navigate('/logout');
+    logout(); 
   };
 
   return (

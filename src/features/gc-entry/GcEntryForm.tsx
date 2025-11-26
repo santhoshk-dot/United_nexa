@@ -1,3 +1,4 @@
+
 // src/features/gc-entry/GcEntryForm.tsx
 import { useState, useMemo, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -13,12 +14,14 @@ import { GcPrintManager, type GcPrintJob } from './GcPrintManager';
 type ProofType = 'gst' | 'pan' | 'aadhar';
 
 export const GcEntryForm = () => {
-  const { gcNo } = useParams<{ gcNo: string }>();
+  // gcNo here comes from URL params (e.g. /edit/1050)
+  const { gcNo } = useParams<{ gcNo: string }>(); 
   const navigate = useNavigate();
   const { 
     consignors, 
     consignees, 
-    tripSheets, // <-- Added tripSheets to check for existing trips
+    tripSheets, 
+    gcEntries, // Needed for loading check
     getNextGcNo, 
     addGcEntry, 
     updateGcEntry, 
@@ -74,19 +77,27 @@ export const GcEntryForm = () => {
   // Check if this GC is already attached to a Trip Sheet
   const linkedTripSheetItem = useMemo(() => {
     if (!isEditMode || !gcNo) return null;
-    // Flatten all items from all trip sheets and find if this GC exists
     for (const sheet of tripSheets) {
+      // The trip sheet stores gcNo (the readable number)
       const found = sheet.items?.find(item => item.gcNo === gcNo);
       if (found) return found;
     }
     return null;
   }, [isEditMode, gcNo, tripSheets]);
 
+  // --- FIX: DATA LOADING & EDIT MODE ---
   useEffect(() => {
     if (isEditMode && gcNo) {
+      
+      // 1. Prevent premature "Not Found" if data hasn't loaded from API yet
+      if (gcEntries.length === 0) {
+        return; // Stay in loading state
+      }
+
+      // 2. Try to find the entry using the ID from URL
       const gc = getGcEntry(gcNo);
+      
       if (gc) {
-        // Determine initial form state
         // If linked to a Trip Sheet, force balanceToPay to match the Trip Sheet amount
         let initialBalance = gc.balanceToPay;
         if (linkedTripSheetItem) {
@@ -105,13 +116,17 @@ export const GcEntryForm = () => {
           setSelectedConsignee(consignee);
           setConsigneeDestDisplay(consignee.destination);
         }
+        setLoading(false); // Data found, stop loading
       } else {
+        // Data loaded but GC not found
         alert('GC Entry not found.');
         navigate('/gc-entry');
       }
-      setLoading(false);
+    } else {
+        // New Mode
+        setLoading(false);
     }
-  }, [isEditMode, gcNo, getGcEntry, consignors, consignees, navigate, linkedTripSheetItem]);
+  }, [isEditMode, gcNo, getGcEntry, consignors, consignees, navigate, linkedTripSheetItem, gcEntries]);
 
   const consignorOptions = useMemo(() => consignors.map(c => ({ value: c.id, label: c.name })), [consignors]);
   const consigneeOptions = useMemo(() => consignees.map(c => ({ value: c.id, label: c.name })), [consignees]);
@@ -128,9 +143,6 @@ export const GcEntryForm = () => {
 
       const calcFields = ['billValue', 'tollFee', 'freight', 'godownCharge', 'statisticCharge', 'advanceNone'];
       
-      // LOGIC CHANGE: Only auto-calculate balance if NO Trip Sheet is linked.
-      // If a Trip Sheet exists, the balance is fixed to the Trip Sheet amount (set in useEffect)
-      // and should not change based on these fields.
       if (calcFields.includes(name) && !linkedTripSheetItem) {
         const getVal = (field: keyof typeof form) => {
             const v = field === name ? value : prev[field];
@@ -195,15 +207,24 @@ export const GcEntryForm = () => {
   const quantityNum = parseFloat(form.quantity) || 0;
   const toNo = (fromNoNum > 0 && quantityNum > 0) ? (fromNoNum + quantityNum) - 1 : 0;
 
-  const handleSave = (andPrint = false) => {
+  const handleSave = async (andPrint = false) => {
     if (!form.consignorId || !form.consigneeId) {
       alert('Please select a Consignor and Consignee.');
       return;
     }
-    const finalGcNo = isEditMode ? gcNo! : getNextGcNo();
-    const gcData: GcEntry = { ...form, id: finalGcNo };
+    // For edit mode, keep existing ID. For new, fetch next seq.
+    const finalGcNo = isEditMode ? form.gcNo! : await getNextGcNo();
+    
+    // Construct data with the string ID
+    const gcData: GcEntry = { 
+        ...form, 
+        id: isEditMode ? (form as any).id : undefined, // Preserve Mongo ID for updates
+        gcNo: finalGcNo 
+    } as GcEntry;
+
     if (isEditMode) updateGcEntry(gcData);
     else addGcEntry(gcData);
+
     if (andPrint) {
       const consignor = consignors.find(c => c.id === gcData.consignorId);
       const consignee = consignees.find(c => c.id === gcData.consigneeId);
@@ -347,11 +368,6 @@ export const GcEntryForm = () => {
                 <Input label="Advance" name="advanceNone" value={form.advanceNone} onChange={handleChange} />
               </div>
               <div className="col-span-1">
-                {/* Balance Field:
-                   - If linkedTripSheetItem exists, this field displays the trip amount.
-                   - The auto-calculation logic in handleChange is skipped.
-                   - It remains editable if the user manually changes it (though discouraged), but it won't auto-update from freight/charges.
-                */}
                 <Input label="Balance" name="balanceToPay" value={form.balanceToPay} onChange={handleChange} />
               </div>
             </div>

@@ -1,7 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Layout } from '../components/layout/Layout';
 import { useAuth } from '../hooks/useAuth';
-import { useEffect } from 'react';
 
 // Import Existing Features
 import { LoginScreen } from '../features/auth/LoginScreen';
@@ -21,8 +20,6 @@ import { DashboardPage } from '../features/dashboard/DashboardPage';
 import { MasterDashboardPage } from '../features/dashboard/MasterDashboardPage';
 import { LoadingScreen } from '../components/shared/LoadingScreen';
 import { UserList } from '../features/users/UserList';
-
-// --- ADDED NEW IMPORTS ---
 import { VehicleList } from '../features/vehicle-details/VehicleList';
 import { DriverList } from '../features/driver-details copy/DriverList';
 
@@ -48,19 +45,14 @@ const LoginRoute = () => {
   return <LoginScreen />;
 };
 
-const LogoutRoute = () => {
-  const { logout } = useAuth();
-  useEffect(() => { logout(); }, [logout]);
-  return <LoadingScreen />;
-}
-
 // --- ROUTER DEFINITION ---
 const AppRouter = () => {
   return (
     <Routes>
       {/* Auth Routes */}
       <Route path="/login" element={<LoginRoute />} />
-      <Route path="/logout" element={<LogoutRoute />} />
+      {/* Redirect /logout manually to /login just in case someone types it */}
+      <Route path="/logout" element={<Navigate to="/login" replace />} />
 
       {/* ===================================================
           MAIN APPLICATION ROUTES
@@ -99,7 +91,7 @@ const AppRouter = () => {
       <Route path="/master/packings" element={<ProtectedRoute><PackingEntryList /></ProtectedRoute>} />
       <Route path="/master/contents" element={<ProtectedRoute><ContentList /></ProtectedRoute>} />
       
-      {/* NEW: Vehicle & Driver Management Routes */}
+      {/* Vehicle & Driver Management Routes */}
       <Route path="/master/vehicles" element={<ProtectedRoute><VehicleList /></ProtectedRoute>} />
       <Route path="/master/drivers" element={<ProtectedRoute><DriverList /></ProtectedRoute>} />
 

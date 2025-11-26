@@ -1,3 +1,4 @@
+
 import { useState, useMemo } from 'react';
 import { Trash2, Search, Printer, PackageCheck, Filter, RotateCcw, XCircle } from 'lucide-react'; 
 import { DateFilterButtons, getTodayDate, getYesterdayDate, isDateInLast7Days } from '../../components/shared/DateFilterButtons';
@@ -24,7 +25,6 @@ type ReportJob = {
 export const LoadingSheetEntry = () => {
   const { gcEntries, deleteGcEntry, consignors, consignees, getUniqueDests } = useData();
     
-  // --- Filter State ---
   const [showFilters, setShowFilters] = useState(false);
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState('all');
@@ -34,28 +34,24 @@ export const LoadingSheetEntry = () => {
   const [consignorFilter, setConsignorFilter] = useState('');
   const [consigneeFilter, setConsigneeFilter] = useState<string[]>([]);
 
-  // --- Selection and Delete State ---
   const [selectedGcIds, setSelectedGcIds] = useState<string[]>([]);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  // --- Quantity Selection State ---
   const [selectedQuantities, setSelectedQuantities] = useState<Record<string, number[]>>({}); 
   const [isQtySelectOpen, setIsQtySelectOpen] = useState(false);
   const [currentQtySelection, setCurrentQtySelection] = useState<{ gcId: string; maxQty: number } | null>(null);
 
-  // --- Printing State ---
   const [reportPrintingJobs, setReportPrintingJobs] = useState<ReportJob[] | null>(null);
   const [gcPrintingJobs, setGcPrintingJobs] = useState<GcPrintJob[] | null>(null);
   const [loadListPrintingJobs, setLoadListPrintingJobs] = useState<LoadListJob[] | null>(null);
     
-  // --- Filtering (Memoized) ---
   const filteredGcEntries = useMemo(() => {
     return gcEntries.filter(gc => { 
       const consignor = consignors.find(c => c.id === gc.consignorId);
         
       const searchMatch = 
-        gc.id.toLowerCase().includes(search.toLowerCase()) ||
+        gc.gcNo.toLowerCase().includes(search.toLowerCase()) || // Use gcNo
         (consignor && consignor.name.toLowerCase().includes(search.toLowerCase()));
         
       const date = gc.gcDate;
@@ -77,7 +73,6 @@ export const LoadingSheetEntry = () => {
     });
   }, [gcEntries, consignors, search, filterType, customStart, customEnd, destFilter, consignorFilter, consigneeFilter]);
 
-  // --- Dependent Utility Functions ---
   const getFilteredConsignors = (currentGcEntries: GcEntry[], currentConsignors: Consignor[]) => {
     const ids = new Set(currentGcEntries.map(gc => gc.consignorId));
     return currentConsignors
@@ -95,50 +90,12 @@ export const LoadingSheetEntry = () => {
   const destinationOptions = useMemo(getUniqueDests, [getUniqueDests]);
 
   const filteredConsignorOptions = useMemo(() => {
-    const tempFilteredGc = gcEntries.filter(gc => {
-      const consignor = consignors.find(c => c.id === gc.consignorId);
-      const searchMatch = 
-        gc.id.toLowerCase().includes(search.toLowerCase()) ||
-        (consignor && consignor.name.toLowerCase().includes(search.toLowerCase()));
-      const dateMatch = (() => {
-        switch (filterType) {
-          case 'today': return gc.gcDate === getTodayDate();
-          case 'yesterday': return gc.gcDate === getYesterdayDate();
-          case 'week': return isDateInLast7Days(gc.gcDate);
-          case 'custom': return (!customStart || gc.gcDate >= customStart) && (!customEnd || gc.gcDate <= customEnd);
-          default: return true;
-        }
-      })();
-      const destMatch = !destFilter || gc.destination === destFilter;
-      const consigneeMatch = consigneeFilter.length === 0 || consigneeFilter.includes(gc.consigneeId);
-
-      return searchMatch && dateMatch && destMatch && consigneeMatch;
-    });
-    return getFilteredConsignors(tempFilteredGc, consignors);
-  }, [gcEntries, consignors, search, filterType, customStart, customEnd, destFilter, consigneeFilter]);
+    return getFilteredConsignors(filteredGcEntries, consignors); // Simplified filtering logic reuse
+  }, [filteredGcEntries, consignors]);
 
   const filteredConsigneeOptions = useMemo(() => {
-    const tempFilteredGc = gcEntries.filter(gc => {
-      const consignor = consignors.find(c => c.id === gc.consignorId);
-      const searchMatch = 
-        gc.id.toLowerCase().includes(search.toLowerCase()) ||
-        (consignor && consignor.name.toLowerCase().includes(search.toLowerCase()));
-      const dateMatch = (() => {
-        switch (filterType) {
-          case 'today': return gc.gcDate === getTodayDate();
-          case 'yesterday': return gc.gcDate === getYesterdayDate();
-          case 'week': return isDateInLast7Days(gc.gcDate);
-          case 'custom': return (!customStart || gc.gcDate >= customStart) && (!customEnd || gc.gcDate <= customEnd);
-          default: return true;
-        }
-      })();
-      const destMatch = !destFilter || gc.destination === destFilter;
-      const consignorMatch = !consignorFilter || gc.consignorId === consignorFilter;
-
-      return searchMatch && dateMatch && destMatch && consignorMatch;
-    });
-    return getFilteredConsignees(tempFilteredGc, consignees);
-  }, [gcEntries, consignees, consignors, search, filterType, customStart, customEnd, destFilter, consignorFilter]);
+    return getFilteredConsignees(filteredGcEntries, consignees);
+  }, [filteredGcEntries, consignees]);
 
 
   const {
@@ -162,7 +119,7 @@ export const LoadingSheetEntry = () => {
   };
     
   const handlePrintSingle = (gcNo: string) => {
-    const gc = gcEntries.find(g => g.id === gcNo);
+    const gc = gcEntries.find(g => g.gcNo === gcNo);
     if (!gc) return;
     const consignor = consignors.find(c => c.id === gc.consignorId);
     const consignee = consignees.find(c => c.id === gc.consigneeId);
@@ -177,7 +134,7 @@ export const LoadingSheetEntry = () => {
     if (selectedGcIds.length === 0) return;
         
     const jobs: LoadListJob[] = selectedGcIds.map(id => {
-      const gc = gcEntries.find(g => g.id === id);
+      const gc = gcEntries.find(g => g.gcNo === id); // use gcNo
       if (!gc) return null;
       const consignor = consignors.find(c => c.id === gc.consignorId);
       const consignee = consignees.find(c => c.id === gc.consigneeId);
@@ -195,7 +152,8 @@ export const LoadingSheetEntry = () => {
 
   const handleOpenQtySelect = (gc: GcEntry) => {
     const maxQty = parseInt(gc.quantity.toString()) || 1;
-    setCurrentQtySelection({ gcId: gc.id, maxQty: maxQty });
+    // Use gcNo as identifier for selection state
+    setCurrentQtySelection({ gcId: gc.gcNo, maxQty: maxQty }); 
     setIsQtySelectOpen(true);
   };
 
@@ -216,7 +174,7 @@ export const LoadingSheetEntry = () => {
   };
 
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.checked) setSelectedGcIds(paginatedData.map(gc => gc.id));
+    if (e.target.checked) setSelectedGcIds(paginatedData.map(gc => gc.gcNo));
     else setSelectedGcIds([]);
   };
   const handleSelectRow = (e: React.ChangeEvent<HTMLInputElement>, id: string) => {
@@ -224,7 +182,7 @@ export const LoadingSheetEntry = () => {
     else setSelectedGcIds(prev => prev.filter(gcId => gcId !== id));
   };
     
-  const isAllSelected = paginatedData.length > 0 && paginatedData.every(gc => selectedGcIds.includes(gc.id));
+  const isAllSelected = paginatedData.length > 0 && paginatedData.every(gc => selectedGcIds.includes(gc.gcNo));
 
   const clearAllFilters = () => {
     setSearch('');
@@ -238,16 +196,13 @@ export const LoadingSheetEntry = () => {
 
   const hasActiveFilters = destFilter || consignorFilter || consigneeFilter.length > 0 || filterType !== 'all' || search !== '';
 
-  // --- RESPONSIVE BUTTON STYLE HELPER ---
   const responsiveBtnClass = "flex-1 md:flex-none text-[10px] xs:text-xs sm:text-sm h-8 sm:h-10 px-1 sm:px-4 whitespace-nowrap";
 
   return (
     <div className="space-y-6">
       
-      {/* 1. Top Control Bar */}
       <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-background p-4 rounded-lg shadow border border-muted">
         
-        {/* LEFT: Search + Filter Toggle */}
         <div className="flex items-center gap-2 w-full md:w-1/2">
           <div className="relative flex-1">
              <input
@@ -271,7 +226,6 @@ export const LoadingSheetEntry = () => {
           </Button>
         </div>
 
-        {/* RIGHT: Actions - CHANGED */}
         <div className="flex gap-2 w-full md:w-auto justify-between md:justify-end">
           <Button 
             variant="secondary"
@@ -285,7 +239,6 @@ export const LoadingSheetEntry = () => {
         </div>
       </div>
 
-      {/* 2. Collapsible Filters */}
       {showFilters && (
         <div className="p-4 bg-muted/20 rounded-lg border border-muted animate-in fade-in slide-in-from-top-2">
           <div className="flex justify-between items-center mb-4">
@@ -342,9 +295,7 @@ export const LoadingSheetEntry = () => {
         </div>
       )}
 
-      {/* 3. Responsive Data Display */}
       <div className="bg-background rounded-lg shadow border border-muted overflow-hidden">
-        {/* --- DESKTOP TABLE --- */}
         <div className="hidden md:block overflow-x-auto">
           <table className="min-w-full divide-y divide-muted">
             <thead className="bg-muted/50">
@@ -371,7 +322,7 @@ export const LoadingSheetEntry = () => {
               {paginatedData.map((gc) => {
                 const consignor = consignors.find(c => c.id === gc.consignorId);
                 const consignee = consignees.find(c => c.id === gc.consigneeId);
-                const loadedCount = selectedQuantities[gc.id]?.length || 0;
+                const loadedCount = selectedQuantities[gc.gcNo]?.length || 0;
                 const totalCount = parseInt(gc.quantity.toString()) || 0;
                 
                 const isPartiallyLoaded = loadedCount > 0 && loadedCount < totalCount;
@@ -383,14 +334,19 @@ export const LoadingSheetEntry = () => {
                       <input
                         type="checkbox"
                         className="h-4 w-4 accent-primary border-muted-foreground/30 rounded focus:ring-primary"
-                        checked={selectedGcIds.includes(gc.id)}
-                        onChange={(e) => handleSelectRow(e, gc.id)}
+                        checked={selectedGcIds.includes(gc.gcNo)}
+                        onChange={(e) => handleSelectRow(e, gc.gcNo)}
                       />
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-primary">{gc.id}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-primary">{gc.gcNo}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-foreground">{consignor?.name || 'N/A'}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">{consignee?.name || 'N/A'}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">{gc.packing || '-'}</td> 
+                    
+                    {/* FIX: Check both 'packing' and 'packingType' to ensure data displays */}
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                      {gc.packing || (gc as any).packingType || '-'}
+                    </td> 
+                    
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">{gc.contents || '-'}</td> 
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">{totalCount}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-bold" style={{ color: isFullyLoaded ? 'green' : isPartiallyLoaded ? 'orange' : 'inherit' }}>
@@ -404,10 +360,10 @@ export const LoadingSheetEntry = () => {
                       >
                         <PackageCheck size={18} />
                       </button>
-                      <button onClick={() => handlePrintSingle(gc.id)} className="text-green-600 hover:text-green-800" title="Print Load Slip">
+                      <button onClick={() => handlePrintSingle(gc.gcNo)} className="text-green-600 hover:text-green-800" title="Print Load Slip">
                         <Printer size={18} />
                       </button>
-                      <button onClick={() => handleDelete(gc.id)} className="text-destructive hover:text-destructive/80" title="Delete">
+                      <button onClick={() => handleDelete(gc.gcNo)} className="text-destructive hover:text-destructive/80" title="Delete">
                         <Trash2 size={18} />
                       </button>
                     </td>
@@ -418,12 +374,11 @@ export const LoadingSheetEntry = () => {
           </table>
         </div>
 
-        {/* --- MOBILE CARD LIST --- */}
         <div className="block md:hidden divide-y divide-muted">
           {paginatedData.map((gc) => {
                 const consignor = consignors.find(c => c.id === gc.consignorId);
                 const consignee = consignees.find(c => c.id === gc.consigneeId);
-                const loadedCount = selectedQuantities[gc.id]?.length || 0;
+                const loadedCount = selectedQuantities[gc.gcNo]?.length || 0;
                 const totalCount = parseInt(gc.quantity.toString()) || 0;
                 const isPartiallyLoaded = loadedCount > 0 && loadedCount < totalCount;
                 const isFullyLoaded = loadedCount === totalCount && totalCount > 0;
@@ -435,14 +390,18 @@ export const LoadingSheetEntry = () => {
                       <input
                         type="checkbox"
                         className="h-4 w-4 accent-primary border-muted-foreground/30 rounded focus:ring-primary mt-1.5"
-                        checked={selectedGcIds.includes(gc.id)}
-                        onChange={(e) => handleSelectRow(e, gc.id)}
+                        checked={selectedGcIds.includes(gc.gcNo)}
+                        onChange={(e) => handleSelectRow(e, gc.gcNo)}
                       />
                       <div>
-                        <div className="text-lg font-semibold text-primary">GC #{gc.id}</div>
+                        <div className="text-lg font-semibold text-primary">GC #{gc.gcNo}</div>
                         <div className="text-md font-medium text-foreground">From: {consignor?.name || 'N/A'}</div>
                         <div className="text-sm text-muted-foreground">To: {consignee?.name || 'N/A'}</div>
-                        <div className="text-sm text-muted-foreground">Packing: {gc.packing || '-'}</div>
+                        
+                        {/* FIX: Check both 'packing' and 'packingType' here as well */}
+                        <div className="text-sm text-muted-foreground">
+                          Packing: {gc.packing || (gc as any).packingType || '-'}
+                        </div>
                         <div className="text-sm text-muted-foreground">Content: {gc.contents || '-'}</div>
                       </div>
                     </div>
@@ -454,10 +413,10 @@ export const LoadingSheetEntry = () => {
                       >
                         <PackageCheck size={18} />
                       </button>
-                      <button onClick={() => handlePrintSingle(gc.id)} className="text-green-600" title="Print Load Slip">
+                      <button onClick={() => handlePrintSingle(gc.gcNo)} className="text-green-600" title="Print Load Slip">
                         <Printer size={18} />
                       </button>
-                      <button onClick={() => handleDelete(gc.id)} className="text-destructive" title="Delete">
+                      <button onClick={() => handleDelete(gc.gcNo)} className="text-destructive" title="Delete">
                         <Trash2 size={18} />
                       </button>
                     </div>

@@ -3,8 +3,8 @@ import { Eye, EyeOff, Mail, Lock, ArrowRight, Truck, ShieldCheck } from 'lucide-
 import { useAuth } from '../../hooks/useAuth';
 
 export const LoginScreen = () => {
-  const [email, setEmail] = useState('admin@example.com');
-  const [password, setPassword] = useState('password');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isFocused, setIsFocused] = useState<'email' | 'password' | null>(null);
   

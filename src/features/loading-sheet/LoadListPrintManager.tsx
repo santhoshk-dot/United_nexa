@@ -59,7 +59,7 @@ export const LoadListPrintManager: React.FC<LoadListPrintManagerProps> = ({ jobs
 
         const calculatedPrintData = Object.values(groupedLoads).map(group => {
             const sortedGcIds = group.gcList
-                .map(g => Number(g.id))
+                .map(g => Number(g.gcNo)) // Changed to gcNo for numeric sorting
                 .sort((a, b) => a - b);
 
             const fromNo = group.firstGcFromNo;
@@ -80,21 +80,19 @@ export const LoadListPrintManager: React.FC<LoadListPrintManagerProps> = ({ jobs
     }, [jobs]);
 
 
-    // --- UPDATED PRINT LOGIC ---
     useEffect(() => {
         const handleAfterPrint = () => {
-            onClose(); // Unmount this component
+            onClose();
             window.removeEventListener('afterprint', handleAfterPrint);
         };
         
         window.addEventListener('afterprint', handleAfterPrint);
 
         setTimeout(() => {
-            window.print(); // Trigger print dialog
+            window.print();
         }, 100);
 
         return () => {
-            // This cleanup runs when the component unmounts
             window.removeEventListener('afterprint', handleAfterPrint);
         };
     }, [onClose]);
@@ -105,13 +103,11 @@ export const LoadListPrintManager: React.FC<LoadListPrintManagerProps> = ({ jobs
         <div className="load-list-print-wrapper">
             <style>{`
                 @media print {
-                    /* Hide the main app root */
                     #root {
                         display: none !important;
                         visibility: hidden !important;
                     }
                     
-                    /* Show our print wrapper */
                     .load-list-print-wrapper {
                         display: block !important;
                         visibility: visible !important;
@@ -119,31 +115,27 @@ export const LoadListPrintManager: React.FC<LoadListPrintManagerProps> = ({ jobs
                         top: 0;
                         left: 0;
                         width: 100%;
-                        /* The content padding is now handled by the inner div */
                     }
                     
                     @page {
                         size: A4;
-                        margin: 0; /* Important for removing browser header/footer margins */
+                        margin: 0;
                     }
 
-                    /* Ensures the total line prints at the very bottom of the last page, not fixed */
                     .print-footer-total {
                         position: static !important;
-                        margin-top: 1rem; /* Add some space above the footer in print */
+                        margin-top: 1rem;
                     }
                     
-                    /* Use flex on print for the total/name split */
                     .print-split-footer {
                         display: flex;
                         justify-content: space-between;
-                        align-items: flex-end; /* Align items to the bottom */
+                        align-items: flex-end;
                         width: 100%;
                     }
                 }
                 
                 @media screen {
-                    /* On screen, hide the print wrapper */
                     .load-list-print-wrapper {
                         display: none;
                     }
@@ -182,19 +174,15 @@ export const LoadListPrintManager: React.FC<LoadListPrintManagerProps> = ({ jobs
                     </div>
                 ))}
 
-                {/* --- UPDATED FOOTER STRUCTURE FOR LEFT/RIGHT SPLIT --- */}
                 <div className="fixed bottom-20 left-0 right-0 z-10 p-4">
                     <div className="max-w-4xl font-bold text-lg mx-auto">
                         <div className="border-t-2 border-black w-full my-2"></div>
 
-                        {/* Flex container to split Total (Left) and User Info (Right) */}
                         <div className="py-1 flex justify-between items-start print-split-footer">
-                            {/* LEFT SIDE: Total Quantity */}
                             <div>
                                 Total : {grandTotalQuantity},
                             </div>
 
-                            {/* RIGHT SIDE: User Name and Static Line */}
                             <div className="text-xs mb-1 text-center">
                                 <p className="italic font-bold mr-1 mb-1">{userName}</p>
                                 <p className="italic font-bold mr-1">For UNITED TRANSPORT COMPANY</p>
