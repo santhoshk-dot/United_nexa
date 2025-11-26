@@ -1,6 +1,6 @@
 // src/features/trip-sheet-entry/TripSheetPrintManager.tsx
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import ReactDOM from "react-dom";
 import { useData } from "../../hooks/useData";
 import { TripSheetPrintCopy } from "./TripSheetPrintCopy";
@@ -11,18 +11,12 @@ interface TripSheetPrintManagerProps {
   onClose: () => void;
 }
 
-// Detect mobile browser
-const isMobile = () => /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-
 export const TripSheetPrintManager = ({
   mfNos,
   onClose,
 }: TripSheetPrintManagerProps) => {
   const { getTripSheet } = useData();
-  const wrapperRef = useRef<HTMLDivElement>(null);
-
-  // REQUIRED FOR MOBILE PRINTING (cannot use portal)
-  const [renderInline, setRenderInline] = useState(isMobile());
+  const printRef = useRef<HTMLDivElement>(null);
 
   const printPages = useMemo(() => {
     const sheets: TripSheetEntry[] = mfNos
@@ -40,37 +34,41 @@ export const TripSheetPrintManager = ({
     const afterPrint = () => {
       onClose();
       window.removeEventListener("afterprint", afterPrint);
-      setRenderInline(false); // remove inline content after printing
     };
 
     window.addEventListener("afterprint", afterPrint);
 
-    // small delay so the DOM mounts before printing
-    setTimeout(() => window.print(), 300);
+    // delay ensures print DOM is mounted
+    setTimeout(() => {
+      window.print();
+    }, 350);
 
     return () => window.removeEventListener("afterprint", afterPrint);
-  }, []);
+  }, [onClose]);
 
-  // This is the actual print DOM
   const printContent = (
-    <div className="ts-print-wrapper" ref={wrapperRef}>
+    <div className="ts-print-wrapper" ref={printRef}>
       <style>{`
+        
         @media print {
 
-          /* Hide everything except print wrapper */
+          /* Hide entire application */
+
           body > *:not(.ts-print-wrapper) {
             display: none !important;
             visibility: hidden !important;
           }
 
+          /* FORCE SHOW print wrapper */
+          
           .ts-print-wrapper {
             display: block !important;
             visibility: visible !important;
-            position: static !important;
-            width: 100% !important;
+            position: fixed !important;
+            inset: 0 !important;
             margin: 0 !important;
             padding: 0 !important;
-            background: #ffffff !important;
+            background: white !important;
             z-index: 999999 !important;
           }
 
@@ -81,26 +79,15 @@ export const TripSheetPrintManager = ({
 
           @page {
             size: A4;
-            margin: 12mm !important;
+            margin: 12mm;
           }
         }
+
       `}</style>
 
       {printPages}
     </div>
   );
 
-  // ---------------------------------------------
-  // IMPORTANT:
-  // Mobile cannot print portal content.
-  // So we mount inline for mobile, portal for desktop.
-  // ---------------------------------------------
-
-  if (isMobile()) {
-    // INLINE RENDERING FOR MOBILE (REQUIRED)
-    return renderInline ? printContent : null;
-  }
-
-  // DESKTOP → USE PORTAL
   return ReactDOM.createPortal(printContent, document.body);
 };
