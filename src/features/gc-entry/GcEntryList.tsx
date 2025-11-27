@@ -263,7 +263,7 @@ export const GcEntryList = () => {
                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Consignor</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Consignee</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Dest.</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Value</th>
+
                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Qty</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Status</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Actions</th>
@@ -288,7 +288,7 @@ export const GcEntryList = () => {
                         <td className="px-6 py-4 text-sm">{consignor?.name || 'N/A'}</td>
                         <td className="px-6 py-4 text-sm">{consignee?.name || 'N/A'}</td>
                         <td className="px-6 py-4 text-sm">{gc.destination}</td>
-                        <td className="px-6 py-4 text-sm">₹{(parseFloat(gc.billValue) || 0).toLocaleString('en-IN')}</td>
+
                         <td className="px-6 py-4 text-sm">{gc.quantity}</td>
                         
                         {/* CHANGED: Display Logic */}
@@ -357,10 +357,10 @@ export const GcEntryList = () => {
                   </div>
                 </div>
 
-                <div className="flex justify-between items-center mt-3 pt-3 border-t border-dashed border-muted">
-                   <div className="text-sm font-medium">
+                <div className="flex justify-end items-end mt-3 pt-3 border-t border-dashed border-muted">
+                   {/* <div className="text-sm font-medium">
                       Bill Value: ₹{(parseFloat(gc.billValue) || 0).toLocaleString('en-IN')}
-                   </div>
+                   </div> */}
                    {/* CHANGED: Display Logic */}
                    <div className={`text-sm font-bold ${isAssigned ? 'text-green-600' : 'text-muted-foreground'}`}>
                       Status: {isAssigned ? `TS# ${tripSheetId}` : 'Pending'}

@@ -67,7 +67,7 @@ export const MultiSelect = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Handle clicking outside to close (Backup for touch devices or non-mouse users)
+  // Handle clicking outside to close
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
@@ -110,11 +110,7 @@ export const MultiSelect = ({
     <div 
       className="relative w-full" 
       ref={containerRef}
-      // FIX: Close dropdown when mouse leaves the entire component area
-      onMouseLeave={() => {
-        setOpen(false);
-        setSearch('');
-      }}
+      // REMOVED: onMouseLeave prop that was causing the dropdown to close unexpectedly
     >
       {/* Trigger Button */}
       <div onClick={() => setOpen(!open)}>

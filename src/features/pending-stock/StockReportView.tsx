@@ -95,7 +95,7 @@ const ReportPage = ({
         <tbody>
           {jobs.map(({ gc, consignor, consignee }) => (
             <tr key={gc.id} className="h-6">
-              <td className="border border-black p-1 px-2 text-left">{gc.id}</td>
+              <td className="border border-black p-1 px-2 text-left">{gc.gcNo}</td>
               <td className="border border-black p-1 px-2 text-left">{gc.quantity}</td>
               <td className="border border-black p-1 px-2 text-left">
                 {`${gc.packing} - ${gc.contents}`}
