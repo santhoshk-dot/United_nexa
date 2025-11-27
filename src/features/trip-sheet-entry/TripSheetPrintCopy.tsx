@@ -235,7 +235,7 @@ export const TripSheetPrintCopy: React.FC<Props> = ({ sheet }) => {
               <div style={{ fontSize: 11 }}>
                 <div>GSTIN: 33ABLPV5082H3Z8 </div> <div>Mobile: 9787718433</div>
               </div>
-              <div className="company-title">UNITEDTRANSPORT COMPANY</div>
+              <div className="company-title">UNITED TRANSPORT COMPANY</div>
               <div className="company-sub">
                 164-A, Arumugam Road, Near A.V.T. School, SIVAKASI - 626123
               </div>
