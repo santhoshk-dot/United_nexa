@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react'; // <-- ADDED useRef
 import ReactDOM from 'react-dom';
 import type { GcEntry, Consignor, Consignee } from '../../types';
 import { useAuth } from '../../hooks/useAuth';
@@ -25,6 +25,9 @@ const getCurrentDate = () => {
 export const LoadListPrintManager: React.FC<LoadListPrintManagerProps> = ({ jobs, onClose }) => {
     const { user } = useAuth(); 
     const userName = user?.name
+
+    // 🛑 NEW: Ref for the print wrapper element
+    const printRef = useRef<HTMLDivElement>(null); 
 
     const { printData, grandTotalQuantity } = useMemo(() => {
         const groupedLoads = jobs.reduce((acc, job) => {
@@ -80,46 +83,92 @@ export const LoadListPrintManager: React.FC<LoadListPrintManagerProps> = ({ jobs
     }, [jobs]);
 
 
-    // --- UPDATED PRINT LOGIC ---
+    // --- FIXED PRINT LOGIC with JS FORCE HIDE/SHOW ---
     useEffect(() => {
-        const handleAfterPrint = () => {
-            onClose(); // Unmount this component
-            window.removeEventListener('afterprint', handleAfterPrint);
+        const rootElement = document.getElementById("root");
+        const printWrapper = printRef.current; // Get the wrapper element
+
+        if (!rootElement || !printWrapper) {
+            console.error("Print elements (root or wrapper) not found.");
+            return;
+        }
+
+        // --- 1. JS FORCE FIX START (CRITICAL FOR MOBILE/BLANK DESKTOP) ---
+        // Store original styles to ensure the app is restored correctly
+        const originalRootDisplay = rootElement.style.display;
+        const originalWrapperDisplay = printWrapper.style.display;
+
+        // Define the cleanup function
+        const cleanupStyles = () => {
+            // Restore original styles
+            rootElement.style.display = originalRootDisplay;
+            printWrapper.style.display = originalWrapperDisplay;
+            onClose(); // Close the manager
+            window.removeEventListener("afterprint", afterPrint);
         };
         
-        window.addEventListener('afterprint', handleAfterPrint);
+        // Define afterprint listener to clean up styles after print dialog is closed
+        const afterPrint = () => {
+            // Use a timeout to ensure cleanup runs *after* the print dialog closes
+            setTimeout(cleanupStyles, 500); 
+        };
 
-        setTimeout(() => {
-            window.print(); // Trigger print dialog
-        }, 100);
+        window.addEventListener("afterprint", afterPrint);
 
+        // Force visibility change *before* print call
+        rootElement.style.display = "none";
+        printWrapper.style.display = "block";
+
+        // Trigger print after a short delay
+        const printTimeout = setTimeout(() => {
+            window.print();
+        }, 350); // Increased delay for safety
+
+        // --- JS FORCE FIX END ---
+
+        // Return cleanup function to run on component unmount
         return () => {
-            // This cleanup runs when the component unmounts
-            window.removeEventListener('afterprint', handleAfterPrint);
+            window.removeEventListener("afterprint", afterPrint);
+            clearTimeout(printTimeout);
+            // Ensure cleanup runs if the component unmounts unexpectedly
+            cleanupStyles(); 
         };
     }, [onClose]);
 
     if (jobs.length === 0) return null;
 
     const printContent = (
-        <div className="load-list-print-wrapper">
+        // 🛑 NEW: Add ref and set initial style to 'none', let JS control visibility
+        <div className="load-list-print-wrapper" ref={printRef} style={{ display: 'none' }}>
             <style>{`
                 @media print {
-                    /* Hide the main app root */
-                    #root {
+                    /* 🛑 HIDE EVERYTHING AGGRESSIVELY: Target #root and body children */
+                    #root,
+                    body > *:not(.load-list-print-wrapper) {
                         display: none !important;
                         visibility: hidden !important;
+                        width: 0 !important;
+                        height: 0 !important;
+                        position: fixed !important;
+                        top: -9999px !important;
                     }
-                    
-                    /* Show our print wrapper */
+
+                    /* 🛑 SHOW WRAPPER: Force white background */
                     .load-list-print-wrapper {
                         display: block !important;
                         visibility: visible !important;
-                        position: absolute !important;
-                        top: 0;
-                        left: 0;
-                        width: 100%;
-                        /* The content padding is now handled by the inner div */
+                        position: static !important; /* Must be static for print flow */
+                        width: 100% !important;
+                        background-color: #fff !important; 
+                        -webkit-print-color-adjust: exact !important;
+                        print-color-adjust: exact !important;
+                    }
+
+                    /* Ensure global page background is white */
+                    html, body {
+                        background-color: #fff !important;
+                        -webkit-print-color-adjust: exact !important;
+                        print-color-adjust: exact !important;
                     }
                     
                     @page {
@@ -127,18 +176,17 @@ export const LoadListPrintManager: React.FC<LoadListPrintManagerProps> = ({ jobs
                         margin: 0; /* Important for removing browser header/footer margins */
                     }
 
-                    /* Ensures the total line prints at the very bottom of the last page, not fixed */
+                    /* Ensures the footer prints at the very bottom, and not fixed */
                     .print-footer-total {
                         position: static !important;
-                        margin-top: 1rem; /* Add some space above the footer in print */
+                        margin-top: 1rem;
                     }
                     
-                    /* Use flex on print for the total/name split */
                     .print-split-footer {
-                        display: flex;
-                        justify-content: space-between;
-                        align-items: flex-end; /* Align items to the bottom */
-                        width: 100%;
+                        display: flex !important;
+                        justify-content: space-between !important;
+                        align-items: flex-end !important;
+                        width: 100% !important;
                     }
                 }
                 
@@ -183,7 +231,9 @@ export const LoadListPrintManager: React.FC<LoadListPrintManagerProps> = ({ jobs
                 ))}
 
                 {/* --- UPDATED FOOTER STRUCTURE FOR LEFT/RIGHT SPLIT --- */}
-                <div className="fixed bottom-20 left-0 right-0 z-10 p-4">
+                {/* 🛑 NOTE: I have removed the 'fixed' styles in the print media query above. 
+                    This outer div still needs a high enough margin/padding to not overlap the content. */}
+                <div className="print-footer-total"> 
                     <div className="max-w-4xl font-bold text-lg mx-auto">
                         <div className="border-t-2 border-black w-full my-2"></div>
 
