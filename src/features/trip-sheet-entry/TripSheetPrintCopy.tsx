@@ -22,7 +22,7 @@ export const TripSheetPrintCopy: React.FC<Props> = ({ sheet }) => {
   const totalWords = numberToWordsInRupees(total);
 
   // 1. ⬇️ REDUCED ROWS: Decreased from 15 to 10 to fit on a single page
-  const visibleRowCount = 14; 
+  const visibleRowCount = 13; 
   const items: TripSheetGCItem[] = sheet.items ?? [];
   const fillerCount = Math.max(0, visibleRowCount - items.length);
 
