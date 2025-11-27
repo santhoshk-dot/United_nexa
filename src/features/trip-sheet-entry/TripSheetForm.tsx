@@ -19,8 +19,7 @@ export const TripSheetForm = () => {
   const {
     addTripSheet,
     updateTripSheet,
-    // tripSheets, // REMOVED: Do not rely on global state for specific item edit
-    fetchTripSheetById, // ADDED: Use this to fetch single item
+    fetchTripSheetById, 
     consignors,
     consignees,
     fromPlaces,
@@ -122,10 +121,6 @@ export const TripSheetForm = () => {
   const loadGc = (selectedGcNo: string) => {
     // Search in availableGcs (new items) or in current items (if editing)
     let gc = availableGcs.find((g) => g.gcNo === selectedGcNo);
-    
-    // If not found in available (because it's already in the sheet being edited),
-    // we can't fully reload it without fetching it. 
-    // But typically user selects NEW GCs here.
     
     if (!gc) return null;
 
@@ -250,8 +245,6 @@ export const TripSheetForm = () => {
     // If ID is missing in edit mode, prevent save
     if (isEditMode && !id) return;
 
-    // CRITICAL FIX: Do NOT calculate ID on frontend. 
-    // Send empty string so backend handles the counter.
     let finalMfNo = mfNo;
     if (!isEditMode) {
         // We let backend generate it
@@ -349,7 +342,9 @@ export const TripSheetForm = () => {
               GC Details
             </h3>
 
-            <div className="border rounded-md p-4 space-y-4 bg-white">
+            {/* CHANGE: 'bg-white' replaced with 'bg-card' for dark mode support */}
+            {/* CHANGE: 'border' replaced with 'border-muted' for subtle borders */}
+            <div className="border border-muted rounded-md p-4 space-y-4 bg-card">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-8 gap-4 items-end">
                 <div className="col-span-1 sm:col-span-1 lg:col-span-4">
                   <AutocompleteInput
@@ -379,33 +374,36 @@ export const TripSheetForm = () => {
               </div>
 
               <div className="overflow-x-auto">
-                <table className="min-w-full border text-sm">
+                {/* CHANGE: Added 'border-muted' to table */}
+                <table className="min-w-full border border-muted text-sm">
                   <thead>
                     <tr className="bg-muted/20">
-                      <th className="border p-2">GCNO</th>
-                      <th className="border p-2">QTY</th>
-                      <th className="border p-2">RATE</th>
-                      <th className="border p-2">PACKING</th>
-                      <th className="border p-2">CONTENT</th>
-                      <th className="border p-2">CONSIGNOR</th>
-                      <th className="border p-2">CONSIGNEE</th>
-                      <th className="border p-2">AMOUNT</th>
-                      <th className="border p-2">DEL</th>
+                      {/* CHANGE: Added 'border-muted' to headers */}
+                      <th className="border border-muted p-2">GCNO</th>
+                      <th className="border border-muted p-2">QTY</th>
+                      <th className="border border-muted p-2">RATE</th>
+                      <th className="border border-muted p-2">PACKING</th>
+                      <th className="border border-muted p-2">CONTENT</th>
+                      <th className="border border-muted p-2">CONSIGNOR</th>
+                      <th className="border border-muted p-2">CONSIGNEE</th>
+                      <th className="border border-muted p-2">AMOUNT</th>
+                      <th className="border border-muted p-2">DEL</th>
                     </tr>
                   </thead>
 
                   <tbody>
                     {items.map((it, i) => (
                       <tr key={i}>
-                        <td className="border p-2">{it.gcNo}</td>
-                        <td className="border p-2">{it.qty}</td>
-                        <td className="border p-2">{it.rate}</td>
-                        <td className="border p-2">{it.packingDts}</td>
-                        <td className="border p-2">{it.contentDts}</td>
-                        <td className="border p-2">{it.consignor}</td>
-                        <td className="border p-2">{it.consignee}</td>
-                        <td className="border p-2">₹{it.amount.toLocaleString("en-IN")}</td>
-                        <td className="border p-2 text-center">
+                        {/* CHANGE: Added 'border-muted' to cells */}
+                        <td className="border border-muted p-2">{it.gcNo}</td>
+                        <td className="border border-muted p-2">{it.qty}</td>
+                        <td className="border border-muted p-2">{it.rate}</td>
+                        <td className="border border-muted p-2">{it.packingDts}</td>
+                        <td className="border border-muted p-2">{it.contentDts}</td>
+                        <td className="border border-muted p-2">{it.consignor}</td>
+                        <td className="border border-muted p-2">{it.consignee}</td>
+                        <td className="border border-muted p-2">₹{it.amount.toLocaleString("en-IN")}</td>
+                        <td className="border border-muted p-2 text-center">
                           <button type="button" className="text-red-600" onClick={() => handleDeleteGC(i)}>
                             <Trash2 size={16} />
                           </button>

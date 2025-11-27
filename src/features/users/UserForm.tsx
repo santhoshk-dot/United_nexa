@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { Input } from '../../components/shared/Input';
 import { Button } from '../../components/shared/Button';
-import { X } from 'lucide-react';
+import { X, Eye, EyeOff } from 'lucide-react'; // CHANGE: Imported Eye icons
 import type { AppUser } from '../../types';
-import { useAuth } from '../../hooks/useAuth'; // Added hook to get user list
+import { useAuth } from '../../hooks/useAuth';
 
 interface UserFormProps {
   initialData?: AppUser;
@@ -12,13 +12,15 @@ interface UserFormProps {
 }
 
 export const UserForm = ({ initialData, onClose, onSave }: UserFormProps) => {
-  const { users } = useAuth(); // Get list of all users for validation
+  const { users } = useAuth(); 
   const [emailError, setEmailError] = useState<string>(""); 
+  // CHANGE: State to toggle password visibility
+  const [showPassword, setShowPassword] = useState(false);
 
   const [formData, setFormData] = useState({
     name: initialData?.name || '',
     email: initialData?.email || '',
-    password: initialData?.password || '',
+    password: '', 
     mobile: initialData?.mobile || '',
     role: initialData?.role || 'user',
   });
@@ -27,11 +29,9 @@ export const UserForm = ({ initialData, onClose, onSave }: UserFormProps) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
 
-    // --- IMMEDIATE VALIDATION ---
     if (name === 'email') {
       const normalizedEmail = value.trim().toLowerCase();
       
-      // Check if duplicate (exclude current user ID if editing)
       const exists = users.some(u => 
         u.email.toLowerCase() === normalizedEmail && 
         u.id !== initialData?.id
@@ -47,8 +47,6 @@ export const UserForm = ({ initialData, onClose, onSave }: UserFormProps) => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Final guard clause
     if (emailError) return;
     
     const userToSave: AppUser = {
@@ -81,7 +79,6 @@ export const UserForm = ({ initialData, onClose, onSave }: UserFormProps) => {
             required 
           />
           
-          {/* Email Field with Error Handling */}
           <div>
             <Input 
               label="Email Address" 
@@ -93,7 +90,6 @@ export const UserForm = ({ initialData, onClose, onSave }: UserFormProps) => {
               required 
               className={emailError ? "border-red-500 focus:border-red-500 focus:ring-red-500" : ""}
             />
-            {/* Validation Message */}
             {emailError && (
               <p className="text-sm text-red-600 mt-1 animate-in fade-in slide-in-from-top-1">
                 {emailError}
@@ -102,15 +98,34 @@ export const UserForm = ({ initialData, onClose, onSave }: UserFormProps) => {
           </div>
           
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-             <Input 
-               label="Password" 
-               id="password" 
-               name="password" 
-               type="text" 
-               value={formData.password} 
-               onChange={handleChange} 
-               required 
-             />
+             {/* CHANGE: Custom Password Input with Eye Icon */}
+             <div>
+               <label htmlFor="password" className="block text-sm font-medium text-muted-foreground">
+                 {initialData ? "Password (Leave blank to keep)" : "Password"}
+                 {!initialData && <span className="text-destructive">*</span>}
+               </label>
+               <div className="mt-1 relative">
+                 <input
+                   id="password"
+                   name="password"
+                   type={showPassword ? "text" : "password"} // Toggle type
+                   value={formData.password}
+                   onChange={handleChange}
+                   required={!initialData}
+                   // Matches existing Input component styles + pr-10 for icon space
+                   className="w-full px-3 py-2 bg-background text-foreground border border-muted-foreground/30 rounded-md shadow-sm placeholder-muted-foreground focus:outline-none focus:ring-primary focus:border-primary pr-10"
+                 />
+                 <button
+                   type="button"
+                   onClick={() => setShowPassword(!showPassword)}
+                   className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted-foreground hover:text-foreground"
+                   tabIndex={-1} // Skip tab focus for icon
+                 >
+                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                 </button>
+               </div>
+             </div>
+
              <Input 
                label="Mobile Number" 
                id="mobile" 
@@ -140,7 +155,7 @@ export const UserForm = ({ initialData, onClose, onSave }: UserFormProps) => {
             <Button 
               type="submit" 
               variant="primary"
-              disabled={!!emailError} // DISABLE SAVE BUTTON IF ERROR EXISTS
+              disabled={!!emailError} 
               className={emailError ? "opacity-50 cursor-not-allowed" : ""}
             >
               {initialData ? 'Update User' : 'Create User'}

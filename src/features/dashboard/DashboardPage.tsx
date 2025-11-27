@@ -44,13 +44,15 @@ const OverviewStat = ({ label, value }: { label: string, value: string | number 
 
 export const DashboardPage = () => {
   const navigate = useNavigate();
+  // UPDATED: Added loadingSheetsWeek to initial state
   const [stats, setStats] = useState({
     todayGc: 0,
     weekGc: 0,
     tripSheetsWeek: 0,
     activeTrips: 0,
     pendingStock: 0,
-    totalRecords: 0
+    totalRecords: 0,
+    loadingSheetsWeek: 0
   });
 
   useEffect(() => {
@@ -98,7 +100,8 @@ export const DashboardPage = () => {
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 flex-1">
               <OverviewStat label="GC Entries" value={stats.weekGc} />
-              <OverviewStat label="Loading Sheets" value="-" />
+              {/* UPDATED: Binding to dynamic loadingSheetsWeek value */}
+              <OverviewStat label="Loading Sheets" value={stats.loadingSheetsWeek} />
               <OverviewStat label="Trip Sheets" value={stats.tripSheetsWeek} />
               <OverviewStat label="Total Records" value={stats.totalRecords} />
             </div>

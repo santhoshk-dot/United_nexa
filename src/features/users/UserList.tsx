@@ -164,7 +164,7 @@ export const UserList = () => {
                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">User</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Role</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Mobile</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Password</th>
+               
                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
@@ -189,7 +189,7 @@ export const UserList = () => {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">{u.mobile}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground font-mono">••••••••</td>
+
                     <td className="px-6 py-4 whitespace-nowrap text-sm space-x-3">
                       <button onClick={() => handleEdit(u)} className="text-blue-600 hover:text-blue-800"><FilePenLine size={18} /></button>
                       {currentUser?.id !== u.id && (

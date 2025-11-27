@@ -1,4 +1,3 @@
-// src/features/gc-entry/GcPrintCopy.tsx
 import React from "react";
 import type { GcEntry, Consignor, Consignee } from "../../types";
 import { numberToWords, numberToWordsInRupees } from "../../utils/toWords";
@@ -45,7 +44,6 @@ export const GcPrintCopy: React.FC<Props> = ({
   
   const totalCharges = freightNum + godownChargeNum + statisticChargeNum + tollFeeNum;
   
-  // CHANGED: Use 'paymentType' instead of 'paidType'
   const isPaid = gc.paymentType?.toLowerCase() === 'paid';
   const paymentStatusLabel = isPaid ? "PAID" : "TO PAY";
 
@@ -54,6 +52,31 @@ export const GcPrintCopy: React.FC<Props> = ({
   }`;
 
   const description = `${numberToWords(quantityNum)} ${gc.packing} of ${gc.contents}`;
+
+  // --- LOGIC FOR CONSIGNEE PROOF DISPLAY ---
+  // Priority: GST (Entry) -> GST (Master) -> PAN (Entry) -> PAN (Master) -> Aadhar (Entry) -> Aadhar (Master)
+  let proofLabel = "GSTIN";
+  let proofValue = "---";
+
+  if (gc.consigneeProofType === 'gst' && gc.consigneeProofValue) {
+      proofLabel = "GSTIN";
+      proofValue = gc.consigneeProofValue;
+  } else if (consignee.gst) {
+      proofLabel = "GSTIN";
+      proofValue = consignee.gst;
+  } else if (gc.consigneeProofType === 'pan' && gc.consigneeProofValue) {
+      proofLabel = "PAN";
+      proofValue = gc.consigneeProofValue;
+  } else if (consignee.pan) {
+      proofLabel = "PAN";
+      proofValue = consignee.pan;
+  } else if (gc.consigneeProofType === 'aadhar' && gc.consigneeProofValue) {
+      proofLabel = "AADHAR";
+      proofValue = gc.consigneeProofValue;
+  } else if (consignee.aadhar) {
+      proofLabel = "AADHAR";
+      proofValue = consignee.aadhar;
+  }
 
   return (
     <div
@@ -133,7 +156,7 @@ export const GcPrintCopy: React.FC<Props> = ({
             {consignee.address}
           </div>
           <div className="pl-4 text-sm font-bold">
-             GSTIN : {gc.consigneeProofType === 'gst' ? gc.consigneeProofValue : consignee.gst || "---"}
+             {proofLabel} : {proofValue}
           </div>
         </div>
       </div>

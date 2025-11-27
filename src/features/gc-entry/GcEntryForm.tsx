@@ -57,7 +57,6 @@ export const GcEntryForm = () => {
     prefix: '',
     fromNo: "1",
     netQty: "",
-    // CHANGED: Use paymentType instead of paidType to match Backend Schema
     paymentType: 'To Pay', 
   });
   
@@ -75,7 +74,6 @@ export const GcEntryForm = () => {
           setForm({
             ...gc,
             balanceToPay: gc.balanceToPay,
-            // Ensure paymentType is loaded, fallback to 'To Pay'
             paymentType: gc.paymentType || 'To Pay' 
           });
           const consignor = consignors.find(c => c.id === gc.consignorId);
@@ -108,15 +106,14 @@ export const GcEntryForm = () => {
     setForm(prev => {
       const newData = { ...prev, [name]: value };
       if (name === 'quantity') newData.netQty = value;
-      const calcFields = ['billValue', 'tollFee', 'freight', 'godownCharge', 'statisticCharge', 'advanceNone'];
-      if (calcFields.includes(name)) {
-        const getVal = (field: keyof typeof form) => { const v = field === name ? value : prev[field]; return parseFloat(v as string) || 0; };
-        const totalAdditions = getVal('billValue') + getVal('tollFee') + getVal('freight') + getVal('godownCharge') + getVal('statisticCharge');
-        newData.balanceToPay = (totalAdditions - getVal('advanceNone')).toString();
-      }
+      
+      // --- LOGIC REMOVED: Auto-calculation of balanceToPay ---
+      // The user can now manually edit the Balance field without it being overwritten.
+      
       return newData;
     });
   };
+
   const handleFormValueChange = (name: keyof typeof form, value: string | number) => { setForm(prev => ({ ...prev, [name]: value as string })); };
   const handleDestinationSelect = (dest: string) => { setForm(prev => ({ ...prev, destination: dest, deliveryAt: dest, freightUptoAt: dest })); };
   
@@ -175,10 +172,18 @@ export const GcEntryForm = () => {
           
           <div>
             <h3 className="text-base font-bold text-primary border-b border-border pb-2 mb-4">GC Details</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-4">
-              <div className="col-span-1 lg:col-span-2"><Input label="GC Date" type="date" name="gcDate" value={form.gcDate} onChange={handleChange} required /></div>
-              <div className="col-span-1 lg:col-span-3"><Input label="From (GC)" name="from" value={form.from} onChange={handleChange} required disabled /></div>
-              <div className="col-span-1 sm:col-span-2 lg:col-span-5"><AutocompleteInput label="Destination" options={destinationOptions} value={form.destination} onSelect={handleDestinationSelect} placeholder="" required /></div>
+            
+            {/* UPDATED: Changed grid to 3 equal columns for Date, From, Destination */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="col-span-1">
+                <Input label="GC Date" type="date" name="gcDate" value={form.gcDate} onChange={handleChange} required />
+              </div>
+              <div className="col-span-1">
+                <Input label="From (GC)" name="from" value={form.from} onChange={handleChange} required disabled />
+              </div>
+              <div className="col-span-1">
+                <AutocompleteInput label="Destination" options={destinationOptions} value={form.destination} onSelect={handleDestinationSelect} placeholder="" required />
+              </div>
             </div>
           </div>
 
@@ -232,13 +237,13 @@ export const GcEntryForm = () => {
               <div className="col-span-1"><Input label="Godown" name="godownCharge" value={form.godownCharge} onChange={handleChange} /></div>
               <div className="col-span-1"><Input label="Statistic" name="statisticCharge" value={form.statisticCharge} onChange={handleChange} /></div>
               <div className="col-span-1"><Input label="Advance" name="advanceNone" value={form.advanceNone} onChange={handleChange} /></div>
+              {/* KEPT: Balance field remains available for manual entry */}
               <div className="col-span-1"><Input label="Balance" name="balanceToPay" value={form.balanceToPay} onChange={handleChange} /></div>
             </div>
           </div>
 
           <div className="pt-2">
              <div className="flex gap-6">
-              {/* UPDATED: Use paymentType field name */}
               <label className="flex items-center gap-2 cursor-pointer">
                 <input 
                     type="radio" 
