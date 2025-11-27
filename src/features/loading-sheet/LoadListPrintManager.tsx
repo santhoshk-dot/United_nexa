@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef } from 'react'; // <-- ADDED useRef
+import React, { useEffect, useMemo, useRef } from 'react'; 
 import ReactDOM from 'react-dom';
 import type { GcEntry, Consignor, Consignee } from '../../types';
 import { useAuth } from '../../hooks/useAuth';
@@ -26,7 +26,6 @@ export const LoadListPrintManager: React.FC<LoadListPrintManagerProps> = ({ jobs
     const { user } = useAuth(); 
     const userName = user?.name
 
-    // 🛑 NEW: Ref for the print wrapper element
     const printRef = useRef<HTMLDivElement>(null); 
 
     const { printData, grandTotalQuantity } = useMemo(() => {
@@ -94,22 +93,17 @@ export const LoadListPrintManager: React.FC<LoadListPrintManagerProps> = ({ jobs
         }
 
         // --- 1. JS FORCE FIX START (CRITICAL FOR MOBILE/BLANK DESKTOP) ---
-        // Store original styles to ensure the app is restored correctly
         const originalRootDisplay = rootElement.style.display;
         const originalWrapperDisplay = printWrapper.style.display;
 
-        // Define the cleanup function
         const cleanupStyles = () => {
-            // Restore original styles
             rootElement.style.display = originalRootDisplay;
             printWrapper.style.display = originalWrapperDisplay;
-            onClose(); // Close the manager
+            onClose(); 
             window.removeEventListener("afterprint", afterPrint);
         };
         
-        // Define afterprint listener to clean up styles after print dialog is closed
         const afterPrint = () => {
-            // Use a timeout to ensure cleanup runs *after* the print dialog closes
             setTimeout(cleanupStyles, 500); 
         };
 
@@ -119,18 +113,15 @@ export const LoadListPrintManager: React.FC<LoadListPrintManagerProps> = ({ jobs
         rootElement.style.display = "none";
         printWrapper.style.display = "block";
 
-        // Trigger print after a short delay
         const printTimeout = setTimeout(() => {
             window.print();
-        }, 350); // Increased delay for safety
+        }, 350); 
 
         // --- JS FORCE FIX END ---
 
-        // Return cleanup function to run on component unmount
         return () => {
             window.removeEventListener("afterprint", afterPrint);
             clearTimeout(printTimeout);
-            // Ensure cleanup runs if the component unmounts unexpectedly
             cleanupStyles(); 
         };
     }, [onClose]);
@@ -138,7 +129,6 @@ export const LoadListPrintManager: React.FC<LoadListPrintManagerProps> = ({ jobs
     if (jobs.length === 0) return null;
 
     const printContent = (
-        // 🛑 NEW: Add ref and set initial style to 'none', let JS control visibility
         <div className="load-list-print-wrapper" ref={printRef} style={{ display: 'none' }}>
             <style>{`
                 @media print {
@@ -154,13 +144,14 @@ export const LoadListPrintManager: React.FC<LoadListPrintManagerProps> = ({ jobs
                         top: -9999px !important;
                     }
 
-                    /* 🛑 SHOW WRAPPER: Force white background */
+                    /* 🛑 SHOW WRAPPER: Force white background AND BLACK TEXT */
                     .load-list-print-wrapper {
                         display: block !important;
                         visibility: visible !important;
-                        position: static !important; /* Must be static for print flow */
+                        position: static !important;
                         width: 100% !important;
-                        background-color: #fff !important; 
+                        background-color: #fff !important;
+                        color: #000 !important; /* <--- 🔥 CRITICAL FIX FOR DARK MODE BLANK PDF */
                         -webkit-print-color-adjust: exact !important;
                         print-color-adjust: exact !important;
                     }
@@ -174,13 +165,15 @@ export const LoadListPrintManager: React.FC<LoadListPrintManagerProps> = ({ jobs
                     
                     @page {
                         size: A4;
-                        margin: 0; /* Important for removing browser header/footer margins */
+                        margin: 0; 
                     }
 
                     /* Ensures the footer prints at the very bottom, and not fixed */
                     .print-footer-total {
-                        position: static !important;
+                        position: static !important; /* <--- FIXED POSITION FOR PRINT */
                         margin-top: 1rem;
+                        padding-left: 1rem;
+                        padding-right: 1rem;
                     }
                     
                     .print-split-footer {
@@ -231,9 +224,8 @@ export const LoadListPrintManager: React.FC<LoadListPrintManagerProps> = ({ jobs
                     </div>
                 ))}
 
-                {/* --- UPDATED FOOTER STRUCTURE FOR LEFT/RIGHT SPLIT --- */}
-                {/* 🛑 NOTE: I have removed the 'fixed' styles in the print media query above. 
-                    This outer div still needs a high enough margin/padding to not overlap the content. */}
+                {/* --- UPDATED FOOTER CLASS FOR PRINT COMPATIBILITY --- */}
+                {/* Replaced fixed classes with print-footer-total class for proper printing flow */}
                 <div className="fixed bottom-20 left-0 right-0 z-10 p-4"> 
                     <div className="max-w-4xl font-bold text-lg mx-auto">
                         <div className="border-t-2 border-black w-full my-2"></div>
