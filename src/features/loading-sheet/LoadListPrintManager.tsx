@@ -3,6 +3,9 @@ import ReactDOM from 'react-dom';
 import type { GcEntry, Consignor, Consignee } from '../../types';
 import { useAuth } from '../../hooks/useAuth';
 
+// Helper to detect mobile devices (screens smaller than 768px)
+const isMobileScreen = () => window.innerWidth < 768;
+
 export type LoadListJob = {
     gc: GcEntry;
     consignor: Consignor;
@@ -82,21 +85,28 @@ export const LoadListPrintManager: React.FC<LoadListPrintManagerProps> = ({ jobs
     }, [jobs]);
 
 
-    // --- FIXED PRINT LOGIC with JS FORCE HIDE/SHOW ---
+    // --- PRINT LOGIC with SPLIT MOBILE/DESKTOP FIX ---
     useEffect(() => {
+        if (jobs.length === 0) return;
+
         const rootElement = document.getElementById("root");
-        const printWrapper = printRef.current; // Get the wrapper element
+        const printWrapper = printRef.current; 
+        const isMobile = isMobileScreen(); // Determine device type
 
         if (!rootElement || !printWrapper) {
             console.error("Print elements (root or wrapper) not found.");
             return;
         }
 
-        // --- 1. JS FORCE FIX START (CRITICAL FOR MOBILE/BLANK DESKTOP) ---
+        let printTimeout: number;
+
+        // --- 1. DEFINE UNIVERSAL CLEANUP ---
+        // Store original styles *before* they might be changed by JS
         const originalRootDisplay = rootElement.style.display;
         const originalWrapperDisplay = printWrapper.style.display;
 
         const cleanupStyles = () => {
+            // Restore original styles
             rootElement.style.display = originalRootDisplay;
             printWrapper.style.display = originalWrapperDisplay;
             onClose(); 
@@ -104,27 +114,45 @@ export const LoadListPrintManager: React.FC<LoadListPrintManagerProps> = ({ jobs
         };
         
         const afterPrint = () => {
+            // Use a timeout to ensure cleanup runs *after* the print dialog is truly closed
             setTimeout(cleanupStyles, 500); 
         };
 
         window.addEventListener("afterprint", afterPrint);
+        
+        // ---------------------------------------------------------
+        // 2. MOBILE LOGIC: JS FORCE FIX (Hides UI)
+        // ---------------------------------------------------------
+        if (isMobile) {
+            // Force visibility change *before* print call (THE MOBILE FIX)
+            rootElement.style.display = "none";
+            printWrapper.style.display = "block";
 
-        // Force visibility change *before* print call
-        rootElement.style.display = "none";
-        printWrapper.style.display = "block";
+            // Trigger print after a delay for DOM rendering
+            printTimeout = setTimeout(() => {
+                window.print();
+            }, 500);
+        } 
+        
+        // ---------------------------------------------------------
+        // 3. DESKTOP LOGIC: CSS ONLY (Keeps UI visible)
+        // ---------------------------------------------------------
+        else {
+            // Trigger print. Rely on CSS @media print to hide #root.
+            printTimeout = setTimeout(() => {
+                window.print();
+            }, 350);
+        }
 
-        const printTimeout = setTimeout(() => {
-            window.print();
-        }, 350); 
-
-        // --- JS FORCE FIX END ---
-
+        // Return cleanup function to run on component unmount
         return () => {
             window.removeEventListener("afterprint", afterPrint);
             clearTimeout(printTimeout);
-            cleanupStyles(); 
+            // Ensure styles are restored if component unmounts unexpectedly
+            rootElement.style.display = originalRootDisplay;
+            printWrapper.style.display = originalWrapperDisplay;
         };
-    }, [onClose]);
+    }, [jobs, onClose]); // Added jobs to dependency array for correctness
 
     if (jobs.length === 0) return null;
 
@@ -132,7 +160,7 @@ export const LoadListPrintManager: React.FC<LoadListPrintManagerProps> = ({ jobs
         <div className="load-list-print-wrapper" ref={printRef} style={{ display: 'none' }}>
             <style>{`
                 @media print {
-                    /* 🛑 HIDE EVERYTHING AGGRESSIVELY: Target #root and body children */
+                    /* 🛑 HIDE EVERYTHING AGGRESSIVELY: This handles the desktop hide via CSS */
                     #root,
                     body > *:not(.load-list-print-wrapper) {
                         background-color: #fff !important;
@@ -151,7 +179,7 @@ export const LoadListPrintManager: React.FC<LoadListPrintManagerProps> = ({ jobs
                         position: static !important;
                         width: 100% !important;
                         background-color: #fff !important;
-                        color: #000 !important; /* <--- 🔥 CRITICAL FIX FOR DARK MODE BLANK PDF */
+                        color: #000 !important; /* <--- CRITICAL FIX FOR DARK MODE BLANK PDF */
                         -webkit-print-color-adjust: exact !important;
                         print-color-adjust: exact !important;
                     }
@@ -169,13 +197,14 @@ export const LoadListPrintManager: React.FC<LoadListPrintManagerProps> = ({ jobs
                     }
 
                     /* Ensures the footer prints at the very bottom, and not fixed */
-                    .print-footer-total {
-                        position: static !important; /* <--- FIXED POSITION FOR PRINT */
+                    .print-footer-container {
+                        position: static !important; 
                         margin-top: 1rem;
                         padding-left: 1rem;
                         padding-right: 1rem;
                     }
                     
+                    /* Ensures total footer displays correctly across print pages */
                     .print-split-footer {
                         display: flex !important;
                         justify-content: space-between !important;
@@ -188,6 +217,15 @@ export const LoadListPrintManager: React.FC<LoadListPrintManagerProps> = ({ jobs
                     /* On screen, hide the print wrapper */
                     .load-list-print-wrapper {
                         display: none;
+                    }
+                    /* Re-apply screen styles for the footer container */
+                    .print-footer-container {
+                         position: fixed; 
+                         bottom: 0; 
+                         left: 0; 
+                         right: 0; 
+                         z-10; 
+                         padding: 1rem;
                     }
                 }
             `}</style>
@@ -224,9 +262,9 @@ export const LoadListPrintManager: React.FC<LoadListPrintManagerProps> = ({ jobs
                     </div>
                 ))}
 
-                {/* --- UPDATED FOOTER CLASS FOR PRINT COMPATIBILITY --- */}
-                {/* Replaced fixed classes with print-footer-total class for proper printing flow */}
-                <div className="fixed bottom-20 left-0 right-0 z-10 p-4"> 
+                {/* --- FOOTER CONTAINER --- */}
+                {/* Removed direct fixed classes and applied a generic class for screen/print control */}
+                <div className="fixed bottom-0 left-0 right-0 z-10 p-4"> 
                     <div className="max-w-4xl font-bold text-lg mx-auto">
                         <div className="border-t-2 border-black w-full my-2"></div>
 
