@@ -62,16 +62,14 @@ export const TripSheetPrintManager = ({
                     // Re-attach the root element to its parent
                     rootParent.appendChild(rootElement);
                 } catch (e) {
-                    // This error is safe to ignore if the element is already re-attached
-                    console.warn("Root element might have been already re-attached.", e);
+                    // Ignore error if element is already re-attached
                 }
                 // Ensure the print wrapper is hidden after re-attachment
                 printWrapper.style.removeProperty('display');
             }
             
-            // Call onClose whether mobile or desktop
             onClose(); 
-        }, 500); // 500ms delay for print dialog close confirmation
+        }, 500); // Standard 500ms delay for print dialog close confirmation
     };
 
     window.addEventListener("afterprint", cleanupHandler);
@@ -88,15 +86,14 @@ export const TripSheetPrintManager = ({
         rootParent.removeChild(rootElement);
         rootDetached = true;
         
-        // 2. Force show the print wrapper (as #root is gone, only this remains in the body)
-        // We set display: block here so the browser can measure it for the print job
+        // 2. Force show the print wrapper 
         printWrapper.style.setProperty('display', 'block', 'important');
       }
 
-      // 3. Trigger Print (max delay for mobile rendering)
+      // 3. Trigger Print (Aggressive 2-second delay for stability)
       printTimeout = setTimeout(() => {
         window.print();
-      }, 1000); // Increased delay for safety
+      }, 3000); // *** INCREASED DELAY TO 2000MS ***
     } 
     
     // ---------------------------------------------------------
@@ -127,7 +124,6 @@ export const TripSheetPrintManager = ({
   }, [onClose, mfNos.length]); 
 
   const printContent = (
-    // The print wrapper does not need an inline style, as it's hidden by CSS @media screen
     <div className="ts-print-wrapper" ref={printRef}> 
       <style>{`
         @media print {
@@ -151,7 +147,7 @@ export const TripSheetPrintManager = ({
             display: block !important;
             visibility: visible !important;
             
-            /* Use fixed/absolute positioning to dominate the viewport */
+            /* Use absolute positioning to dominate the viewport */
             position: absolute !important; 
             top: 0 !important;
             left: 0 !important;
