@@ -5,8 +5,8 @@ import { TripSheetPrintCopy } from "./TripSheetPrintCopy";
 import type { TripSheetEntry } from "../../types";
 
 interface TripSheetPrintManagerProps {
-  mfNos: string[];
-  onClose: () => void;
+  mfNos: string[];
+  onClose: () => void;
 }
 
 // Helper to detect mobile devices (screens smaller than 768px)
@@ -14,178 +14,192 @@ const isMobileScreen = () => window.innerWidth < 768;
 
 
 export const TripSheetPrintManager = ({
-  mfNos,
-  onClose,
+  mfNos,
+  onClose,
 }: TripSheetPrintManagerProps) => {
-  const { getTripSheet } = useData();
-  const printRef = useRef<HTMLDivElement>(null);
+  const { getTripSheet } = useData();
+  const printRef = useRef<HTMLDivElement>(null);
 
-  const printPages = useMemo(() => {
-    const sheets: TripSheetEntry[] = mfNos
-      .map((id) => getTripSheet(id))
-      .filter(Boolean) as TripSheetEntry[];
+  const printPages = useMemo(() => {
+    const sheets: TripSheetEntry[] = mfNos
+      .map((id) => getTripSheet(id))
+      .filter(Boolean) as TripSheetEntry[];
 
-    return sheets.map((sheet) => (
-      <div className="print-page" key={sheet.mfNo}>
-        <TripSheetPrintCopy sheet={sheet} />
-      </div>
-    ));
-  }, [mfNos, getTripSheet]);
+    return sheets.map((sheet) => (
+      <div className="print-page" key={sheet.mfNo}>
+        <TripSheetPrintCopy sheet={sheet} />
+      </div>
+    ));
+  }, [mfNos, getTripSheet]);
 
-  useEffect(() => {
-    const rootElement = document.getElementById("root");
-    const printWrapper = printRef.current;
+  useEffect(() => {
+    // If no jobs, don't attempt to print
+    if (mfNos.length === 0) return;
 
-    if (!rootElement || !printWrapper) {
-      console.error("Print elements not found");
-      return;
-    }
+    const rootElement = document.getElementById("root");
+    const printWrapper = printRef.current;
+    const isMobile = isMobileScreen();
+    let printTimeout: number | undefined;
 
-    const isMobile = isMobileScreen();
-    let printTimeout: number | undefined;
+    if (!rootElement || !printWrapper) {
+      console.error("Print elements not found");
+      return;
+    }
 
-    // ---------------------------------------------------------
-    // 📱 MOBILE LOGIC: Aggressive JS Force Fix
-    // ---------------------------------------------------------
-    if (isMobile) {
-      // 1. Save original styles
-      const originalRootDisplay = rootElement.style.display;
-      const originalWrapperDisplay = printWrapper.style.display;
+    // --- Universal function to restore styles ---
+    const restoreStyles = (originalRootDisplay: string, originalWrapperDisplay: string) => {
+      // Restore original styles by removing the forced 'important' values
+      rootElement.style.removeProperty('display');
+      printWrapper.style.removeProperty('display');
+      
+      // Fallback: Directly assign if properties were originally set
+      if (originalRootDisplay) rootElement.style.display = originalRootDisplay;
+      if (originalWrapperDisplay) printWrapper.style.display = originalWrapperDisplay;
 
-      // 2. Define Cleanup (Restore UI)
-      const cleanupMobile = () => {
-        // Use setTimeout to ensure cleanup runs *after* the print dialog closes
-        setTimeout(() => {
-            rootElement.style.display = originalRootDisplay;
-            printWrapper.style.display = originalWrapperDisplay;
-            window.removeEventListener("afterprint", cleanupMobile);
-            onClose();
-        }, 500); 
-      };
+      onClose();
+    };
+    
+    // --- 🖥️ DESKTOP LOGIC: Cleanup for CSS-only approach ---
+    const cleanupDesktop = () => {
+      setTimeout(() => {
+        window.removeEventListener("afterprint", cleanupDesktop);
+        onClose(); // Only close, CSS handles the rest
+      }, 500);
+    };
 
-      // 3. Listen for when print dialog closes
-      window.addEventListener("afterprint", cleanupMobile);
 
-      // 4. FORCE DOM MANIPULATION
-      // We are being more aggressive here with !important to ensure the style applies
-      rootElement.style.setProperty('display', 'none', 'important'); 
-      printWrapper.style.setProperty('display', 'block', 'important');
+    // --- 📱 MOBILE LOGIC: Cleanup for JS Force Fix approach ---
+    const cleanupMobile = (originalRootDisplay: string, originalWrapperDisplay: string) => () => {
+      setTimeout(() => {
+        window.removeEventListener("afterprint", cleanupMobile(originalRootDisplay, originalWrapperDisplay));
+        restoreStyles(originalRootDisplay, originalWrapperDisplay);
+      }, 500);
+    };
 
-      // 5. Trigger Print (increased delay for mobile rendering)
-      printTimeout = setTimeout(() => {
-        window.print();
-      }, 750); // Increased delay for mobile responsiveness
-    } 
-    
-    // ---------------------------------------------------------
-    // 🖥️ DESKTOP LOGIC: CSS ONLY
-    // ---------------------------------------------------------
-    else {
-      // 1. Simple Cleanup
-      const cleanupDesktop = () => {
-        window.removeEventListener("afterprint", cleanupDesktop);
-        onClose();
-      };
+    // ---------------------------------------------------------
+    // 📱 MOBILE EXECUTION
+    // ---------------------------------------------------------
+    if (isMobile) {
+      const originalRootDisplay = rootElement.style.display;
+      const originalWrapperDisplay = printWrapper.style.display;
 
-      window.addEventListener("afterprint", cleanupDesktop);
+      // 1. Listen for when print dialog closes (using the function that captures original styles)
+      const boundCleanupMobile = cleanupMobile(originalRootDisplay, originalWrapperDisplay);
+      window.addEventListener("afterprint", boundCleanupMobile);
 
-      // 2. Trigger Print 
-      printTimeout = setTimeout(() => {
-        window.print();
-      }, 350);
-    }
+      // 2. FORCE DOM MANIPULATION (The Mobile Fix)
+      // Use setProperty to guarantee override
+      rootElement.style.setProperty('display', 'none', 'important'); 
+      printWrapper.style.setProperty('display', 'block', 'important');
 
-    // Cleanup on unmount (safety net)
-    return () => {
-        window.removeEventListener("afterprint", printWrapper.style.display === 'none' ? cleanupMobile : cleanupDesktop);
-        if (printTimeout) clearTimeout(printTimeout);
+      // 3. Trigger Print (increased delay for mobile rendering)
+      printTimeout = setTimeout(() => {
+        window.print();
+      }, 750); 
+    } 
+    
+    // ---------------------------------------------------------
+    // 🖥️ DESKTOP EXECUTION
+    // ---------------------------------------------------------
+    else {
+      // 1. Listen for cleanup
+      window.addEventListener("afterprint", cleanupDesktop);
+
+      // 2. Trigger Print 
+      printTimeout = setTimeout(() => {
+        window.print();
+      }, 350);
+    }
+
+    // Cleanup on unmount (safety net)
+    return () => {
+        if (printTimeout) clearTimeout(printTimeout);
         
-        // If the component unmounts while in mobile mode, ensure styles are reverted.
-        if (isMobile && rootElement.style.getPropertyValue('display') === 'none') {
+        // Remove the correct listener based on which branch was executed
+        if (isMobile) {
+            // Need to remove the listener that was actually registered
+            window.removeEventListener("afterprint", cleanupMobile(rootElement.style.display, printWrapper.style.display));
+            // Ensure styles are reverted if the component unmounts unexpectedly
             rootElement.style.removeProperty('display');
             printWrapper.style.removeProperty('display');
+        } else {
+            window.removeEventListener("afterprint", cleanupDesktop);
         }
-    };
+    };
 
-  }, [onClose]);
+  }, [mfNos.length, onClose]); // Depend on relevant props/state
 
-  const printContent = (
-    // We remove the inline style from the print wrapper, and rely solely on the JS/CSS
-    <div className="ts-print-wrapper" ref={printRef}> 
-      <style>{`
-        
-        @media print {
-          /* --------------------------------------------------- */
-          /* DESKTOP CSS LOGIC (Standard CSS Hiding)             */
-          /* This runs when we DON'T hide #root via JS           */
-          /* --------------------------------------------------- */
+  const printContent = (
+    // Initial display is intentionally not 'none' here. 
+    // It's hidden by CSS @media screen, or shown by JS on mobile.
+    <div className="ts-print-wrapper" ref={printRef}> 
+      <style>{`
+        @media print {
+          /* --------------------------------------------------- */
+          /* DESKTOP CSS LOGIC & MOBILE FALLBACK                     */
+          /* Hides the #root and other body children (default UI) */
+          /* --------------------------------------------------- */
 
-          /* Hide everything in body that isn't our wrapper */
-          body > *:not(.ts-print-wrapper) {
-            display: none !important;
-            visibility: hidden !important;
-          }
+          #root, 
+          body > *:not(.ts-print-wrapper) {
+            display: none !important;
+            visibility: hidden !important;
+            width: 0 !important;
+            height: 0 !important;
+            position: fixed !important; 
+            top: -9999px !important;
+            background-color: white !important;
+          }
 
-          /* Force show our wrapper */
-          .ts-print-wrapper {
-            display: block !important;
-            visibility: visible !important;
-            position: absolute !important; 
-            top: 0 !important;
-            left: 0 !important;
-            width: 100% !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            background: white !important;
-            z-index: 999999 !important;
-            
-            /* Ensure text is black for PDF generation */
-            color: black !important;
-          }
+          /* Force show our wrapper (the print content) */
+          .ts-print-wrapper {
+            display: block !important;
+            visibility: visible !important;
+            /* Use position: static for print flow, or absolute if page margins are an issue */
+            position: absolute !important; 
+            top: 0 !important;
+            left: 0 !important;
+            width: 100% !important;
+            background: white !important;
+            z-index: 999999 !important;
+            color: black !important; /* Ensure black text for PDF generation */
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
 
-          /* --------------------------------------------------- */
-          /* SHARED STYLES                                       */
-          /* --------------------------------------------------- */
-          .print-page {
-            page-break-after: always !important;
-            page-break-inside: avoid !important;
-          }
+          /* --------------------------------------------------- */
+          /* SHARED STYLES                                       */
+          /* --------------------------------------------------- */
+          .print-page {
+            page-break-after: always !important;
+            page-break-inside: avoid !important;
+          }
 
-          @page {
-            size: A4;
-            margin: 12mm;
-          }
-          
-          /* Ensure white background */
-          html, body {
-            background-color: #fff !important;
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-          }
-        }
-        
-        /* --------------------------------------------------- */
-        /* SCREEN STYLES (To ensure initial hiding on desktop) */
-        /* --------------------------------------------------- */
-        @media screen {
-            .ts-print-wrapper {
-                display: none;
-            }
-        }
-      `}</style>
+          @page {
+            size: A4;
+            margin: 12mm;
+          }
+          
+          html, body {
+            background-color: #fff !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+        }
+        
+        /* --------------------------------------------------- */
+        /* SCREEN STYLES (Hides the print content when not printing) */
+        /* --------------------------------------------------- */
+        @media screen {
+            .ts-print-wrapper {
+                display: none;
+            }
+        }
+      `}</style>
 
-      {printPages}
-    </div>
-  );
+      {printPages}
+    </div>
+  );
 
-  return ReactDOM.createPortal(printContent, document.body);
+  return ReactDOM.createPortal(printContent, document.body);
 };
-
-function cleanupMobile(this: Window, _ev: Event) {
-  throw new Error("Function not implemented.");
-}
-
-
-function cleanupDesktop(this: Window, _ev: Event) {
-  throw new Error("Function not implemented.");
-}
