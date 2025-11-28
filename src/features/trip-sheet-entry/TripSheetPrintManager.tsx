@@ -1,8 +1,8 @@
-import { useEffect, useMemo } from "react";
-import type { TripSheetEntry } from "../../types";
+import { useEffect, useMemo, useRef } from "react";
+import ReactDOM from "react-dom";
 import { useData } from "../../hooks/useData";
 import { TripSheetPrintCopy } from "./TripSheetPrintCopy";
-import ReactDOMServer from "react-dom/server";
+import type { TripSheetEntry } from "../../types";
 
 interface TripSheetPrintManagerProps {
   mfNos: string[];
@@ -12,56 +12,14 @@ interface TripSheetPrintManagerProps {
 // Helper to detect mobile devices (screens smaller than 768px)
 const isMobileScreen = () => window.innerWidth < 768;
 
-// --- CSS STYLES FOR INJECTION ---
-// We embed all styles needed for printing here, including print media queries.
-const printStyles = `
-  /* Global page and background settings */
-  @page {
-    size: A4;
-    margin: 12mm; 
-  }
-  html, body {
-    margin: 0;
-    padding: 0;
-    background-color: #fff !important;
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
-    color: black;
-  }
-  
-  /* Force page breaks between copies */
-  .print-page {
-    page-break-after: always !important;
-    page-break-inside: avoid !important;
-    box-sizing: border-box; /* Crucial for layout */
-    width: 100%;
-    min-height: 297mm; /* Ensure A4 size */
-  }
-
-  /* Hide everything aggressively if it's not the print content, though this is less critical in a new window */
-  @media print {
-    .ts-print-wrapper {
-      display: block !important;
-      visibility: visible !important;
-      position: static !important;
-      width: 100% !important;
-      background: white !important;
-      color: black !important;
-      -webkit-print-color-adjust: exact !important;
-      print-color-adjust: exact !important;
-    }
-  }
-`;
-// ---------------------------------
-
 
 export const TripSheetPrintManager = ({
   mfNos,
   onClose,
 }: TripSheetPrintManagerProps) => {
   const { getTripSheet } = useData();
+  const printRef = useRef<HTMLDivElement>(null);
 
-  // 1. Memoize the React components (still necessary for structure)
   const printPages = useMemo(() => {
     const sheets: TripSheetEntry[] = mfNos
       .map((id) => getTripSheet(id))
@@ -74,82 +32,177 @@ export const TripSheetPrintManager = ({
     ));
   }, [mfNos, getTripSheet]);
 
-  // 2. Render React components to static HTML string
-  const printPagesHtml = useMemo(() => {
-    // We wrap the content in a simple div to mimic the original wrapper
-    return ReactDOMServer.renderToString(
-        <div className="ts-print-wrapper">
-            {printPages}
-        </div>
-    );
-  }, [printPages]);
-
-  // 3. EFFECT: Handle Print Logic (New Window for Mobile)
   useEffect(() => {
-    if (mfNos.length === 0) {
-        onClose();
-        return;
+    if (mfNos.length === 0) return;
+
+    const rootElement = document.getElementById("root");
+    const printWrapper = printRef.current;
+
+    if (!rootElement || !printWrapper) {
+      console.error("Print elements not found");
+      return;
     }
 
     const isMobile = isMobileScreen();
+    let printTimeout: number | undefined;
+    
+    // Variables for DOM Detachment
+    let rootDetached = false; 
+    let rootParent: HTMLElement | null = null; 
 
-    // Use New Window approach for mobile and desktop for consistency and reliability
-    const popup = window.open("", "_blank");
+    // Define the cleanup function
+    const cleanupHandler = () => {
+        // Use a slight delay to ensure cleanup runs *after* the print dialog closes
+        setTimeout(() => {
+            window.removeEventListener("afterprint", cleanupHandler);
+            
+            // CRITICAL: Re-attach the root element if it was detached (MOBILE FIX)
+            if (rootDetached && rootParent) {
+                try {
+                    // Re-attach the root element to its parent
+                    rootParent.appendChild(rootElement);
+                } catch (e) {
+                    // This error is safe to ignore if the element is already re-attached
+                    console.warn("Root element might have been already re-attached.", e);
+                }
+                // Ensure the print wrapper is hidden after re-attachment
+                printWrapper.style.removeProperty('display');
+            }
+            
+            // Call onClose whether mobile or desktop
+            onClose(); 
+        }, 500); // 500ms delay for print dialog close confirmation
+    };
 
-    if (!popup) {
-        console.error("Popup window blocked or failed to open.");
-        onClose();
-        return;
+    window.addEventListener("afterprint", cleanupHandler);
+
+
+    if (isMobile) {
+      // ---------------------------------------------------------
+      // 📱 MOBILE LOGIC: DOM DETACHMENT (The Extreme Fix)
+      // ---------------------------------------------------------
+      
+      rootParent = rootElement.parentElement;
+      if (rootParent) {
+        // 1. Detach the root element from the DOM
+        rootParent.removeChild(rootElement);
+        rootDetached = true;
+        
+        // 2. Force show the print wrapper (as #root is gone, only this remains in the body)
+        // We set display: block here so the browser can measure it for the print job
+        printWrapper.style.setProperty('display', 'block', 'important');
+      }
+
+      // 3. Trigger Print (max delay for mobile rendering)
+      printTimeout = setTimeout(() => {
+        window.print();
+      }, 1000); // Increased delay for safety
+    } 
+    
+    // ---------------------------------------------------------
+    // 🖥️ DESKTOP LOGIC: CSS ONLY
+    // ---------------------------------------------------------
+    else {
+      // Trigger Print (standard delay) 
+      printTimeout = setTimeout(() => {
+        window.print();
+      }, 350);
     }
 
-    const { document: printDocument } = popup;
-
-    // Build the full HTML content for the new window
-    const htmlContent = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>Trip Sheet Print</title>
-            <style>${printStyles}</style>
-        </head>
-        <body>
-            ${printPagesHtml}
-        </body>
-        </html>
-    `;
-
-    // Write content to the new window
-    printDocument.write(htmlContent);
-    printDocument.close();
-
-    // Delay the print call slightly to ensure the browser has finished loading the content
-    // Mobile devices need a generous delay here.
-    const printDelay = isMobile ? 1500 : 500; 
-
-    const printTimeout = setTimeout(() => {
-        popup.print();
-        
-        // Use another delay to close the window after the print dialog is dismissed
-        setTimeout(() => {
-            if (!popup.closed) {
-                popup.close();
-            }
-            onClose();
-        }, 500);
-
-    }, printDelay);
-
-    // Cleanup on unmount
+    // Cleanup on unmount (safety net)
     return () => {
-        clearTimeout(printTimeout);
-        // Ensure the popup is closed if the component is unmounted before print/close
-        if (!popup.closed) {
-            popup.close();
+        window.removeEventListener("afterprint", cleanupHandler);
+        if (printTimeout) clearTimeout(printTimeout);
+        
+        // If component unmounts prematurely while root is detached, re-attach it immediately.
+        if (rootDetached && rootParent) {
+             try {
+                 rootParent.appendChild(rootElement);
+             } catch (e) {
+                 // Ignore if already attached
+             }
         }
-        // Do NOT call onClose() here, as it's handled by the inner setTimeout
     };
-  }, [onClose, mfNos.length, printPagesHtml]);
 
-  // Since printing is handled via a new window, the component renders nothing itself.
-  return null; 
+  }, [onClose, mfNos.length]); 
+
+  const printContent = (
+    // The print wrapper does not need an inline style, as it's hidden by CSS @media screen
+    <div className="ts-print-wrapper" ref={printRef}> 
+      <style>{`
+        @media print {
+          /* --------------------------------------------------- */
+          /* AGGRESSIVE HIDING: Hides all *other* content */
+          /* --------------------------------------------------- */
+
+          /* HIDE EVERYTHING (except our print wrapper) */
+          body > *:not(.ts-print-wrapper) {
+            display: none !important;
+            visibility: hidden !important;
+            width: 0 !important;
+            height: 0 !important;
+            position: fixed !important; 
+            top: -9999px !important;
+            background-color: white !important;
+          }
+
+          /* FORCE SHOW & OVERLAY our wrapper (The print content) */
+          .ts-print-wrapper {
+            display: block !important;
+            visibility: visible !important;
+            
+            /* Use fixed/absolute positioning to dominate the viewport */
+            position: absolute !important; 
+            top: 0 !important;
+            left: 0 !important;
+            width: 100% !important;
+            
+            margin: 0 !important;
+            padding: 0 !important;
+            background: white !important;
+            z-index: 999999 !important;
+            
+            color: black !important; 
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+          
+          /* The print pages themselves ensure flow and breaks */
+          .print-page {
+            position: static !important; 
+            page-break-after: always !important;
+            page-break-inside: avoid !important;
+          }
+
+          /* --------------------------------------------------- */
+          /* PAGE & BACKGROUND STYLES                           */
+          /* --------------------------------------------------- */
+
+          @page {
+            size: A4;
+            margin: 12mm; 
+          }
+          
+          html, body {
+            background-color: #fff !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+        }
+        
+        /* --------------------------------------------------- */
+        /* SCREEN STYLES (Hides the print content when not printing) */
+        /* --------------------------------------------------- */
+        @media screen {
+            .ts-print-wrapper {
+                display: none;
+            }
+        }
+      `}</style>
+
+      {printPages}
+    </div>
+  );
+
+  return ReactDOM.createPortal(printContent, document.body);
 };
