@@ -1,7 +1,10 @@
-import { useEffect, useMemo, useRef } from 'react'; // <-- Added useRef back
+import { useEffect, useMemo, useRef } from 'react'; 
 import ReactDOM from 'react-dom';
 import type { GcEntry, Consignor, Consignee } from "../../types";
 import { GcPrintCopy } from "./GcPrintCopy"; 
+
+// Helper to detect mobile devices (screens smaller than 768px)
+const isMobileScreen = () => window.innerWidth < 768;
 
 export interface GcPrintJob {
   gc: GcEntry;
@@ -15,7 +18,7 @@ interface GcPrintManagerProps {
 }
 
 export const GcPrintManager = ({ jobs, onClose }: GcPrintManagerProps) => {
-  // 🛑 NEW: Ref for the print wrapper element
+  // 🛑 Ref for the print wrapper element
   const printRef = useRef<HTMLDivElement>(null); 
 
   const printPages = useMemo(() => {
@@ -23,7 +26,7 @@ export const GcPrintManager = ({ jobs, onClose }: GcPrintManagerProps) => {
       if (!consignor || !consignee) {
         return [];
       }
-      // Ensure each copy has the page-break-after style applied externally if GcPrintCopy doesn't handle it
+      // Each GC generates 3 copies: Consignor, Consignee, and Lorry.
       return [
         <GcPrintCopy
           key={`${gc.id}-consignor`}
@@ -51,18 +54,23 @@ export const GcPrintManager = ({ jobs, onClose }: GcPrintManagerProps) => {
   }, [jobs]);
 
 
-  // --- FIXED PRINT LOGIC with JS FORCE HIDE/SHOW ---
+  // --- PRINT LOGIC with SPLIT MOBILE/DESKTOP FIX ---
   useEffect(() => {
+    if (jobs.length === 0) return;
+
     const rootElement = document.getElementById("root");
-    const printWrapper = printRef.current; // Get the wrapper element
+    const printWrapper = printRef.current; 
+    const isMobile = isMobileScreen(); // Determine device type
 
     if (!rootElement || !printWrapper) {
         console.error("Print elements (root or wrapper) not found.");
         return;
     }
 
-    // --- 1. JS FORCE FIX START (CRITICAL FOR MOBILE/BLANK DESKTOP) ---
-    // Store original styles to ensure the app is restored correctly
+    let printTimeout: number;
+
+    // --- 1. DEFINE UNIVERSAL CLEANUP ---
+    // Store original styles *before* they might be changed by JS
     const originalRootDisplay = rootElement.style.display;
     const originalWrapperDisplay = printWrapper.style.display;
 
@@ -82,33 +90,49 @@ export const GcPrintManager = ({ jobs, onClose }: GcPrintManagerProps) => {
     };
 
     window.addEventListener("afterprint", afterPrint);
+    
+    // ---------------------------------------------------------
+    // 2. MOBILE LOGIC: JS FORCE FIX (Hides UI)
+    // ---------------------------------------------------------
+    if (isMobile) {
+      // Force visibility change *before* print call (THE MOBILE FIX)
+      // Manually hide the app and show the print content
+      rootElement.style.display = "none";
+      printWrapper.style.display = "block";
 
-    // Force visibility change *before* print call
-    rootElement.style.display = "none";
-    printWrapper.style.display = "block";
-
-    // Trigger print after a short delay
-    const printTimeout = setTimeout(() => {
+      // Trigger print after a delay for DOM rendering
+      printTimeout = setTimeout(() => {
         window.print();
-    }, 350); // Increased delay for safety
-
-    // --- JS FORCE FIX END ---
+      }, 500);
+    } 
+    
+    // ---------------------------------------------------------
+    // 3. DESKTOP LOGIC: CSS ONLY (Keeps UI visible)
+    // ---------------------------------------------------------
+    else {
+      // Trigger print. Rely on CSS @media print to hide #root.
+      printTimeout = setTimeout(() => {
+        window.print();
+      }, 350);
+    }
 
     // Return cleanup function to run on component unmount
     return () => {
         window.removeEventListener("afterprint", afterPrint);
         clearTimeout(printTimeout);
-        // Ensure cleanup runs if the component unmounts unexpectedly
-        cleanupStyles(); 
+        // Ensure styles are restored if component unmounts unexpectedly
+        rootElement.style.display = originalRootDisplay;
+        printWrapper.style.display = originalWrapperDisplay;
     };
-  }, [onClose]);
+  }, [jobs, onClose]);
+
 
   const printContent = (
-    // 🛑 NEW: Add ref and set initial style to 'none', let JS control visibility
+    // 🛑 Use ref and set initial style to 'none'
     <div className="gc-print-wrapper" ref={printRef} style={{ display: 'none' }}>
       <style>{`
         @media print {
-          /* 🛑 HIDE EVERYTHING AGGRESSIVELY: Target #root and body children */
+          /* 🛑 HIDE EVERYTHING AGGRESSIVELY: This handles the desktop hide via CSS */
           #root, 
           body > *:not(.gc-print-wrapper) {
             display: none !important;
@@ -126,11 +150,12 @@ export const GcPrintManager = ({ jobs, onClose }: GcPrintManagerProps) => {
             position: static !important;
             width: 100% !important;
             background-color: #fff !important; 
+            color: #000 !important; /* Ensure black text for printing */
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
           }
           
-          /* This class comes from GcPrintCopy.tsx */
+          /* This class comes from GcPrintCopy.tsx, ensures page breaks between copies */
           .print-page {
             page-break-after: always !important;
             page-break-inside: avoid !important;
