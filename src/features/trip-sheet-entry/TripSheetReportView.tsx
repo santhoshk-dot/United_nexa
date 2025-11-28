@@ -1,7 +1,10 @@
 // src/features/trip-sheet-entry/TripSheetReportPrint.tsx
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react"; // Added useRef
 import ReactDOM from "react-dom";
 import type { TripSheetEntry } from "../../types";
+
+// Helper to detect mobile devices (screens smaller than 768px)
+const isMobileScreen = () => window.innerWidth < 768;
 
 // --------------------------------------------------
 // REPORT HEADER (Same Style as Stock Report)
@@ -124,8 +127,8 @@ export const TripSheetReportPrint = ({
   sheets: TripSheetEntry[];
   onClose: () => void;
 }) => {
-  // 🛑 NEW: Ref for the print wrapper
-  const printRef = useRef<HTMLDivElement>(null);
+  // 🛑 NEW: Ref for the print wrapper (Needed for JS force-hide)
+  const printRef = useRef<HTMLDivElement>(null); 
 
   // ▬▬▬ GRAND TOTAL ▬▬▬
   const grandTotal = useMemo(
@@ -143,59 +146,77 @@ export const TripSheetReportPrint = ({
     return arr;
   }, [sheets]);
 
-  // ▬▬▬ PRINT + CLOSE (UNIVERSAL JS FIX) ▬▬▬
+  // ▬▬▬ PRINT + CLOSE (SPLIT LOGIC) ▬▬▬
   useEffect(() => {
     if (sheets.length === 0) return;
 
     const rootElement = document.getElementById("root");
-    const printWrapper = printRef.current; // Get the wrapper element
+    const printWrapper = printRef.current; 
+    const isMobile = isMobileScreen();
 
     if (!rootElement || !printWrapper) {
       console.error("Print elements (root or wrapper) not found.");
       return;
     }
-
-    // --- JS FORCE FIX START (UNIVERSAL RELIABILITY FIX) ---
-    // 1. Store original styles
-    const originalRootDisplay = rootElement.style.display;
-    const originalWrapperDisplay = printWrapper.style.display;
+    
     let printTimeout: number;
 
-    // 2. Define Cleanup (Restore UI)
+    // ---------------------------------------------------------
+    // 1. DEFINE UNIVERSAL CLEANUP
+    // ---------------------------------------------------------
+
     const cleanupStyles = () => {
-      // Use a timeout to ensure cleanup runs *after* the print dialog is truly closed
-      setTimeout(() => {
-        // Restore original styles
-        rootElement.style.display = originalRootDisplay;
-        printWrapper.style.display = originalWrapperDisplay;
-        window.removeEventListener("afterprint", afterPrint);
-        onClose(); // Close the manager
-      }, 500); 
+      // Restore original styles (if they were changed)
+      rootElement.style.display = originalRootDisplay;
+      printWrapper.style.display = originalWrapperDisplay;
+      window.removeEventListener("afterprint", afterPrint);
+      onClose(); // Close the manager
     };
     
-    // 3. Define afterprint listener
+    // Define afterprint listener
     const afterPrint = () => {
-      cleanupStyles(); 
+      // Use a timeout to ensure cleanup runs *after* the print dialog is truly closed
+      setTimeout(cleanupStyles, 500); 
     };
+    
+    // Store original styles *before* they might be changed
+    const originalRootDisplay = rootElement.style.display;
+    const originalWrapperDisplay = printWrapper.style.display;
 
-    window.addEventListener("afterprint", afterPrint);
 
-    // 4. Force visibility change *before* print call (THE MOBILE FIX)
-    rootElement.style.display = "none";
-    printWrapper.style.display = "block";
+    // ---------------------------------------------------------
+    // 2. MOBILE LOGIC: JS FORCE FIX (Hides UI)
+    // ---------------------------------------------------------
+    if (isMobile) {
+      window.addEventListener("afterprint", afterPrint);
 
-    // 5. Trigger print after a short delay
-    printTimeout = setTimeout(() => {
-      window.print();
-    }, 500); // Using 500ms universally for better reliability
+      // Force visibility change *before* print call (THE MOBILE FIX)
+      rootElement.style.display = "none";
+      printWrapper.style.display = "block";
 
-    // --- JS FORCE FIX END ---
+      // Trigger print after a short delay
+      printTimeout = setTimeout(() => {
+        window.print();
+      }, 500);
+    } 
+    
+    // ---------------------------------------------------------
+    // 3. DESKTOP LOGIC: CSS ONLY (Keeps UI visible)
+    // ---------------------------------------------------------
+    else {
+      window.addEventListener("afterprint", afterPrint);
 
-    // 6. Return cleanup function to run on component unmount
+      // Trigger print. Rely on CSS @media print to hide #root.
+      printTimeout = setTimeout(() => {
+        window.print();
+      }, 350);
+    }
+
+    // 4. Return cleanup function to run on component unmount
     return () => {
       window.removeEventListener("afterprint", afterPrint);
       clearTimeout(printTimeout);
-      // Ensure cleanup runs if the component unmounts unexpectedly
+      // Ensure cleanup runs if the component unmounts unexpectedly (restores styles if mobile logic ran)
       rootElement.style.display = originalRootDisplay;
       printWrapper.style.display = originalWrapperDisplay;
     };
@@ -209,10 +230,12 @@ export const TripSheetReportPrint = ({
       <style>{`
         @media print {
           /* 🛑 HIDE EVERYTHING AGGRESSIVELY: Target #root and body children */
+          /* This is the primary mechanism for Desktop hiding */
           #root, 
           body > *:not(.trip-report-wrapper) {
             display: none !important;
             visibility: hidden !important;
+            /* Aggressive resets */
             width: 0 !important;
             height: 0 !important;
             position: fixed !important; 
@@ -223,7 +246,7 @@ export const TripSheetReportPrint = ({
           .trip-report-wrapper {
             display: block !important;
             visibility: visible !important;
-            position: static !important; 
+            position: static !important; /* Ensure content flows naturally */
             width: 100% !important;
             background-color: #fff !important; 
             -webkit-print-color-adjust: exact !important;
