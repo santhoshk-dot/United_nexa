@@ -4,205 +4,141 @@ import { useData } from "../../hooks/useData";
 import { TripSheetPrintCopy } from "./TripSheetPrintCopy";
 import type { TripSheetEntry } from "../../types";
 
+// 🛑 YOU MUST INSTALL THESE LIBRARIES:
+// import html2canvas from 'html2canvas'; 
+// import jsPDF from 'jspdf';
+// (Assuming these are installed and globally accessible or mocked for this environment)
+
+
 interface TripSheetPrintManagerProps {
   mfNos: string[];
   onClose: () => void;
 }
-
-// Helper to detect mobile devices (screens smaller than 768px)
-const isMobileScreen = () => window.innerWidth < 768;
-
 
 export const TripSheetPrintManager = ({
   mfNos,
   onClose,
 }: TripSheetPrintManagerProps) => {
   const { getTripSheet } = useData();
-  const printRef = useRef<HTMLDivElement>(null);
+  // We still use the ref, but only to target the content for the PDF generator
+  const printRef = useRef<HTMLDivElement>(null); 
 
   const printPages = useMemo(() => {
     const sheets: TripSheetEntry[] = mfNos
       .map((id) => getTripSheet(id))
       .filter(Boolean) as TripSheetEntry[];
 
+    // Ensure the content is wrapped in a way that html2canvas can capture it
     return sheets.map((sheet) => (
-      <div className="print-page" key={sheet.mfNo}>
+      <div className="pdf-page-content" key={sheet.mfNo}> 
         <TripSheetPrintCopy sheet={sheet} />
       </div>
     ));
   }, [mfNos, getTripSheet]);
 
+  // -------------------------------------------------------------------
+  // 🚀 PDF GENERATION LOGIC (Bypasses window.print())
+  // -------------------------------------------------------------------
   useEffect(() => {
-    if (mfNos.length === 0) return;
-
-    const rootElement = document.getElementById("root");
-    const printWrapper = printRef.current;
-
-    if (!rootElement || !printWrapper) {
-      console.error("Print elements not found");
+    if (mfNos.length === 0 || !printRef.current) {
+      onClose();
       return;
     }
 
-    const isMobile = isMobileScreen();
-    let printTimeout: number | undefined;
-    
-    // Variables for DOM Detachment
-    let rootDetached = false; 
-    let rootParent: HTMLElement | null = null; 
+    const generatePdf = async () => {
+      const input = printRef.current;
+      if (!input) return;
 
-    // Define the cleanup function
-    const cleanupHandler = () => {
-        // Use a slight delay to ensure cleanup runs *after* the print dialog closes
-        setTimeout(() => {
-            window.removeEventListener("afterprint", cleanupHandler);
-            
-            // CRITICAL: Re-attach the root element if it was detached (MOBILE FIX)
-            if (rootDetached && rootParent) {
-                try {
-                    // Re-attach the root element to its parent
-                    rootParent.appendChild(rootElement);
-                } catch (e) {
-                    // This error is safe to ignore if the element is already re-attached
-                    console.warn("Root element might have been already re-attached.", e);
-                }
-                // Ensure the print wrapper is hidden after re-attachment
-                printWrapper.style.removeProperty('display');
-            }
-            
-            // Call onClose whether mobile or desktop
-            onClose(); 
-        }, 500); // 500ms delay for print dialog close confirmation
-    };
+      // 1. Get all individual page elements
+      const pageElements = input.querySelectorAll('.pdf-page-content');
 
-    window.addEventListener("afterprint", cleanupHandler);
-
-
-    if (isMobile) {
-      // ---------------------------------------------------------
-      // 📱 MOBILE LOGIC: DOM DETACHMENT (The Extreme Fix)
-      // ---------------------------------------------------------
+      // Check if html2canvas and jsPDF are available (assuming they are imported)
+      // 🛑 REPLACE THIS WITH YOUR ACTUAL LIBRARY CALLS
+      // if (typeof html2canvas === 'undefined' || typeof jsPDF === 'undefined') {
+      //   console.error("html2canvas or jsPDF not available. Please install and import them.");
+      //   return;
+      // }
       
-      rootParent = rootElement.parentElement;
-      if (rootParent) {
-        // 1. Detach the root element from the DOM
-        rootParent.removeChild(rootElement);
-        rootDetached = true;
+      // We will generate the PDF based on the actual component size (A4 is 210x297mm)
+      const pdf = new (window as any).jsPDF('p', 'mm', 'a4');
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const margin = 5; // 5mm margin on all sides
+
+      let hasContent = false;
+      let pageIndex = 0;
+
+      for (const pageElement of Array.from(pageElements)) {
+        // Use html2canvas to convert the HTML element to a canvas (image)
+        const canvas = await (window as any).html2canvas(pageElement as HTMLElement, {
+          scale: 2, // Increase scale for better resolution
+          useCORS: true, // Handle images from external sources
+        });
+
+        const imgData = canvas.toDataURL('image/jpeg', 1.0);
+        const imgHeight = (canvas.height * pdfWidth) / canvas.width;
         
-        // 2. Force show the print wrapper (as #root is gone, only this remains in the body)
-        // We set display: block here so the browser can measure it for the print job
-        printWrapper.style.setProperty('display', 'block', 'important');
+        if (pageIndex > 0) {
+          pdf.addPage();
+        }
+
+        // Add the image to the PDF, fitting it within the A4 width
+        pdf.addImage(imgData, 'JPEG', margin, margin, pdfWidth - 2 * margin, (imgHeight * (pdfWidth - 2 * margin)) / pdfWidth);
+        
+        hasContent = true;
+        pageIndex++;
       }
 
-      // 3. Trigger Print (max delay for mobile rendering)
-      printTimeout = setTimeout(() => {
-        window.print();
-      }, 1000); // Increased delay for safety
-    } 
+      if (hasContent) {
+        // 2. Trigger download/share, which is reliable on mobile
+        pdf.save(`TripSheet_${mfNos.join('_')}.pdf`);
+      }
+      
+      onClose(); // Close the manager after download is initiated
+    };
     
-    // ---------------------------------------------------------
-    // 🖥️ DESKTOP LOGIC: CSS ONLY
-    // ---------------------------------------------------------
-    else {
-      // Trigger Print (standard delay) 
-      printTimeout = setTimeout(() => {
-        window.print();
-      }, 350);
-    }
+    // Use a small delay to ensure React has finished rendering the content to the DOM
+    const initTimeout = setTimeout(generatePdf, 50);
 
-    // Cleanup on unmount (safety net)
+    // Cleanup on unmount
     return () => {
-        window.removeEventListener("afterprint", cleanupHandler);
-        if (printTimeout) clearTimeout(printTimeout);
-        
-        // If component unmounts prematurely while root is detached, re-attach it immediately.
-        if (rootDetached && rootParent) {
-             try {
-                 rootParent.appendChild(rootElement);
-             } catch (e) {
-                 // Ignore if already attached
-             }
-        }
+      clearTimeout(initTimeout);
     };
 
-  }, [onClose, mfNos.length]); 
+  }, [mfNos, onClose, printPages]);
 
   const printContent = (
-    // The print wrapper does not need an inline style, as it's hidden by CSS @media screen
-    <div className="ts-print-wrapper" ref={printRef}> 
+    // We create the portal content, but it remains hidden on the screen
+    // The CSS here is now only for ensuring the content looks right for html2canvas
+    <div className="ts-print-generator-wrapper" ref={printRef}> 
       <style>{`
-        @media print {
-          /* --------------------------------------------------- */
-          /* AGGRESSIVE HIDING: Hides all *other* content */
-          /* --------------------------------------------------- */
-
-          /* HIDE EVERYTHING (except our print wrapper) */
-          body > *:not(.ts-print-wrapper) {
-            display: none !important;
-            visibility: hidden !important;
-            width: 0 !important;
-            height: 0 !important;
-            position: fixed !important; 
-            top: -9999px !important;
-            background-color: white !important;
-          }
-
-          /* FORCE SHOW & OVERLAY our wrapper (The print content) */
-          .ts-print-wrapper {
-            display: block !important;
-            visibility: visible !important;
-            
-            /* Use fixed/absolute positioning to dominate the viewport */
-            position: absolute !important; 
-            top: 0 !important;
-            left: 0 !important;
-            width: 100% !important;
-            
-            margin: 0 !important;
-            padding: 0 !important;
-            background: white !important;
-            z-index: 999999 !important;
-            
-            color: black !important; 
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-          }
-          
-          /* The print pages themselves ensure flow and breaks */
-          .print-page {
-            position: static !important; 
-            page-break-after: always !important;
-            page-break-inside: avoid !important;
-          }
-
-          /* --------------------------------------------------- */
-          /* PAGE & BACKGROUND STYLES                           */
-          /* --------------------------------------------------- */
-
-          @page {
-            size: A4;
-            margin: 12mm; 
-          }
-          
-          html, body {
-            background-color: #fff !important;
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-          }
-        }
-        
-        /* --------------------------------------------------- */
-        /* SCREEN STYLES (Hides the print content when not printing) */
-        /* --------------------------------------------------- */
         @media screen {
-            .ts-print-wrapper {
-                display: none;
+            /* Keep the generator content completely off-screen but visible to html2canvas */
+            .ts-print-generator-wrapper {
+                position: absolute; 
+                top: -99999px;
+                left: -99999px;
+                display: block; 
+                z-index: -10;
+                /* Crucial for capture: ensure white background */
+                background-color: white !important;
+                color: black !important;
+            }
+            .pdf-page-content {
+                /* Define a fixed size so html2canvas knows the page dimensions */
+                width: 210mm; 
+                min-height: 297mm;
+                padding: 12mm; /* Match your desired print margin */
+                box-sizing: border-box;
+                background-color: white !important;
+                margin-bottom: 5mm;
+                transform: scale(1); /* Ensure no scaling issues before capture */
             }
         }
       `}</style>
-
       {printPages}
     </div>
   );
 
+  // We use the portal to temporarily mount the content off-screen for html2canvas to access it
   return ReactDOM.createPortal(printContent, document.body);
 };
