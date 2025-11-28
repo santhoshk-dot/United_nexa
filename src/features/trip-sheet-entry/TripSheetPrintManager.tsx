@@ -12,6 +12,7 @@ interface TripSheetPrintManagerProps {
 // Helper to detect mobile devices (screens smaller than 768px)
 const isMobileScreen = () => window.innerWidth < 768;
 
+
 export const TripSheetPrintManager = ({
   mfNos,
   onClose,
@@ -35,19 +36,17 @@ export const TripSheetPrintManager = ({
     const rootElement = document.getElementById("root");
     const printWrapper = printRef.current;
 
-    // Safety check
     if (!rootElement || !printWrapper) {
       console.error("Print elements not found");
       return;
     }
 
     const isMobile = isMobileScreen();
+    let printTimeout: number | undefined;
 
-    // =========================================================
-    // 📱 MOBILE LOGIC: JS FORCE FIX
-    // =========================================================
-    // Problem: Mobile browsers ignore CSS hiding, printing the background app.
-    // Solution: Manually set display:none on the app container before printing.
+    // ---------------------------------------------------------
+    // 📱 MOBILE LOGIC: Aggressive JS Force Fix
+    // ---------------------------------------------------------
     if (isMobile) {
       // 1. Save original styles
       const originalRootDisplay = rootElement.style.display;
@@ -55,34 +54,32 @@ export const TripSheetPrintManager = ({
 
       // 2. Define Cleanup (Restore UI)
       const cleanupMobile = () => {
-        rootElement.style.display = originalRootDisplay;
-        printWrapper.style.display = originalWrapperDisplay;
-        window.removeEventListener("afterprint", cleanupMobile);
-        onClose();
+        // Use setTimeout to ensure cleanup runs *after* the print dialog closes
+        setTimeout(() => {
+            rootElement.style.display = originalRootDisplay;
+            printWrapper.style.display = originalWrapperDisplay;
+            window.removeEventListener("afterprint", cleanupMobile);
+            onClose();
+        }, 500); 
       };
 
       // 3. Listen for when print dialog closes
       window.addEventListener("afterprint", cleanupMobile);
 
       // 4. FORCE DOM MANIPULATION
-      // Hide the main app
-      rootElement.style.display = "none";
-      // Show the print wrapper
-      printWrapper.style.display = "block";
+      // We are being more aggressive here with !important to ensure the style applies
+      rootElement.style.setProperty('display', 'none', 'important'); 
+      printWrapper.style.setProperty('display', 'block', 'important');
 
-      // 5. Trigger Print (with delay to ensure DOM updates)
-      setTimeout(() => {
+      // 5. Trigger Print (increased delay for mobile rendering)
+      printTimeout = setTimeout(() => {
         window.print();
-        // Fallback cleanup in case afterprint misses on specific mobile browsers
-        // setTimeout(cleanupMobile, 2000); 
-      }, 500);
+      }, 750); // Increased delay for mobile responsiveness
     } 
     
-    // =========================================================
+    // ---------------------------------------------------------
     // 🖥️ DESKTOP LOGIC: CSS ONLY
-    // =========================================================
-    // Problem: JS Fix makes the background go white, which looks bad on Desktop.
-    // Solution: Don't touch DOM. Let CSS @media print hide the background.
+    // ---------------------------------------------------------
     else {
       // 1. Simple Cleanup
       const cleanupDesktop = () => {
@@ -92,26 +89,29 @@ export const TripSheetPrintManager = ({
 
       window.addEventListener("afterprint", cleanupDesktop);
 
-      // 2. Trigger Print directly
-      // The CSS in <style> tag will handle showing/hiding content
-      setTimeout(() => {
+      // 2. Trigger Print 
+      printTimeout = setTimeout(() => {
         window.print();
       }, 350);
     }
 
-    // Unmount cleanup
+    // Cleanup on unmount (safety net)
     return () => {
-        // We can't strictly reference the specific function here easily due to scope,
-        // but since onClose unmounts this component, the logic generally holds safe.
+        window.removeEventListener("afterprint", printWrapper.style.display === 'none' ? cleanupMobile : cleanupDesktop);
+        if (printTimeout) clearTimeout(printTimeout);
+        
+        // If the component unmounts while in mobile mode, ensure styles are reverted.
+        if (isMobile && rootElement.style.getPropertyValue('display') === 'none') {
+            rootElement.style.removeProperty('display');
+            printWrapper.style.removeProperty('display');
+        }
     };
 
   }, [onClose]);
 
   const printContent = (
-    // Note: display: none is the default state.
-    // Mobile JS changes this to 'block'.
-    // Desktop CSS overrides this with 'display: block !important'
-    <div className="ts-print-wrapper" ref={printRef} style={{ display: 'none' }}>
+    // We remove the inline style from the print wrapper, and rely solely on the JS/CSS
+    <div className="ts-print-wrapper" ref={printRef}> 
       <style>{`
         
         @media print {
@@ -163,6 +163,15 @@ export const TripSheetPrintManager = ({
             print-color-adjust: exact !important;
           }
         }
+        
+        /* --------------------------------------------------- */
+        /* SCREEN STYLES (To ensure initial hiding on desktop) */
+        /* --------------------------------------------------- */
+        @media screen {
+            .ts-print-wrapper {
+                display: none;
+            }
+        }
       `}</style>
 
       {printPages}
@@ -171,3 +180,12 @@ export const TripSheetPrintManager = ({
 
   return ReactDOM.createPortal(printContent, document.body);
 };
+
+function cleanupMobile(this: Window, _ev: Event) {
+  throw new Error("Function not implemented.");
+}
+
+
+function cleanupDesktop(this: Window, _ev: Event) {
+  throw new Error("Function not implemented.");
+}
