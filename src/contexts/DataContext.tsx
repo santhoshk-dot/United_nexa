@@ -4,12 +4,12 @@ import type {
   Consignee, 
   GcEntry, 
   FromPlace, 
-  ToPlace,
-  PackingEntry,
-  ContentEntry,
-  TripSheetEntry,
-  VehicleEntry,
-  DriverEntry
+  ToPlace, 
+  PackingEntry, 
+  ContentEntry, 
+  TripSheetEntry, 
+  VehicleEntry, 
+  DriverEntry 
 } from '../types';
 import api from '../utils/api';
 import { useAuth } from '../hooks/useAuth';
@@ -17,10 +17,8 @@ import { useAuth } from '../hooks/useAuth';
 interface DataContextType {
   consignors: Consignor[];
   consignees: Consignee[];
-  // Removed large arrays gcEntries and tripSheets to optimize
-  gcEntries: GcEntry[]; // Kept as empty array to prevent TS errors in legacy components temporarily
-  tripSheets: TripSheetEntry[]; // Kept as empty array
-  
+  gcEntries: GcEntry[]; 
+  tripSheets: TripSheetEntry[]; 
   fromPlaces: FromPlace[];
   toPlaces: ToPlace[];
   packingEntries: PackingEntry[];
@@ -31,46 +29,41 @@ interface DataContextType {
   addConsignor: (consignor: Consignor) => Promise<void>;
   updateConsignor: (consignor: Consignor) => Promise<void>;
   deleteConsignor: (id: string) => Promise<void>;
-  
   addConsignee: (consignee: Consignee) => Promise<void>;
   updateConsignee: (consignee: Consignee) => Promise<void>;
   deleteConsignee: (id: string) => Promise<void>;
-  
   getNextGcNo: () => Promise<string>;
-  
-  // UPDATED: Fetch single items from API
   fetchGcById: (id: string) => Promise<GcEntry | null>;
   fetchTripSheetById: (id: string) => Promise<TripSheetEntry | null>;
-
   addGcEntry: (gcEntry: GcEntry) => Promise<void>;
   updateGcEntry: (gcEntry: GcEntry) => Promise<void>;
   deleteGcEntry: (identifier: string) => Promise<void>;
   saveLoadingProgress: (gcId: string, selectedQuantities: number[]) => Promise<void>;
+  
+  fetchGcPrintData: (gcNos: string[], selectAll?: boolean, filters?: any) => Promise<any[]>;
+  fetchLoadingSheetPrintData: (gcNos: string[], selectAll?: boolean, filters?: any) => Promise<any[]>;
+  
+  // UPDATED: Added selectAll and filters params
+  fetchTripSheetPrintData: (mfNos: string[], selectAll?: boolean, filters?: any) => Promise<TripSheetEntry[]>;
 
   addFromPlace: (fromPlace: FromPlace) => Promise<void>;
   updateFromPlace: (fromPlace: FromPlace) => Promise<void>;
   deleteFromPlace: (id: string) => Promise<void>;
-
   addToPlace: (toPlace: ToPlace) => Promise<void>;
   updateToPlace: (toPlace: ToPlace) => Promise<void>;
   deleteToPlace: (id: string) => Promise<void>;
-
   addPackingEntry: (entry: PackingEntry) => Promise<void>;
   updatePackingEntry: (entry: PackingEntry) => Promise<void>;
   deletePackingEntry: (id: string) => Promise<void>;
-
   addContentEntry: (entry: ContentEntry) => Promise<void>;
   updateContentEntry: (entry: ContentEntry) => Promise<void>;
   deleteContentEntry: (id: string) => Promise<void>;
-
   addTripSheet: (sheet: TripSheetEntry) => Promise<void>;
   updateTripSheet: (sheet: TripSheetEntry) => Promise<void>;
   deleteTripSheet: (id: string) => Promise<void>;
-
   addVehicleEntry: (entry: VehicleEntry) => Promise<void>;
   updateVehicleEntry: (entry: VehicleEntry) => Promise<void>;
   deleteVehicleEntry: (id: string) => Promise<void>;
-
   addDriverEntry: (entry: DriverEntry) => Promise<void>;
   updateDriverEntry: (entry: DriverEntry) => Promise<void>;
   deleteDriverEntry: (id: string) => Promise<void>;
@@ -99,7 +92,6 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
   const fetchAllData = useCallback(async () => {
     if (!user) return;
     try {
-      // REMOVED: gcRes and tripRes from initial load to optimize
       const [
         consignorsRes, consigneesRes, fromRes, toRes, 
         packRes, contentRes, vehRes, drvRes
@@ -138,6 +130,37 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
   const fetchGcById = async (id: string) => {
     try { const { data } = await api.get(`/operations/gc/${id}`); return data; }
     catch (e) { console.error(e); return null; }
+  };
+
+  const fetchGcPrintData = async (gcNos: string[], selectAll?: boolean, filters?: any) => {
+    try {
+      const { data } = await api.post('/operations/gc/print-data', { gcNos, selectAll, filters });
+      return data;
+    } catch (e) {
+      console.error("Error fetching bulk print data:", e);
+      return [];
+    }
+  };
+
+  const fetchLoadingSheetPrintData = async (gcNos: string[], selectAll?: boolean, filters?: any) => {
+    try {
+      const { data } = await api.post('/operations/loading-sheet/print-data', { gcNos, selectAll, filters });
+      return data;
+    } catch (e) {
+      console.error("Error fetching loading sheet print data:", e);
+      return [];
+    }
+  };
+
+  // UPDATED: fetchTripSheetPrintData
+  const fetchTripSheetPrintData = async (mfNos: string[], selectAll?: boolean, filters?: any) => {
+    try {
+      const { data } = await api.post('/operations/tripsheet/print-data', { mfNos, selectAll, filters });
+      return data;
+    } catch (e) {
+      console.error("Error fetching trip sheet print data:", e);
+      return [];
+    }
   };
 
   const addGcEntry = async (data: GcEntry) => { await api.post('/operations/gc', data); };
@@ -191,7 +214,6 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
   const updateDriverEntry = async (data: DriverEntry) => { const res = await api.put(`/master/drivers/${data.id}`, data); setDriverEntries(prev => prev.map(x => x.id === data.id ? res.data : x)); };
   const deleteDriverEntry = async (id: string) => { await api.delete(`/master/drivers/${id}`); setDriverEntries(prev => prev.filter(x => x.id !== id)); };
 
-  // --- UTILS ---
   const getUniqueDests = useCallback(() => {
     const dests = new Set([...toPlaces.map(tp => tp.placeName), ...consignees.map(c => c.destination)]);
     return Array.from(dests).map(d => ({ value: d, label: d }));
@@ -201,11 +223,14 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
   const getContentsTypes = useCallback(() => contentEntries.map(c => ({ value: c.contentName, label: c.contentName })), [contentEntries]);
 
   const value = useMemo(() => ({
-    consignors, consignees, gcEntries: [], tripSheets: [], // Empty for compatibility
+    consignors, consignees, gcEntries: [], tripSheets: [], 
     fromPlaces, toPlaces, packingEntries, contentEntries, vehicleEntries, driverEntries,
     addConsignor, updateConsignor, deleteConsignor,
     addConsignee, updateConsignee, deleteConsignee,
     getNextGcNo, fetchGcById, fetchTripSheetById, addGcEntry, updateGcEntry, deleteGcEntry, saveLoadingProgress,
+    fetchGcPrintData,
+    fetchLoadingSheetPrintData,
+    fetchTripSheetPrintData,
     addFromPlace, updateFromPlace, deleteFromPlace,
     addToPlace, updateToPlace, deleteToPlace,
     addPackingEntry, updatePackingEntry, deletePackingEntry,

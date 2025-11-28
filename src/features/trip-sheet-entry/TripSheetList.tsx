@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { FilePenLine, Trash2, Search, Printer, FileText, Filter, XCircle, RotateCcw } from "lucide-react";
 import { DateFilterButtons, getTodayDate, getYesterdayDate } from "../../components/shared/DateFilterButtons";
@@ -15,7 +15,7 @@ import { TripSheetReportPrint } from "./TripSheetReportView";
 
 export const TripSheetList = () => {
   const navigate = useNavigate();
-  const { deleteTripSheet, consignees, consignors, getUniqueDests } = useData();
+  const { deleteTripSheet, consignees, consignors, getUniqueDests, fetchTripSheetPrintData } = useData(); 
 
   // --- 1. FILTER OPTIONS ---
   const placeOptions = useMemo(getUniqueDests, [getUniqueDests]);
@@ -23,8 +23,6 @@ export const TripSheetList = () => {
   const consigneeOptions = useMemo(() => consignees.map(c => ({ value: c.id, label: c.name })), [consignees]);
 
   // --- 2. SERVER PAGINATION (Optimized Payload) ---
-  // This endpoint now returns ONLY: mfNo, fromPlace, toPlace, tsDate, totalAmount
-  // The 'items' array is excluded to reduce latency.
   const {
     data: paginatedData,
     loading,
@@ -39,13 +37,21 @@ export const TripSheetList = () => {
     refresh
   } = useServerPagination<TripSheetEntry>({ 
     endpoint: '/operations/tripsheet',
-    initialFilters: { search: '', filterType: 'all' }
+    initialFilters: { search: '', filterType: 'all' },
+    initialItemsPerPage: 5
   });
 
   const [showFilters, setShowFilters] = useState(false);
-  const [printIds, setPrintIds] = useState<string[] | null>(null);
+  
+  // Changed state to hold actual data instead of just IDs
+  const [printingSheets, setPrintingSheets] = useState<TripSheetEntry[] | null>(null);
+  
   const [reportPrintingJobs, setReportPrintingJobs] = useState<TripSheetEntry[] | null>(null);
   const [selected, setSelected] = useState<string[]>([]);
+  
+  // NEW: Select All Mode
+  const [selectAllMode, setSelectAllMode] = useState(false);
+
   const [delId, setDelId] = useState<string | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleteMessage, setDeleteMessage] = useState("");
@@ -103,10 +109,30 @@ export const TripSheetList = () => {
     });
   };
 
-  const toggleSelect = (mfNo: string) => setSelected(prev => prev.includes(mfNo) ? prev.filter(x => x !== mfNo) : [...prev, mfNo]);
+  const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.checked) {
+        setSelectAllMode(true);
+        setSelected(paginatedData.map(t => t.mfNo));
+    } else {
+        setSelectAllMode(false);
+        setSelected([]);
+    }
+  };
   
-  const toggleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSelected(e.target.checked ? paginatedData.map(t => t.mfNo) : []);
+  // Sync visual selection if Select All Mode is active
+  useEffect(() => {
+    if (selectAllMode) {
+        setSelected(paginatedData.map(t => t.mfNo));
+    }
+  }, [paginatedData, selectAllMode]);
+  
+  const handleSelectRow = (mfNo: string) => {
+    if (selectAllMode) {
+        setSelectAllMode(false);
+        setSelected(prev => prev.filter(x => x !== mfNo));
+    } else {
+        setSelected(prev => prev.includes(mfNo) ? prev.filter(x => x !== mfNo) : [...prev, mfNo]);
+    }
   };
   
   const onDelete = (mfNo: string) => { 
@@ -124,19 +150,59 @@ export const TripSheetList = () => {
     setDelId(null); 
   };
   
-  // Triggers TripSheetPrintManager, which fetches FULL data for each ID
-  const handlePrintSingle = (id: string) => setPrintIds([id]);
-  const handlePrintSelected = () => { if (selected.length > 0) setPrintIds(selected); };
+  // --- OPTIMIZED BULK PRINT LOGIC ---
+  const handlePrintSelected = async () => { 
+    if (selected.length === 0 && !selectAllMode) return;
+    try {
+        let sheets = [];
+        if (selectAllMode) {
+            // Fetch ALL matching data
+            sheets = await fetchTripSheetPrintData([], true, filters);
+        } else {
+            // Fetch specific IDs
+            sheets = await fetchTripSheetPrintData(selected);
+        }
+
+        if (sheets && sheets.length > 0) {
+            setPrintingSheets(sheets);
+            if (!selectAllMode) setSelected([]);
+            setSelectAllMode(false);
+        } else {
+            alert("Failed to load data for printing.");
+        }
+    } catch (e) {
+        console.error(e);
+        alert("Error loading print data.");
+    }
+  };
+
+  const handlePrintSingle = async (id: string) => { 
+    try {
+        const sheets = await fetchTripSheetPrintData([id]);
+        if (sheets && sheets.length > 0) {
+            setPrintingSheets(sheets);
+        } else {
+            alert("Failed to load data for printing.");
+        }
+    } catch (e) {
+        console.error(e);
+        alert("Error loading print data.");
+    }
+  };
   
-  // Uses list data directly (safe because ReportView only needs summary fields)
   const handleShowReport = () => { 
     if (paginatedData.length > 0) setReportPrintingJobs(paginatedData); 
     else alert("No data to report."); 
   };
 
   const hasActiveFilters = !!filters.toPlace || !!filters.consignor || (filters.consignee && filters.consignee.length > 0) || filters.filterType !== 'all' || !!filters.search;
-  const isAllSelected = paginatedData.length > 0 && selected.length === paginatedData.length;
+  const isAllSelected = selectAllMode || (paginatedData.length > 0 && selected.length === paginatedData.length);
   const responsiveBtnClass = "flex-1 md:flex-none text-[10px] xs:text-xs sm:text-sm h-8 sm:h-10 px-1 sm:px-4 whitespace-nowrap";
+
+  // Calculate display count
+  const printButtonText = selectAllMode 
+    ? `Print All (${totalItems})` 
+    : `Print (${selected.length})`;
 
   return (
     <div className="space-y-6">
@@ -176,11 +242,11 @@ export const TripSheetList = () => {
           <Button 
             variant="secondary" 
             onClick={handlePrintSelected} 
-            disabled={selected.length === 0}
+            disabled={selected.length === 0 && !selectAllMode}
             className={responsiveBtnClass}
           >
             <Printer size={14} className="mr-1 sm:mr-2" /> 
-            Print ({selected.length})
+            {printButtonText}
           </Button>
           
           <Button 
@@ -255,7 +321,7 @@ export const TripSheetList = () => {
           <table className="min-w-full divide-y divide-muted">
             <thead className="bg-muted/50">
               <tr>
-                <th className="px-6 py-3 text-left"><input type="checkbox" className="h-4 w-4 accent-primary" checked={isAllSelected} onChange={toggleSelectAll} /></th>
+                <th className="px-6 py-3 text-left"><input type="checkbox" className="h-4 w-4 accent-primary" checked={isAllSelected} onChange={handleSelectAll} /></th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">TS No</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">From</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">To</th>
@@ -270,7 +336,7 @@ export const TripSheetList = () => {
               ) : paginatedData.length > 0 ? (
                   paginatedData.map((ts) => (
                     <tr key={ts.id} className="hover:bg-muted/30">
-                      <td className="px-6 py-4"><input type="checkbox" className="h-4 w-4 accent-primary" checked={selected.includes(ts.mfNo)} onChange={() => toggleSelect(ts.mfNo)} /></td>
+                      <td className="px-6 py-4"><input type="checkbox" className="h-4 w-4 accent-primary" checked={selected.includes(ts.mfNo)} onChange={() => handleSelectRow(ts.mfNo)} /></td>
                       <td className="px-6 py-4 font-semibold text-primary">{ts.mfNo}</td>
                       <td className="px-6 py-4 text-sm">{ts.fromPlace}</td>
                       <td className="px-6 py-4 text-sm">{ts.toPlace}</td>
@@ -300,7 +366,7 @@ export const TripSheetList = () => {
                           type="checkbox" 
                           className="h-5 w-5 accent-primary" 
                           checked={selected.includes(ts.mfNo)} 
-                          onChange={() => toggleSelect(ts.mfNo)} 
+                          onChange={() => handleSelectRow(ts.mfNo)} 
                         />
                      </div>
                      <div className="flex-1 space-y-1">
@@ -337,7 +403,7 @@ export const TripSheetList = () => {
         title="Delete Trip Sheet" 
         description={deleteMessage} 
       />
-      {printIds && <TripSheetPrintManager mfNos={printIds} onClose={() => setPrintIds(null)} />}
+      {printingSheets && <TripSheetPrintManager sheets={printingSheets} onClose={() => setPrintingSheets(null)} />}
       {reportPrintingJobs && <TripSheetReportPrint sheets={reportPrintingJobs} onClose={() => setReportPrintingJobs(null)} />}
     </div>
   );

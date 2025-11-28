@@ -1,5 +1,4 @@
-
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FilePenLine, Trash2, Search, Printer, Filter, XCircle, RotateCcw } from 'lucide-react';
 import { DateFilterButtons, getTodayDate, getYesterdayDate } from '../../components/shared/DateFilterButtons';
@@ -11,11 +10,11 @@ import { AutocompleteInput } from '../../components/shared/AutocompleteInput';
 import { MultiSelect } from '../../components/shared/MultiSelect';
 import { GcPrintManager, type GcPrintJob } from './GcPrintManager';
 import { Pagination } from '../../components/shared/Pagination';
-import type { GcEntry } from '../../types';
+import type { GcEntry, Consignor, Consignee } from '../../types';
 
 export const GcEntryList = () => {
   const navigate = useNavigate();
-  const { deleteGcEntry, consignors, consignees, getUniqueDests, fetchGcById } = useData();
+  const { deleteGcEntry, consignors, consignees, getUniqueDests, fetchGcPrintData } = useData();
   
   // Use Server Pagination Hook
   const {
@@ -32,13 +31,18 @@ export const GcEntryList = () => {
     refresh
   } = useServerPagination<GcEntry>({ 
     endpoint: '/operations/gc',
-    initialFilters: { search: '', filterType: 'all' }
+    initialFilters: { search: '', filterType: 'all' },
+    
   });
 
   const [showFilters, setShowFilters] = useState(false);
   
   // Local state for UI controls
   const [selectedGcIds, setSelectedGcIds] = useState<string[]>([]);
+  
+  // NEW: State to track if "Select All" is active
+  const [selectAllMode, setSelectAllMode] = useState(false);
+
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deleteMessage, setDeleteMessage] = useState(""); 
@@ -93,16 +97,14 @@ export const GcEntryList = () => {
         endDate: '', 
         destination: '', 
         consignor: '', 
-        consignee: [] // Reset to empty array
+        consignee: []
     });
   };
 
-  // Options for dropdowns
   const allConsignorOptions = useMemo(() => consignors.map(c => ({ value: c.id, label: c.name })), [consignors]);
   const allConsigneeOptions = useMemo(() => consignees.map(c => ({ value: c.id, label: c.name })), [consignees]);
   const allDestinationOptions = useMemo(getUniqueDests, [getUniqueDests]);
 
-  // Actions
   const handleEdit = (gcNo: string) => navigate(`/gc-entry/edit/${gcNo}`);
   
   const handleDelete = (gcNo: string) => { 
@@ -120,65 +122,126 @@ export const GcEntryList = () => {
     setDeletingId(null); 
   };
   
-  // --- OPTIMIZED PRINT HANDLERS ---
-  // Fetches full data on demand because list API is stripped
+  // --- PRINT HANDLERS ---
+
   const handlePrintSingle = async (gcNo: string) => {
-    // Fetch full GC data by ID
-    const fullGc = await fetchGcById(gcNo);
-    
-    if (!fullGc) {
-        alert("Failed to fetch GC details for printing.");
-        return;
-    }
-    
-    const consignor = consignors.find(c => c.id === fullGc.consignorId);
-    const consignee = consignees.find(c => c.id === fullGc.consigneeId);
-    
-    if (consignor && consignee) {
-        setPrintingJobs([{ gc: fullGc, consignor, consignee }]);
-    } else {
-        alert("Consignor or Consignee not found.");
+    try {
+      const printData = await fetchGcPrintData([gcNo]);
+      
+      if (printData && printData.length > 0) {
+          const item = printData[0];
+          const { consignor, consignee, ...gcData } = item;
+          
+          setPrintingJobs([{ 
+              gc: gcData as GcEntry, 
+              consignor: consignor as Consignor, 
+              consignee: consignee as Consignee 
+          }]);
+      } else {
+          alert("Failed to fetch GC details for printing.");
+      }
+    } catch (error) {
+      console.error("Print error:", error);
+      alert("An error occurred while fetching print data.");
     }
   };
   
+  // --- UPDATED BULK PRINT HANDLER ---
   const handlePrintSelected = async () => {
-    if (selectedGcIds.length === 0) return;
+    // Check if anything is selected OR if we are in selectAllMode
+    if (selectedGcIds.length === 0 && !selectAllMode) return;
     
-    const jobs: GcPrintJob[] = [];
-    
-    // Fetch all selected GCs in parallel
-    const promises = selectedGcIds.map(id => fetchGcById(id));
-    const results = await Promise.all(promises);
-    
-    results.forEach(fullGc => {
-        if (!fullGc) return;
-        const consignor = consignors.find(c => c.id === fullGc.consignorId);
-        const consignee = consignees.find(c => c.id === fullGc.consigneeId);
+    try {
+        let printData = [];
         
-        if (consignor && consignee) {
-            jobs.push({ gc: fullGc, consignor, consignee });
+        if (selectAllMode) {
+            // If "Select All" is active, fetch ALL matching data using filters
+            // Pass empty array for IDs, true for selectAll, and the current filters object
+            printData = await fetchGcPrintData([], true, filters);
+        } else {
+            // Otherwise, use the specifically selected IDs
+            printData = await fetchGcPrintData(selectedGcIds);
         }
-    });
+        
+        if (!printData || printData.length === 0) {
+            alert("Could not fetch data for selected GCs.");
+            return;
+        }
 
-    if (jobs.length > 0) { 
-      setPrintingJobs(jobs); 
-      setSelectedGcIds([]); 
-    } else {
-      alert("Could not prepare print jobs. Check data integrity.");
+        // Map response to GcPrintJob structure
+        const jobs = printData.map((item: any): GcPrintJob | null => {
+            const { consignor, consignee, ...gcData } = item;
+            
+            if (!consignor || !consignee) {
+                console.warn(`Incomplete data for GC ${gcData.gcNo}`);
+                return null;
+            }
+
+            return {
+                gc: gcData as GcEntry,
+                consignor: consignor as Consignor,
+                consignee: consignee as Consignee
+            };
+        }).filter((job): job is GcPrintJob => job !== null);
+
+        if (jobs.length > 0) { 
+          setPrintingJobs(jobs); 
+          // Only clear selection if it was a specific selection. 
+          // If "Select All" mode was active, we might want to keep it active, 
+          // or clear it. Usually clearing is safer to avoid accidental re-prints.
+          if (!selectAllMode) setSelectedGcIds([]); 
+          setSelectAllMode(false); // Reset mode
+        } else {
+          alert("Could not prepare print jobs. Check data integrity.");
+        }
+    } catch (error) {
+        console.error("Bulk print error:", error);
+        alert("An error occurred while preparing print jobs.");
     }
   };
 
-  const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSelectedGcIds(e.target.checked ? paginatedData.map(gc => gc.gcNo) : []);
-  };
-  const handleSelectRow = (e: React.ChangeEvent<HTMLInputElement>, id: string) => {
-    setSelectedGcIds(prev => e.target.checked ? [...prev, id] : prev.filter(x => x !== id));
-  };
-  const isAllSelected = paginatedData.length > 0 && selectedGcIds.length === paginatedData.length;
+  // --- UPDATED SELECTION HANDLERS ---
 
-  // Check filters specifically to show active state
+  const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.checked) {
+        setSelectAllMode(true);
+        // Visually select current page items
+        setSelectedGcIds(paginatedData.map(gc => gc.gcNo));
+    } else {
+        setSelectAllMode(false);
+        setSelectedGcIds([]);
+    }
+  };
+
+  // Ensure visual state persists across pages if selectAllMode is active
+  useEffect(() => {
+      if (selectAllMode) {
+          setSelectedGcIds(paginatedData.map(gc => gc.gcNo));
+      }
+  }, [paginatedData, selectAllMode]);
+
+  const handleSelectRow = (e: React.ChangeEvent<HTMLInputElement>, id: string) => {
+    // If user manually interacts with a row while "Select All" is active,
+    // we must disable "Select All" mode to avoid ambiguity.
+    if (selectAllMode) {
+        setSelectAllMode(false);
+        // If unchecking, remove from list. If checking (unlikely since all are checked), add.
+        if (!e.target.checked) {
+            setSelectedGcIds(prev => prev.filter(x => x !== id));
+        }
+    } else {
+        setSelectedGcIds(prev => e.target.checked ? [...prev, id] : prev.filter(x => x !== id));
+    }
+  };
+
+  const isAllSelected = selectAllMode || (paginatedData.length > 0 && selectedGcIds.length === paginatedData.length);
   const hasActiveFilters = !!filters.destination || !!filters.consignor || (filters.consignee && filters.consignee.length > 0) || filters.filterType !== 'all' || !!filters.search;
   const responsiveBtnClass = "flex-1 md:flex-none text-[10px] xs:text-xs sm:text-sm h-8 sm:h-10 px-1 sm:px-4 whitespace-nowrap";
+
+  // Calculate display count for button
+  const printButtonText = selectAllMode 
+    ? `Print All (${totalItems})` // Show total server count if Select All is active
+    : `Print (${selectedGcIds.length})`;
 
   return (
     <div className="space-y-6">
@@ -211,11 +274,11 @@ export const GcEntryList = () => {
           <Button 
             variant="secondary"
             onClick={handlePrintSelected}
-            disabled={selectedGcIds.length === 0}
+            disabled={selectedGcIds.length === 0 && !selectAllMode}
             className={responsiveBtnClass}
           >
             <Printer size={14} className="mr-1 sm:mr-2" />
-            Print ({selectedGcIds.length})
+            {printButtonText}
           </Button>
           <Button 
             variant="primary"
@@ -256,7 +319,6 @@ export const GcEntryList = () => {
                 placeholder="Search consignor..." 
             />
 
-            {/* MultiSelect for Consignee - Ensures array is passed */}
             <div>
                 <label className="block text-sm font-medium text-muted-foreground mb-1">Filter by Consignee</label>
                 <MultiSelect 
@@ -305,7 +367,6 @@ export const GcEntryList = () => {
                     const consignor = consignors.find(c => c.id === gc.consignorId);
                     const consignee = consignees.find(c => c.id === gc.consigneeId);
                     
-                    // CHANGED: Use direct property from GC entry
                     const tripSheetId = gc.tripSheetId;
                     const isAssigned = tripSheetId && tripSheetId !== "";
 
@@ -319,7 +380,6 @@ export const GcEntryList = () => {
 
                         <td className="px-6 py-4 text-sm">{gc.quantity}</td>
                         
-                        {/* CHANGED: Display Logic */}
                         <td className="px-6 py-4 text-sm">
                             <span className={`px-2 py-1 rounded-full text-xs font-medium ${isAssigned ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
                                 {isAssigned ? `TS# ${tripSheetId}` : 'Pending'}
@@ -341,13 +401,10 @@ export const GcEntryList = () => {
           </table>
         </div>
         
-        {/* Mobile View (Cards) */}
         <div className="block md:hidden divide-y divide-muted">
            {paginatedData.map((gc) => {
              const consignor = consignors.find(c => c.id === gc.consignorId);
              const consignee = consignees.find(c => c.id === gc.consigneeId);
-             
-             // CHANGED: Use direct property from GC entry
              const tripSheetId = gc.tripSheetId;
              const isAssigned = tripSheetId && tripSheetId !== "";
 
@@ -386,10 +443,6 @@ export const GcEntryList = () => {
                 </div>
 
                 <div className="flex justify-end items-end mt-3 pt-3 border-t border-dashed border-muted">
-                   {/* <div className="text-sm font-medium">
-                      Bill Value: ₹{(parseFloat(gc.billValue) || 0).toLocaleString('en-IN')}
-                   </div> */}
-                   {/* CHANGED: Display Logic */}
                    <div className={`text-sm font-bold ${isAssigned ? 'text-green-600' : 'text-muted-foreground'}`}>
                       Status: {isAssigned ? `TS# ${tripSheetId}` : 'Pending'}
                    </div>

@@ -59,7 +59,7 @@ export const LoadListPrintManager: React.FC<LoadListPrintManagerProps> = ({ jobs
 
         const calculatedPrintData = Object.values(groupedLoads).map(group => {
             const sortedGcIds = group.gcList
-                .map(g => Number(g.id))
+                .map(g => Number(g.gcNo))
                 .sort((a, b) => a - b);
 
             const fromNo = group.firstGcFromNo;

@@ -2,13 +2,10 @@ import React from "react";
 import type { GcEntry, Consignor, Consignee } from "../../types";
 import { numberToWords, numberToWordsInRupees } from "../../utils/toWords";
 import { useAuth } from "../../hooks/useAuth"; 
-import { useData } from "../../hooks/useData"; 
 
 // ==========================================
 // 🟢 CONFIGURATION: PDF LINK
 // ==========================================
-// I have updated this link to use '/preview' instead of '/view'
-// This forces the browser to open the PDF viewer immediately, which is better for QR scans.
 const TERMS_PDF_URL = "https://drive.google.com/file/d/1LXrbXLfGCRLYPoLLESWyjJol_nKvVUn-/preview";
 
 const formatCurrency = (amount: number | string | undefined) => {
@@ -16,9 +13,6 @@ const formatCurrency = (amount: number | string | undefined) => {
   return num > 0 ? `${num.toLocaleString("en-IN")}` : "";
 };
 
-// --- HELPER: Generate QR Code Image URL ---
-// 1. Increased size to 250x250 for higher resolution print
-// 2. Added margin=0 to maximize the scannable area
 const generateQrUrl = (url: string) => {
   return `https://api.qrserver.com/v1/create-qr-code/?size=250x250&margin=0&data=${encodeURIComponent(url)}`;
 };
@@ -37,18 +31,16 @@ export const GcPrintCopy: React.FC<Props> = ({
   copyType,
 }) => {
   const { user } = useAuth();
-  const { tripSheets } = useData(); 
-
-  const linkedTripSheetItem = tripSheets
-    .flatMap(sheet => sheet.items || [])
-    .find(item => item.gcNo === gc.gcNo); 
 
   const quantityNum = parseFloat(gc.quantity) || 0;
   const fromNoNum = parseFloat(gc.fromNo) || 0;
   const billValueNum = parseFloat(gc.billValue) || 0;
   
-  const balanceToPayNum = linkedTripSheetItem 
-    ? linkedTripSheetItem.amount 
+  // --- LOGIC CHANGE: Balance To Pay Priority ---
+  // 1. If 'tripSheetAmount' is present (injected via backend lookup or form patching), use it.
+  // 2. Otherwise, fall back to the stored 'balanceToPay'.
+  const balanceToPayNum = (gc as any).tripSheetAmount !== undefined 
+    ? (gc as any).tripSheetAmount 
     : (parseFloat(gc.balanceToPay) || 0);
   
   const freightNum = parseFloat(gc.freight) || 0;
@@ -291,18 +283,15 @@ export const GcPrintCopy: React.FC<Props> = ({
         </table>
       </div>
       
-      {/* --- FOOTER SECTION (CORRECTED LAYOUT) --- */}
-      {/* Increased padding (p-3) and min-height (h-24) to give QR code breathing room */}
+      {/* --- FOOTER --- */}
       <div className="border-x border-b border-black p-3 flex justify-between items-end min-h-[6rem] relative">
          
-         {/* LEFT SIDE: QR Code & Freight Text (Separated) */}
          <div className="flex items-end gap-3 w-1/3">
-            {/* QR Code - Crisp scaling */}
             <div className="flex flex-col items-center flex-shrink-0">
               <img 
                 src={generateQrUrl(TERMS_PDF_URL)} 
                 alt="T&C QR" 
-                className="w-20 h-20" // Increased visual size slightly
+                className="w-20 h-20"
                 style={{ imageRendering: "pixelated" }} 
               />
               <span className="text-[9px] font-bold mt-0.5 uppercase tracking-wide">
@@ -310,21 +299,18 @@ export const GcPrintCopy: React.FC<Props> = ({
               </span>
             </div>
 
-            {/* Freight Fixed Text (Next to QR) */}
             <div className="text-xs font-bold mb-3 leading-tight">
               <span className="font-normal block text-[10px] text-gray-600 mb-0.5">Freight fixed upto:</span>
               <span className="uppercase">{gc.freightUptoAt}</span>
             </div>
          </div>
 
-         {/* CENTER: Unloading Charges (Absolute Centered) */}
          <div className="absolute left-1/2 -translate-x-1/2 bottom-4 text-center text-xs leading-tight pointer-events-none">
              Unloading charges<br/>payable by party
          </div>
 
-         {/* RIGHT SIDE: Signature */}
          <div className="text-xs mb-1 flex flex-col items-center mr-2 w-1/3 text-right"> 
-            <div className="h-10"></div> {/* Increased spacer for signature */}
+            <div className="h-10"></div>
             <span className="font-bold uppercase mb-1">{user?.name || 'Admin'}</span>
             <span className="italic font-bold text-[10px]">For UNITED TRANSPORT COMPANY</span>
          </div>

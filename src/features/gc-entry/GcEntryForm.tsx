@@ -69,15 +69,29 @@ export const GcEntryForm = () => {
   useEffect(() => {
     if (isEditMode && gcNo) {
       const loadData = async () => {
+        // Fetch GC data (backend now includes tripSheetAmount via lookup if linked)
         const gc = await fetchGcById(gcNo);
+        
         if (gc) {
+          // --- LOGIC: If tripSheetAmount exists (populated by backend), use it for display
+          // Otherwise fall back to the stored balanceToPay
+          // 'tripSheetAmount' is a virtual field from aggregation
+          const tripAmount = (gc as any).tripSheetAmount;
+          
+          const displayBalance = (tripAmount !== undefined && tripAmount !== null)
+            ? tripAmount.toString() 
+            : gc.balanceToPay;
+
           setForm({
             ...gc,
-            balanceToPay: gc.balanceToPay,
+            balanceToPay: displayBalance,
             paymentType: gc.paymentType || 'To Pay' 
           });
+
+          // Pre-fill related UI fields
           const consignor = consignors.find(c => c.id === gc.consignorId);
           if (consignor) setConsignorGst(consignor.gst);
+          
           const consignee = consignees.find(c => c.id === gc.consigneeId);
           if (consignee) {
             setSelectedConsignee(consignee);
@@ -106,10 +120,7 @@ export const GcEntryForm = () => {
     setForm(prev => {
       const newData = { ...prev, [name]: value };
       if (name === 'quantity') newData.netQty = value;
-      
-      // --- LOGIC REMOVED: Auto-calculation of balanceToPay ---
-      // The user can now manually edit the Balance field without it being overwritten.
-      
+      // Auto-calculation is removed per requirement, balance is manual or trip-sheet based
       return newData;
     });
   };
@@ -151,6 +162,11 @@ export const GcEntryForm = () => {
     const finalGcNo = isEditMode ? form.gcNo! : await getNextGcNo();
     const gcData: GcEntry = { ...form, id: isEditMode ? (form as any).id : undefined, gcNo: finalGcNo } as GcEntry;
 
+    // Preserve the tripSheetAmount if it was injected during load, so print uses it
+    if ((form as any).tripSheetAmount) {
+        (gcData as any).tripSheetAmount = (form as any).tripSheetAmount;
+    }
+
     if (isEditMode) await updateGcEntry(gcData); else await addGcEntry(gcData);
 
     if (andPrint) {
@@ -172,8 +188,6 @@ export const GcEntryForm = () => {
           
           <div>
             <h3 className="text-base font-bold text-primary border-b border-border pb-2 mb-4">GC Details</h3>
-            
-            {/* UPDATED: Changed grid to 3 equal columns for Date, From, Destination */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="col-span-1">
                 <Input label="GC Date" type="date" name="gcDate" value={form.gcDate} onChange={handleChange} required />
@@ -237,7 +251,6 @@ export const GcEntryForm = () => {
               <div className="col-span-1"><Input label="Godown" name="godownCharge" value={form.godownCharge} onChange={handleChange} /></div>
               <div className="col-span-1"><Input label="Statistic" name="statisticCharge" value={form.statisticCharge} onChange={handleChange} /></div>
               <div className="col-span-1"><Input label="Advance" name="advanceNone" value={form.advanceNone} onChange={handleChange} /></div>
-              {/* KEPT: Balance field remains available for manual entry */}
               <div className="col-span-1"><Input label="Balance" name="balanceToPay" value={form.balanceToPay} onChange={handleChange} /></div>
             </div>
           </div>

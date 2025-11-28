@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Trash2, Search, Printer, PackageCheck, Filter, RotateCcw, XCircle } from 'lucide-react';
 import { DateFilterButtons, getTodayDate, getYesterdayDate } from '../../components/shared/DateFilterButtons';
 import { ConfirmationDialog } from '../../components/shared/ConfirmationDialog';
@@ -22,7 +22,7 @@ type ReportJob = {
 };
 
 export const LoadingSheetEntry = () => {
-  const { deleteGcEntry, consignors, consignees, getUniqueDests, saveLoadingProgress, fetchGcById } = useData();
+  const { deleteGcEntry, consignors, consignees, getUniqueDests, saveLoadingProgress, fetchGcById, fetchLoadingSheetPrintData } = useData();
 
   // --- SERVER-SIDE PAGINATION HOOK ---
   const {
@@ -39,7 +39,8 @@ export const LoadingSheetEntry = () => {
     refresh
   } = useServerPagination<GcEntry & { loadedCount?: number }>({ 
     endpoint: '/operations/loading-sheet',
-    initialFilters: { search: '', filterType: 'all' }
+    initialFilters: { search: '', filterType: 'all' },
+    initialItemsPerPage: 5
   });
 
   // --- UI State ---
@@ -47,6 +48,9 @@ export const LoadingSheetEntry = () => {
   
   // --- Selection and Delete State ---
   const [selectedGcIds, setSelectedGcIds] = useState<string[]>([]);
+  // NEW: Select All Mode
+  const [selectAllMode, setSelectAllMode] = useState(false);
+
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deleteMessage, setDeleteMessage] = useState("");
@@ -135,42 +139,72 @@ export const LoadingSheetEntry = () => {
   };
 
   const handlePrintSingle = async (gcNo: string) => {
-    const fullGc = await fetchGcById(gcNo);
-    
-    if (!fullGc) {
-        alert("Failed to fetch GC details.");
-        return;
+    try {
+        const printData = await fetchLoadingSheetPrintData([gcNo]);
+        
+        if (printData && printData.length > 0) {
+            const item = printData[0];
+            const { consignor, consignee, ...gcData } = item;
+            
+            setLoadListPrintingJobs([{
+                gc: gcData as GcEntry,
+                consignor: { ...consignor, id: consignor.id || consignor._id || 'unknown' } as Consignor,
+                consignee: { ...consignee, id: consignee.id || consignee._id || 'unknown' } as Consignee
+            }]);
+        } else {
+            alert("Failed to fetch GC details.");
+        }
+    } catch (error) {
+        console.error("Print error:", error);
+        alert("An error occurred while fetching print data.");
     }
-
-    const consignor = consignors.find(c => c.id === fullGc.consignorId);
-    const consignee = consignees.find(c => c.id === fullGc.consigneeId);
-
-    if (consignor && consignee) {
-      setLoadListPrintingJobs([{ gc: fullGc, consignor, consignee }]);
-    }
-    else alert("Error: Consignor or Consignee data missing for this GC.");
   };
 
+  // --- OPTIMIZED BULK PRINT ---
   const handlePrintSelected = async () => {
-    if (selectedGcIds.length === 0) return;
+    if (selectedGcIds.length === 0 && !selectAllMode) return;
 
-    const jobs: LoadListJob[] = [];
-    const promises = selectedGcIds.map(id => fetchGcById(id));
-    const results = await Promise.all(promises);
+    try {
+        let results = [];
+        
+        if (selectAllMode) {
+            // Fetch ALL matching data based on filters
+            results = await fetchLoadingSheetPrintData([], true, filters);
+        } else {
+            // Fetch specifically selected IDs
+            results = await fetchLoadingSheetPrintData(selectedGcIds);
+        }
 
-    results.forEach(fullGc => {
-      if (!fullGc) return;
-      const consignor = consignors.find(c => c.id === fullGc.consignorId);
-      const consignee = consignees.find(c => c.id === fullGc.consigneeId);
+        if (!results || results.length === 0) {
+            alert("No data received for selected GCs.");
+            return;
+        }
 
-      if (consignor && consignee) {
-        jobs.push({ gc: fullGc, consignor, consignee });
-      }
-    });
+        // Map backend response to LoadListJob format
+        const jobs: LoadListJob[] = results.map((item: any) => {
+            const { consignor, consignee, ...gcData } = item;
+            
+            return {
+                gc: gcData as GcEntry,
+                consignor: { 
+                    ...consignor, 
+                    id: consignor.id || consignor._id // Map _id if id is missing
+                } as Consignor,
+                consignee: { 
+                    ...consignee, 
+                    id: consignee.id || consignee._id 
+                } as Consignee
+            };
+        });
 
-    if (jobs.length > 0) {
-      setLoadListPrintingJobs(jobs);
-      setSelectedGcIds([]);
+        if (jobs.length > 0) {
+            setLoadListPrintingJobs(jobs);
+            if (!selectAllMode) setSelectedGcIds([]);
+            setSelectAllMode(false);
+        }
+    } catch (error) {
+        console.error("Bulk print failed", error);
+        alert("Failed to prepare print jobs.");
     }
   };
 
@@ -180,8 +214,6 @@ export const LoadingSheetEntry = () => {
     if (fullGc) {
         const maxQty = parseInt(fullGc.quantity.toString()) || 1;
         const startNo = parseInt(fullGc.fromNo) || 1;
-        
-        // FIX: This property now exists on GcEntry interface
         const currentLoaded = fullGc.loadedPackages || [];
 
         setCurrentQtySelection({ 
@@ -211,17 +243,42 @@ export const LoadingSheetEntry = () => {
   };
 
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.checked) setSelectedGcIds(paginatedData.map(gc => gc.gcNo));
-    else setSelectedGcIds([]);
+    if (e.target.checked) {
+        setSelectAllMode(true);
+        setSelectedGcIds(paginatedData.map(gc => gc.gcNo));
+    } else {
+        setSelectAllMode(false);
+        setSelectedGcIds([]);
+    }
   };
+  
+  // Keep visual selection in sync if Select All is active
+  useEffect(() => {
+    if (selectAllMode) {
+        setSelectedGcIds(paginatedData.map(gc => gc.gcNo));
+    }
+  }, [paginatedData, selectAllMode]);
+
   const handleSelectRow = (e: React.ChangeEvent<HTMLInputElement>, id: string) => {
-    if (e.target.checked) setSelectedGcIds(prev => [...prev, id]);
-    else setSelectedGcIds(prev => prev.filter(gcId => gcId !== id));
+    if (selectAllMode) {
+        setSelectAllMode(false);
+        if (!e.target.checked) {
+            setSelectedGcIds(prev => prev.filter(gcId => gcId !== id));
+        }
+    } else {
+        if (e.target.checked) setSelectedGcIds(prev => [...prev, id]);
+        else setSelectedGcIds(prev => prev.filter(gcId => gcId !== id));
+    }
   };
 
-  const isAllSelected = paginatedData.length > 0 && paginatedData.every(gc => selectedGcIds.includes(gc.gcNo));
+  const isAllSelected = selectAllMode || (paginatedData.length > 0 && paginatedData.every(gc => selectedGcIds.includes(gc.gcNo)));
   const hasActiveFilters = !!filters.destination || !!filters.consignor || (filters.consignee && filters.consignee.length > 0) || filters.filterType !== 'all' || !!filters.search;
   const responsiveBtnClass = "flex-1 md:flex-none text-[10px] xs:text-xs sm:text-sm h-8 sm:h-10 px-1 sm:px-4 whitespace-nowrap";
+
+  // Calculate display count
+  const printButtonText = selectAllMode 
+    ? `Print All (${totalItems})` 
+    : `Print (${selectedGcIds.length})`;
 
   return (
     <div className="space-y-6">
@@ -258,11 +315,11 @@ export const LoadingSheetEntry = () => {
           <Button
             variant="secondary"
             onClick={handlePrintSelected}
-            disabled={selectedGcIds.length === 0}
+            disabled={selectedGcIds.length === 0 && !selectAllMode}
             className={responsiveBtnClass}
           >
             <Printer size={14} className="mr-1 sm:mr-2" />
-            Print ({selectedGcIds.length})
+            {printButtonText}
           </Button>
         </div>
       </div>
@@ -479,7 +536,6 @@ export const LoadingSheetEntry = () => {
         </div>
       </div>
 
-      {/* FIX: Using deleteMessage state here */}
       <ConfirmationDialog
         open={isConfirmOpen}
         onClose={() => setIsConfirmOpen(false)}

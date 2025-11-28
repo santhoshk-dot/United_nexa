@@ -1,4 +1,3 @@
-// src/features/trip-sheet-entry/TripSheetPrintCopy.tsx
 import React from "react";
 import type { TripSheetEntry, TripSheetGCItem } from "../../types";
 import { numberToWordsInRupees } from "../../utils/toWords";
@@ -17,7 +16,6 @@ export const TripSheetPrintCopy: React.FC<Props> = ({ sheet }) => {
     ).padStart(2, "0")}/${dt.getFullYear()}`;
   };
 
-
   const total = sheet.totalAmount ?? 0;
   const totalWords = numberToWordsInRupees(total);
 
@@ -28,27 +26,27 @@ export const TripSheetPrintCopy: React.FC<Props> = ({ sheet }) => {
   // TOTAL PACKAGES
   const totalPackages = items.reduce((acc, it) => acc + (it.qty || 0), 0);
 
-
   return (
-    <div style={{ fontFamily: "Arial, Helvetica, sans-serif", color: "#000" }}>
+    // CHANGE 1: Added padding: "10mm" here to maintain alignment after removing page margin
+    <div style={{ fontFamily: "Arial, Helvetica, sans-serif", color: "#000", padding: "10mm" }}>
       <style>
         {`
         @page {
           size: A4;
-          margin: 10mm;
+          margin: 0; /* CHANGE 2: Removes the browser header/footer text */
         }
         @media print {
           body, html {
             background: #ffffff !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
+            margin: 0;
           }
 
           * {
             background: #ffffff !important;
           }
         }
-
 
         .page-heading {
           text-align: center;

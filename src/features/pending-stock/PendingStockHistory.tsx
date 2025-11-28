@@ -1,5 +1,4 @@
-
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FilePenLine, Trash2, Search, Printer, FileText, Filter, XCircle, RotateCcw } from 'lucide-react';
 import { DateFilterButtons, getTodayDate, getYesterdayDate } from '../../components/shared/DateFilterButtons';
@@ -22,7 +21,8 @@ type ReportJob = {
 
 export const PendingStockHistory = () => {
   const navigate = useNavigate();
-  const { deleteGcEntry, consignors, consignees, getUniqueDests, fetchGcById } = useData();
+  // CHANGED: Removed fetchGcById, Added fetchGcPrintData
+  const { deleteGcEntry, consignors, consignees, getUniqueDests, fetchGcPrintData } = useData();
   
   // --- SERVER-SIDE PAGINATION HOOK ---
   const {
@@ -39,13 +39,17 @@ export const PendingStockHistory = () => {
     refresh
   } = useServerPagination<GcEntry>({ 
     endpoint: '/operations/pending-stock', 
-    initialFilters: { search: '', filterType: 'all' }
+    initialFilters: { search: '', filterType: 'all' },
+    
   });
 
   const [showFilters, setShowFilters] = useState(false);
   
   // --- UI STATE ---
   const [selectedGcIds, setSelectedGcIds] = useState<string[]>([]);
+  // NEW: State to track if "Select All" is active
+  const [selectAllMode, setSelectAllMode] = useState(false);
+
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deleteMessage, setDeleteMessage] = useState(""); 
@@ -128,38 +132,78 @@ export const PendingStockHistory = () => {
     setDeletingId(null); 
   };
   
-  // --- OPTIMIZED PRINT: Fetch Full Data ---
+  // --- OPTIMIZED PRINT HANDLERS ---
+
   const handlePrintSingle = async (gcNo: string) => {
-    const fullGc = await fetchGcById(gcNo);
-    
-    if (fullGc) {
-      const consignor = consignors.find(c => c.id === fullGc.consignorId);
-      const consignee = consignees.find(c => c.id === fullGc.consigneeId);
-      if(consignor && consignee) setGcPrintingJobs([{ gc: fullGc, consignor, consignee }]);
-    } else {
-        alert("Failed to fetch GC data.");
+    try {
+        const printData = await fetchGcPrintData([gcNo]);
+        
+        if (printData && printData.length > 0) {
+            const item = printData[0];
+            const { consignor, consignee, ...gcData } = item;
+            
+            setGcPrintingJobs([{ 
+                gc: gcData as GcEntry, 
+                consignor: consignor as Consignor, 
+                consignee: consignee as Consignee 
+            }]);
+        } else {
+            alert("Failed to fetch GC details.");
+        }
+    } catch (error) {
+        console.error("Print error:", error);
+        alert("An error occurred while fetching print data.");
     }
   };
   
   const handlePrintSelected = async () => {
-    if (selectedGcIds.length === 0) return;
+    if (selectedGcIds.length === 0 && !selectAllMode) return;
     
-    const jobs: GcPrintJob[] = [];
-    const promises = selectedGcIds.map(id => fetchGcById(id));
-    const results = await Promise.all(promises);
-    
-    results.forEach(fullGc => {
-        if (!fullGc) return;
-        const consignor = consignors.find(c => c.id === fullGc.consignorId);
-        const consignee = consignees.find(c => c.id === fullGc.consigneeId);
-        if (consignor && consignee) {
-            jobs.push({ gc: fullGc, consignor, consignee });
+    try {
+        let printData = [];
+        
+        if (selectAllMode) {
+            // 1. Call Optimized Backend Endpoint with Select All Mode
+            // Pass a special flag so backend knows to enforce "Pending Stock" logic (tripSheetId match)
+            const printFilters = { ...filters, pendingStockView: true };
+            printData = await fetchGcPrintData([], true, printFilters);
+        } else {
+            // 2. Call for specific IDs
+            printData = await fetchGcPrintData(selectedGcIds);
         }
-    });
-    
-    if (jobs.length > 0) { 
-      setGcPrintingJobs(jobs); 
-      setSelectedGcIds([]); 
+        
+        if (!printData || printData.length === 0) {
+            alert("Could not fetch data for selected GCs.");
+            return;
+        }
+
+        // 3. Map response to GcPrintJob structure
+        const jobs = printData.map((item: any): GcPrintJob | null => {
+            const { consignor, consignee, ...gcData } = item;
+            
+            if (!consignor || !consignee) {
+                console.warn(`Incomplete data for GC ${gcData.gcNo}`);
+                return null;
+            }
+
+            return {
+                gc: gcData as GcEntry,
+                consignor: consignor as Consignor,
+                consignee: consignee as Consignee
+            };
+        }).filter((job): job is GcPrintJob => job !== null);
+
+        if (jobs.length > 0) { 
+          setGcPrintingJobs(jobs); 
+          // Reset selection unless user explicitly wants to keep it
+          if (!selectAllMode) setSelectedGcIds([]); 
+          setSelectAllMode(false); 
+        } else {
+          alert("Could not prepare print jobs. Check data integrity.");
+        }
+    } catch (error) {
+        console.error("Bulk print error:", error);
+        alert("An error occurred while preparing print jobs.");
     }
   };
 
@@ -176,16 +220,42 @@ export const PendingStockHistory = () => {
   };
 
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSelectedGcIds(e.target.checked ? paginatedData.map(gc => gc.gcNo) : []);
+    if (e.target.checked) {
+        setSelectAllMode(true);
+        // Visually select current page
+        setSelectedGcIds(paginatedData.map(gc => gc.gcNo));
+    } else {
+        setSelectAllMode(false);
+        setSelectedGcIds([]);
+    }
   };
+
+  // Ensure visual state persists when data updates (e.g., page change)
+  useEffect(() => {
+    if (selectAllMode) {
+        setSelectedGcIds(paginatedData.map(gc => gc.gcNo));
+    }
+  }, [paginatedData, selectAllMode]);
   
   const handleSelectRow = (e: React.ChangeEvent<HTMLInputElement>, id: string) => {
-    setSelectedGcIds(prev => e.target.checked ? [...prev, id] : prev.filter(x => x !== id));
+    if (selectAllMode) {
+        setSelectAllMode(false); // Disable global select if user deselects one
+        if (!e.target.checked) {
+            setSelectedGcIds(prev => prev.filter(x => x !== id));
+        }
+    } else {
+        setSelectedGcIds(prev => e.target.checked ? [...prev, id] : prev.filter(x => x !== id));
+    }
   };
   
-  const isAllSelected = paginatedData.length > 0 && selectedGcIds.length === paginatedData.length;
+  const isAllSelected = selectAllMode || (paginatedData.length > 0 && selectedGcIds.length === paginatedData.length);
   const hasActiveFilters = !!filters.destination || !!filters.consignor || (filters.consignee && filters.consignee.length > 0) || filters.filterType !== 'all' || !!filters.search;
   const responsiveBtnClass = "flex-1 md:flex-none text-[10px] xs:text-xs sm:text-sm h-8 sm:h-10 px-1 sm:px-4 whitespace-nowrap";
+  
+  // Calculate display count for button
+  const printButtonText = selectAllMode 
+    ? `Print All (${totalItems})` 
+    : `Print (${selectedGcIds.length})`;
 
   return (
     <div className="space-y-6">
@@ -226,10 +296,10 @@ export const PendingStockHistory = () => {
           <Button 
             variant="secondary" 
             onClick={handlePrintSelected} 
-            disabled={selectedGcIds.length === 0}
+            disabled={selectedGcIds.length === 0 && !selectAllMode}
             className={responsiveBtnClass}
           >
-            <Printer size={14} className="mr-1 sm:mr-2" /> Print ({selectedGcIds.length})
+            <Printer size={14} className="mr-1 sm:mr-2" /> {printButtonText}
           </Button>
           
           <Button 

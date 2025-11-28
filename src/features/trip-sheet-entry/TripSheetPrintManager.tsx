@@ -1,51 +1,22 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import ReactDOM from "react-dom";
-import { useData } from "../../hooks/useData";
 import { TripSheetPrintCopy } from "./TripSheetPrintCopy";
 import type { TripSheetEntry } from "../../types";
 
 interface TripSheetPrintManagerProps {
-  mfNos: string[];
+  sheets: TripSheetEntry[];
   onClose: () => void;
 }
 
 export const TripSheetPrintManager = ({
-  mfNos,
+  sheets,
   onClose,
 }: TripSheetPrintManagerProps) => {
-  // CHANGED: Use fetchTripSheetById instead of getTripSheet
-  const { fetchTripSheetById } = useData();
-  
-  const [sheets, setSheets] = useState<TripSheetEntry[]>([]);
-  const [loading, setLoading] = useState(true);
 
-  // 1. Fetch Data Async
+  // --- PRINT LOGIC ---
+  // Trigger print dialog immediately on mount since data is pre-fetched passed via props
   useEffect(() => {
-    const loadData = async () => {
-      setLoading(true);
-      try {
-        const promises = mfNos.map((id) => fetchTripSheetById(id));
-        const results = await Promise.all(promises);
-        // Filter out nulls in case an ID wasn't found
-        const validSheets = results.filter((s): s is TripSheetEntry => s !== null);
-        setSheets(validSheets);
-      } catch (error) {
-        console.error("Failed to load trip sheets for printing", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (mfNos.length > 0) {
-      loadData();
-    } else {
-      setLoading(false);
-    }
-  }, [mfNos, fetchTripSheetById]);
-
-  // 2. Trigger Print Dialog once data is loaded
-  useEffect(() => {
-    if (loading || sheets.length === 0) return;
+    if (sheets.length === 0) return;
 
     const handleAfterPrint = () => {
       onClose();
@@ -63,10 +34,10 @@ export const TripSheetPrintManager = ({
       clearTimeout(timer);
       window.removeEventListener("afterprint", handleAfterPrint);
     };
-  }, [loading, sheets, onClose]);
+  }, [sheets, onClose]);
 
-  // Don't render anything until loaded
-  if (loading || sheets.length === 0) return null;
+  // Don't render anything if no sheets provided
+  if (sheets.length === 0) return null;
 
   const printContent = (
     <div className="ts-print-wrapper">
