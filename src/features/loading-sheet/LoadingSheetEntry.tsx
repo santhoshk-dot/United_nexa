@@ -262,7 +262,7 @@ export const LoadingSheetEntry = () => {
             className={responsiveBtnClass}
           >
             <Printer size={14} className="mr-1 sm:mr-2" />
-            Print Selected ({selectedGcIds.length})
+            Print ({selectedGcIds.length})
           </Button>
         </div>
       </div>

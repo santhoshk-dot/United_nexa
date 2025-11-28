@@ -1,10 +1,31 @@
-import AppRouter from './router/AppRouter'
+// src/App.tsx
+import { useState, useEffect } from 'react';
+import AppRouter from './router/AppRouter';
+import { loadingManager } from './utils/loadingManager';
+import { LoadingScreen } from './components/shared/LoadingScreen';
 
 function App() {
-  // This component is the main entry point.
-  // It renders the AppRouter, which in turn decides
-  // which "page" component to show based on the URL.
-  return <AppRouter />
+  // State now holds both loading status and the message
+  const [loadingState, setLoadingState] = useState({ 
+    isLoading: false, 
+    message: '' 
+  });
+
+  useEffect(() => {
+    const unsubscribe = loadingManager.subscribe((state) => {
+      setLoadingState(state);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  return (
+    <>
+      {/* Pass the dynamic message to the component */}
+      {loadingState.isLoading && <LoadingScreen message={loadingState.message} />}
+      
+      <AppRouter />
+    </>
+  );
 }
 
-export default App
+export default App;

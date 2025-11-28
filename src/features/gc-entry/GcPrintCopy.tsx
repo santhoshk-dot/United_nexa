@@ -4,9 +4,23 @@ import { numberToWords, numberToWordsInRupees } from "../../utils/toWords";
 import { useAuth } from "../../hooks/useAuth"; 
 import { useData } from "../../hooks/useData"; 
 
+// ==========================================
+// 🟢 CONFIGURATION: PDF LINK
+// ==========================================
+// I have updated this link to use '/preview' instead of '/view'
+// This forces the browser to open the PDF viewer immediately, which is better for QR scans.
+const TERMS_PDF_URL = "https://drive.google.com/file/d/1LXrbXLfGCRLYPoLLESWyjJol_nKvVUn-/preview";
+
 const formatCurrency = (amount: number | string | undefined) => {
   const num = parseFloat(amount?.toString() || "0");
   return num > 0 ? `${num.toLocaleString("en-IN")}` : "";
+};
+
+// --- HELPER: Generate QR Code Image URL ---
+// 1. Increased size to 250x250 for higher resolution print
+// 2. Added margin=0 to maximize the scannable area
+const generateQrUrl = (url: string) => {
+  return `https://api.qrserver.com/v1/create-qr-code/?size=250x250&margin=0&data=${encodeURIComponent(url)}`;
 };
 
 interface Props {
@@ -54,7 +68,6 @@ export const GcPrintCopy: React.FC<Props> = ({
   const description = `${numberToWords(quantityNum)} ${gc.packing} of ${gc.contents}`;
 
   // --- LOGIC FOR CONSIGNEE PROOF DISPLAY ---
-  // Priority: GST (Entry) -> GST (Master) -> PAN (Entry) -> PAN (Master) -> Aadhar (Entry) -> Aadhar (Master)
   let proofLabel = "GSTIN";
   let proofValue = "---";
 
@@ -88,6 +101,7 @@ export const GcPrintCopy: React.FC<Props> = ({
         boxSizing: "border-box",
       }}
     >
+      {/* --- HEADER --- */}
       <div className="flex justify-between items-end mb-2 font-bold text-sm">
         <div className="uppercase text-base">{copyType}</div>
         <div className="flex gap-8">
@@ -133,6 +147,7 @@ export const GcPrintCopy: React.FC<Props> = ({
         </div>
       </div>
 
+      {/* --- CONSIGNOR / CONSIGNEE --- */}
       <div className="flex mb-2">
         <div className="w-1/2 pr-2">
           <div className="text-xs mb-1 pl-4">Consignor :</div>
@@ -161,6 +176,7 @@ export const GcPrintCopy: React.FC<Props> = ({
         </div>
       </div>
 
+      {/* --- MAIN TABLE --- */}
       <div className="border border-black mb-0">
         <table className="w-full border-collapse">
           <thead>
@@ -275,19 +291,42 @@ export const GcPrintCopy: React.FC<Props> = ({
         </table>
       </div>
       
-      <div className="border-x border-b border-black p-1 flex justify-between items-end h-16 relative">
-         <div className="text-xs font-bold mb-4">
-            <span className="font-normal mr-2">Freight fixed upto :</span>
-            {gc.freightUptoAt}
+      {/* --- FOOTER SECTION (CORRECTED LAYOUT) --- */}
+      {/* Increased padding (p-3) and min-height (h-24) to give QR code breathing room */}
+      <div className="border-x border-b border-black p-3 flex justify-between items-end min-h-[6rem] relative">
+         
+         {/* LEFT SIDE: QR Code & Freight Text (Separated) */}
+         <div className="flex items-end gap-3 w-1/3">
+            {/* QR Code - Crisp scaling */}
+            <div className="flex flex-col items-center flex-shrink-0">
+              <img 
+                src={generateQrUrl(TERMS_PDF_URL)} 
+                alt="T&C QR" 
+                className="w-20 h-20" // Increased visual size slightly
+                style={{ imageRendering: "pixelated" }} 
+              />
+              <span className="text-[9px] font-bold mt-0.5 uppercase tracking-wide">
+                Scan for Terms
+              </span>
+            </div>
+
+            {/* Freight Fixed Text (Next to QR) */}
+            <div className="text-xs font-bold mb-3 leading-tight">
+              <span className="font-normal block text-[10px] text-gray-600 mb-0.5">Freight fixed upto:</span>
+              <span className="uppercase">{gc.freightUptoAt}</span>
+            </div>
          </div>
 
-         <div className="absolute inset-x-0 bottom-4 text-center text-xs leading-tight">
+         {/* CENTER: Unloading Charges (Absolute Centered) */}
+         <div className="absolute left-1/2 -translate-x-1/2 bottom-4 text-center text-xs leading-tight pointer-events-none">
              Unloading charges<br/>payable by party
          </div>
 
-         <div className="text-xs mb-1 flex flex-col items-center mr-2"> 
+         {/* RIGHT SIDE: Signature */}
+         <div className="text-xs mb-1 flex flex-col items-center mr-2 w-1/3 text-right"> 
+            <div className="h-10"></div> {/* Increased spacer for signature */}
             <span className="font-bold uppercase mb-1">{user?.name || 'Admin'}</span>
-            <span className="italic font-bold">For UNITED TRANSPORT COMPANY</span>
+            <span className="italic font-bold text-[10px]">For UNITED TRANSPORT COMPANY</span>
          </div>
       </div>
 
