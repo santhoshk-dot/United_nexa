@@ -112,7 +112,7 @@ export const TripSheetPrintCopy: React.FC<Props> = ({ sheet }) => {
           display: inline-block; 
           width: 33.3%;
           box-sizing: border-box;
-          float: left; 
+          
         }
         
         .ts-table {
@@ -249,10 +249,10 @@ export const TripSheetPrintCopy: React.FC<Props> = ({ sheet }) => {
         </div>
 
         {/* From / To / Date */}
-        <div className="fromto">
-          <div>From: {sheet.fromPlace}</div>
-          <div>To: {sheet.toPlace}</div>
-          <div>Date: {fmtDate(sheet.tsDate)}</div>
+         <div className="fromto">
+          <div className="text-left">From: {sheet.fromPlace}</div>
+          <div className="text-center">To: {sheet.toPlace}</div>
+          <div className="text-right">Date: {fmtDate(sheet.tsDate)}</div>
         </div>
 
         {/* Table */}
