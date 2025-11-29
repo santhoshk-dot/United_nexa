@@ -2,7 +2,7 @@
 import axios from 'axios';
 import { loadingManager } from './loadingManager';
 
-const API_URL = 'https://united-transport-backend.onrender.com/api';
+const API_URL = 'https://unitedtransportbackend-443415591723.asia-south1.run.app/api';
 
 const api = axios.create({
   baseURL: API_URL,
