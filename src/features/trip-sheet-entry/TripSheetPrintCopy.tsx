@@ -24,9 +24,9 @@ export const TripSheetPrintCopy: React.FC<Props> = ({ sheet }) => {
   const total = sheet.totalAmount ?? 0;
   const totalWords = numberToWordsInRupees(total);
 
+  // 🛑 REMOVED: visibleRowCount and fillerCount variables.
   const items: TripSheetGCItem[] = sheet.items ?? [];
-  // 🛑 Removed fillerCount and filler rows logic as they interfere with CSS pagination
-
+  
   // TOTAL PACKAGES
   const totalPackages = items.reduce((acc, it) => acc + (it.qty || 0), 0);
 
@@ -38,6 +38,7 @@ export const TripSheetPrintCopy: React.FC<Props> = ({ sheet }) => {
         
         /* GENERAL PRINT STYLES */
         @media print {
+          /* Force colors to print and remove shadows for clean output */
           body, html, * {
             background-color: #fff !important;
             -webkit-print-color-adjust: exact !important;
@@ -49,29 +50,23 @@ export const TripSheetPrintCopy: React.FC<Props> = ({ sheet }) => {
           /* ✅ PAGINATION FIX: FORCE BREAK AFTER EVERY 12TH ROW */
           /* --------------------------------------------------- */
           
-          /* Force a page break after every 12th data row */
+          /* Force a page break after every 12th data row (12n) in the table body */
           .ts-table tbody tr:nth-child(${MAX_DATA_ROWS}n) {
             page-break-after: always !important;
           }
 
-          /* Prevent the total row from splitting across pages */
-          .total-row {
+          /* Ensure the TOTAL ROW and the entire footer section stick together */
+          .total-row, .ts-footer-section {
             page-break-before: avoid !important;
             page-break-inside: avoid !important;
-          }
-
-          /* Ensure the entire footer section sticks with the totals */
-          .ts-footer-section {
-            page-break-before: avoid !important;
-            page-break-inside: avoid !important;
-          }
-
-          /* If the total row itself is the 12th row, we ensure the footer comes too */
-          .ts-table tbody tr:nth-last-child(-n+2) {
-            page-break-after: auto !important;
           }
           
-          /* Reset for the table header to ensure it repeats (if supported by browser) */
+          /* Prevent the break rule from applying if the last row is the 12th row */
+          .ts-table tbody tr:nth-last-child(-n+1) {
+            page-break-after: auto !important;
+          }
+
+          /* Ensure table header repeats on every page */
           .ts-table thead {
             display: table-header-group;
           }
@@ -81,11 +76,70 @@ export const TripSheetPrintCopy: React.FC<Props> = ({ sheet }) => {
         /* LAYOUT & COMPONENT SPECIFIC STYLES */
         /* ---------------------------------- */
 
-        .page-heading { /* ... */ }
-        .box { /* ... */ }
-        .header-flex { /* ... */ }
+        .page-heading {
+          text-align: center;
+          font-weight: 700;
+          font-size: 18px;
+          margin-bottom: 6px;
+        }
+
+        .box {
+          border: 2px solid #000;
+          padding: 10px;
+          box-sizing: border-box;
+          width: 100%;
+          max-width: 100%;
+        }
+
+        /* Use Flexbox for Screen, use Floats for Print */
+        .header-flex {
+          display:flex; /* Default for screen view */
+          justify-content:space-between;
+          align-items:flex-start;
+        }
+
+        @media print {
+          .header-flex {
+            display: block; /* Override Flexbox for print */
+            overflow: hidden; 
+          }
+          .company-block { 
+            float: left; 
+            width: 65%; 
+            border-right: 1px solid #000;
+          }
+          .meta-block {
+            float: right; 
+            width: 35%;
+            padding: 0 0 0 10px;
+            text-align: left;
+            box-sizing: border-box;
+          }
+        }
         
-        /* (Rest of your existing styles for header, company, meta, fromto, table, footer, sigs) */
+        .company-title { font-weight: 900; font-size: 20px; }
+        .company-sub { font-size: 11px; margin-top: 3px; }
+        .meta-block {
+          font-size: 12px;
+          line-height: 1.4;
+          padding: 10px;
+        }
+
+        /* From / To / Date layout using inline-block for side-by-side */
+        .fromto {
+          display: block;
+          margin-top: 8px;
+          padding: 6px 2px;
+          font-weight: 100;
+          border-top: 1px solid #000;
+          overflow: hidden; 
+        }
+        .fromto > div {
+          display: inline-block; 
+          width: 33.3%;
+          box-sizing: border-box;
+          float: left; 
+        }
         
         .ts-table {
           width:100%;
@@ -94,64 +148,137 @@ export const TripSheetPrintCopy: React.FC<Props> = ({ sheet }) => {
           margin-top: 6px;
         }
 
-        .ts-table thead th { /* ... */ }
-        .ts-table thead th:last-child { /* ... */ }
+        .ts-table thead th {
+          border-top: 1px solid #000;
+          border-bottom: 1px solid #000;
+          border-left: 1px solid #000;
+          padding: 6px;
+          font-weight: 700;
+        }
+        .ts-table thead th:last-child {
+          border-right: 1px solid #000;
+        }
 
         .ts-table tbody td {
           padding: 6px;
           border-left: 1px solid #000;
           vertical-align: top;
-          height: 22px; /* Ensure fixed row height */
+          height: 22px;
         }
-        .ts-table tbody td:last-child { /* ... */ }
+        .ts-table tbody td:last-child {
+          border-right: 1px solid #000;
+        }
 
-        .total-row td { /* ... */ }
-        .total-label { /* ... */ }
-        .total-amt { /* ... */ }
+        .total-row td {
+          border-top: 1px solid #000;
+          border-bottom: 1px solid #000;
+          padding: 8px 6px;
+          font-weight: 800;
+        }
+        .total-label { text-align: right; }
+        .total-amt { text-align: right; white-space: nowrap; }
 
-        .footer { /* ... */ }
-        .dash { /* ... */ }
-        .trip-footer-grid { /* ... */ }
-        .trip-footer-grid > div { /* ... */ }
-        .trip-footer-grid-item { /* ... */ }
-        .col-line { /* ... */ }
-        .legal { /* ... */ }
-        @media print { .sigs { /* ... */ } .sig-box { /* ... */ } .sigs > .sig-box:last-child { /* ... */ } }
-        .sig-line { /* ... */ }
+        .footer {
+          margin-top: 6px;
+          font-size: 12px;
+          line-height: 1.4;
+        }
 
-        `}
-      </style>
+        .dash {
+          display:inline-block;
+          border-bottom:1px dashed #000;
+          padding: 0 6px;
+          min-width: 120px;
+        }
+
+        .trip-footer-grid {
+          margin-top: 8px;
+          font-size: 12px;
+          display: block; 
+        }
+        .trip-footer-grid > div {
+          display: block; /* Ensures each block (Driver/Owner/Lorry) is on its own line */
+          width: 100%; 
+          box-sizing: border-box;
+          margin-bottom: 8px; 
+        }
+        
+        .trip-footer-grid-item {
+            display: inline-block; /* Makes the label/value pairs sit next to each other */
+            margin-right: 15px; /* Spacing between inline items */
+        }
+        
+        .col-line {
+          border-bottom:1px dashed #000;
+          padding-bottom:3px; 
+          display:inline-block;
+          min-width:140px;
+        }
+
+        .legal {
+          margin-top: 10px;
+          font-size: 11px;
+          text-align: left;
+          line-height: 1.35;
+        }
+
+        /* Use Floats for Signatures */
+        @media print {
+          .sigs {
+            display: block; 
+            overflow: hidden; 
+            margin-top: 14px;
+          }
+          .sig-box { 
+            width: 45%; 
+            text-align: center;
+            float: left; 
+          }
+          .sigs > .sig-box:last-child {
+            float: right; 
+          }
+        }
+
+        .sig-line {
+          display:block;
+          width: 70%;
+          height: 2px;
+          margin: 0 auto 6px;
+          border-top: 1px solid #000;
+        }
+      `}</style>
 
       <div className="page-heading">TRIP SHEET</div>
 
       <div className="box">
-        {/* Header */}
-        <div className="header-flex">
-          <div className="company-block">
-            <div style={{}}>
+        {/* Header (Structure UNCHANGED) */}
+        <div className="header-flex">
+          <div className="company-block">
+            <div style={{}}>
 
-              <div style={{ fontSize: 11 }}>
-                <div>GSTIN: 33ABLPV5082H3Z8 </div> <div>Mobile: 9787718433</div>
-              </div>
-              <div className="company-title">UNITED TRANSPORT COMPANY</div>
-              <div className="company-sub">
-                164-A, Arumugam Road, Near A.V.T. School, SIVAKASI - 626123
-              </div>
-            </div>
-          </div>
+              <div style={{ fontSize: 11 }}>
+                <div>GSTIN: 33ABLPV5082H3Z8 </div> <div>Mobile: 9787718433</div>
+              </div>
+              <div className="company-title">UNITED TRANSPORT COMPANY</div>
+              <div className="company-sub">
+                164-A, Arumugam Road, Near A.V.T. School, SIVAKASI - 626123
+              </div>
+            </div>
+              
+          </div>
 
-          <div className="meta-block">
-            <div><strong>M.F. No.:</strong> {sheet.mfNo}</div>
-            <div><strong>Carriers:</strong> {(sheet.carriers ?? "").toUpperCase()}</div>
-          </div>
-        </div>
+          <div className="meta-block">
+            <div><strong>M.F. No.:</strong> {sheet.mfNo}</div>
+            <div><strong>Carriers:</strong> {(sheet.carriers ?? "").toUpperCase()}</div>
+          </div>
+        </div>
 
-         {/* From / To / Date */}
-        <div className="fromto">
-          <div className="text-left">From: {sheet.fromPlace}</div>
-          <div className="text-center">To: {sheet.toPlace}</div>
-          <div className="text-right">Date: {fmtDate(sheet.tsDate)}</div>
-        </div>
+        {/* From / To / Date (Structure UNCHANGED) */}
+        <div className="fromto">
+          <div className="text-left">From: {sheet.fromPlace}</div>
+          <div className="text-center">To: {sheet.toPlace}</div>
+          <div className="text-right">Date: {fmtDate(sheet.tsDate)}</div>
+        </div>
 
         {/* Table */}
         <table className="ts-table">
@@ -180,6 +307,8 @@ export const TripSheetPrintCopy: React.FC<Props> = ({ sheet }) => {
               </tr>
             ))}
 
+            {/* 🛑 REMOVED: Filler rows loop to allow CSS pagination to work */}
+
             {/* TOTAL ROW */}
             <tr className="total-row">
               <td colSpan={5} className="total-left">
@@ -192,9 +321,9 @@ export const TripSheetPrintCopy: React.FC<Props> = ({ sheet }) => {
           </tbody>
         </table>
 
-        {/* Footer section wrapped for page break control */}
+        {/* ✅ WRAPPED FOOTER: Added ts-footer-section for page break control */}
         <div className="ts-footer-section">
-
+        
           {/* Footer */}
           <div className="footer no-gap">
             Goods have been loaded in good condition. All Checkpost papers have been handed over to the truck driver.
@@ -207,7 +336,37 @@ export const TripSheetPrintCopy: React.FC<Props> = ({ sheet }) => {
           <div style={{ borderTop: "1px solid #000", marginTop: 8, paddingTop: 8 }}>
             <div className="trip-footer-grid font-thin">
               {/* Block 1: Driver Details - ALL IN ONE LINE (using trip-footer-grid-item) */}
-              {/* ... (Driver content remains) ... */}
+              <div className="trip-footer-row">
+                <span className="trip-footer-grid-item">
+                  <strong>Driver Name</strong> <span className="col-line font-semibold">{(sheet.driverName ?? "").toUpperCase()}</span>
+                </span>
+                <span className="trip-footer-grid-item">
+                  <strong>D.L.No.</strong> <span className="col-line font-semibold">{(sheet.dlNo ?? "").toUpperCase()}</span>
+                </span>
+                <span className="trip-footer-grid-item">
+                  <strong>Driver number</strong> <span className="col-line font-semibold">{(sheet.driverMobile ?? "").toUpperCase()}</span>
+                </span>
+              </div>
+
+              {/* Block 2: Owner Details - ALL IN ONE LINE */}
+              <div className="trip-footer-row">
+                <span className="trip-footer-grid-item">
+                  <strong>Owner Name</strong> <span className="col-line font-semibold">{(sheet.ownerName ?? "").toUpperCase()}</span>
+                </span>
+                <span className="trip-footer-grid-item">
+                  <strong>Owner number</strong> <span className="col-line font-semibold">{(sheet.ownerMobile ?? "").toUpperCase()}</span>
+                </span>
+              </div>
+
+              {/* Block 3: Lorry Details - ALL IN ONE LINE */}
+              <div className="trip-footer-row">
+                <span className="trip-footer-grid-item">
+                  <strong>Lorry No.</strong> <span className="col-line font-semibold">{(sheet.lorryNo ?? "").toUpperCase()}</span>
+                </span>
+                <span className="trip-footer-grid-item">
+                  <strong>Lorry Name</strong> <span className="col-line font-semibold">{(sheet.lorryName ?? "").toUpperCase()}</span>
+                </span>
+              </div>
             </div>
           </div>
 
@@ -222,9 +381,17 @@ export const TripSheetPrintCopy: React.FC<Props> = ({ sheet }) => {
             <div style={{ height: "25px" }}></div>
 
             <div className="sigs">
-              {/* ... (Signature boxes remain) ... */}
+              <div className="sig-box">
+                <span className="sig-line" />
+                Signature of the Owner/Driver/Broker
+              </div>
+              <div className="sig-box">
+                <span className="sig-line" />
+                Signature of the Booking Clerk
+              </div>
             </div>
           </div>
+
         </div> {/* End ts-footer-section */}
       </div>
     </div>
