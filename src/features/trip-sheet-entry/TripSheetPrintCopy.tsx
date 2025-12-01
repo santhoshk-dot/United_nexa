@@ -7,39 +7,33 @@ interface Props {
   sheet: TripSheetEntry;
 }
 
-// Global CSS for Print Isolation (Defined outside the component for clarity and safety)
+// Global CSS for Print Isolation (Defined outside the component for safety)
+// This version uses safer display: none logic for isolation.
 const printStyles = `
 /* ---------------------------------------------------- */
-/* ✅ PRINT ISOLATION FIX: Hide non-print elements */
+/* ✅ PRINT ISOLATION FIX: Safely hide non-print elements */
 /* ---------------------------------------------------- */
 @media print {
-    /* Hide everything first */
-    body * {
-        visibility: hidden;
-        /* Ensure no display: none interferes with visibility: visible later */
-        display: block; 
+    /* Hide everything EXCEPT the print container and its direct children */
+    body > *:not(#trip-sheet-content) {
+        display: none !important;
     }
 
-    /* Make the print container visible */
-    #trip-sheet-content, #trip-sheet-content * {
-        visibility: visible;
-        display: block !important; 
-    }
-    
-    /* Position the print content to override the fixed layout of the app */
+    /* Ensure the print content appears at the top-left */
     #trip-sheet-content {
+        display: block !important;
         position: absolute !important;
-        top: 0 !important;
         left: 0 !important;
-        width: 100% !important;
-        height: auto !important;
-        padding: 0 !important; 
+        top: 0 !important;
         margin: 0 !important;
-        z-index: 99999 !important; /* Ensure it floats above all app elements */
+        padding: 0 !important; 
+        width: 100% !important;
+        /* Ensure content is not affected by any fixed wrappers */
+        z-index: 99999 !important; 
     }
     
     /* Force colors to print and remove shadows for clean output */
-    body, html, #trip-sheet-content {
+    body, html, #trip-sheet-content, #trip-sheet-content * {
         background-color: #fff !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
@@ -47,12 +41,12 @@ const printStyles = `
         overflow: visible !important;
     }
 
-    /* Ensure table header repeats on every page (if multi-page printing is needed later) */
+    /* Ensure table header repeats on every page */
     .ts-table thead {
         display: table-header-group;
     }
     
-    /* Ensure the TOTAL ROW and the entire footer section stick together (if multi-page printing is needed later) */
+    /* Ensure the TOTAL ROW and the entire footer section stick together */
     .total-row, .ts-footer-section {
       page-break-before: avoid !important;
       page-break-inside: avoid !important;
@@ -264,7 +258,9 @@ export const TripSheetPrintCopy: React.FC<Props> = ({ sheet }) => {
   return (
     // Assign the ID and the combined styles
     <div id="trip-sheet-content" style={{ fontFamily: "Arial, Helvetica, sans-serif", color: "#000" }}>
-      <style>{printStyles}</style>
+        
+        {/* Using dangerouslySetInnerHTML to embed complex CSS and bypass strict JSX parser checks. */}
+        <style dangerouslySetInnerHTML={{ __html: printStyles }} />
 
       <div className="page-heading">TRIP SHEET</div>
 
@@ -368,7 +364,7 @@ export const TripSheetPrintCopy: React.FC<Props> = ({ sheet }) => {
                 <span className="trip-footer-grid-item">
                   <strong>Driver number</strong> <span className="col-line font-semibold">{(sheet.driverMobile ?? "").toUpperCase()}</span>
                 </span>
-            </div>
+              </div>
 
               {/* Block 2: Owner Details - ALL IN ONE LINE */}
               <div className="trip-footer-row">
@@ -377,7 +373,7 @@ export const TripSheetPrintCopy: React.FC<Props> = ({ sheet }) => {
                 </span>
                 <span className="trip-footer-grid-item">
                   <strong>Owner number</strong> <span className="col-line font-semibold">{(sheet.ownerMobile ?? "").toUpperCase()}</span>
-              </span>
+                </span>
               </div>
 
               {/* Block 3: Lorry Details - ALL IN ONE LINE */}
@@ -398,7 +394,7 @@ export const TripSheetPrintCopy: React.FC<Props> = ({ sheet }) => {
               I have received the goods noted above in good and condition along with the documents. I am responsible for the safe delivery at the destination.
               All risks and expenses EN ROUTE will be of the driver. Transit risks are covered by driver/owner.
               Received all the related documents & goods intact. We will not be responsible for the unloading on holidays.
-          </div>
+            </div>
 
             <div style={{ height: "25px" }}></div>
 
