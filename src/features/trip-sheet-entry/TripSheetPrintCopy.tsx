@@ -55,6 +55,7 @@ export const TripSheetPrintCopy: React.FC<Props> = ({ sheet }) => {
           font-weight: 700;
           font-size: 18px;
           margin-bottom: 6px;
+          padding: 3px;
         }
 
         .box {
