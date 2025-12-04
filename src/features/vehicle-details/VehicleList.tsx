@@ -10,8 +10,11 @@ import { Pagination } from "../../components/shared/Pagination";
 import { CsvImporter } from "../../components/shared/CsvImporter";
 import { useToast } from "../../contexts/ToastContext";
 
+// 🟢 NEW: Regex
+const VEHICLE_REGEX = /^[A-Z]{2}[0-9]{1,2}(?:[A-Z])?(?:[A-Z]*)?[0-9]{4}$/;
+const MOBILE_REGEX = /^[6-9]\d{9}$/;
+
 export const VehicleList = () => {
-  // 🟢 Get importVehicles from useData
   const {
     vehicleEntries,
     addVehicleEntry,
@@ -29,12 +32,10 @@ export const VehicleList = () => {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deleteMessage, setDeleteMessage] = useState("");
 
-  // --- Fetch on Mount ---
   useEffect(() => {
     fetchVehicleEntries();
   }, [fetchVehicleEntries]);
 
-  // Filtered Data
   const filteredEntries = useMemo(() => {
     return vehicleEntries.filter(
       (entry: VehicleEntry) =>
@@ -43,7 +44,6 @@ export const VehicleList = () => {
     );
   }, [vehicleEntries, search]);
 
-  // Pagination Setup
   const {
     paginatedData,
     currentPage,
@@ -57,7 +57,6 @@ export const VehicleList = () => {
     initialItemsPerPage: 10,
   });
 
-  // Actions
   const handleEdit = (entry: VehicleEntry) => {
     setEditingEntry(entry);
     setIsFormOpen(true);
@@ -91,7 +90,6 @@ export const VehicleList = () => {
     handleFormClose();
   };
 
-  // 🟢 UPDATED: Use Single Bulk API Call
   const handleImport = async (data: VehicleEntry[]) => {
     await importVehicles(data);
   };
@@ -101,7 +99,6 @@ export const VehicleList = () => {
       toast.error("No data to export");
       return;
     }
-    // UPDATED: Added Owner Name and Owner Mobile to headers
     const headers = ['Vehicle No', 'Vehicle Name', 'Owner Name', 'Owner Mobile'];
     
     const csvContent = [
@@ -109,8 +106,8 @@ export const VehicleList = () => {
       ...filteredEntries.map(v => [
         `"${v.vehicleNo.replace(/"/g, '""')}"`,
         `"${v.vehicleName.replace(/"/g, '""')}"`,
-        `"${(v.ownerName || '').replace(/"/g, '""')}"`,   // Added Owner Name
-        `"${(v.ownerMobile || '').replace(/"/g, '""')}"` // Added Owner Mobile
+        `"${(v.ownerName || '').replace(/"/g, '""')}"`,   
+        `"${(v.ownerMobile || '').replace(/"/g, '""')}"` 
       ].join(','))
     ].join('\n');
 
@@ -127,15 +124,11 @@ export const VehicleList = () => {
     }
   };
 
-  // --- RESPONSIVE BUTTON STYLE HELPER ---
   const responsiveBtnClass = "flex-1 md:flex-none text-[10px] xs:text-xs sm:text-sm h-8 sm:h-10 px-1 sm:px-4 whitespace-nowrap";
 
   return (
     <div className="space-y-6">
-
-      {/* 1. Top Bar (Standardized) */}
       <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-background p-4 rounded-lg shadow border border-muted">
-        {/* LEFT: Search */}
         <div className="w-full md:w-1/2 relative">
           <input
             type="text"
@@ -147,76 +140,53 @@ export const VehicleList = () => {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
         </div>
 
-        {/* RIGHT: Create Button */}
         <div className="flex gap-2 w-full md:w-auto justify-between md:justify-end">
-          <Button 
-            variant="outline" 
-            onClick={handleExport} 
-            size="sm" 
-            title="Export CSV"
-            className={responsiveBtnClass}
-          >
+          <Button variant="outline" onClick={handleExport} size="sm" title="Export CSV" className={responsiveBtnClass}>
             <Download size={14} className="mr-1 sm:mr-2" /> Export
           </Button>
           
           <CsvImporter<VehicleEntry>
             onImport={handleImport}
             existingData={vehicleEntries}
-            label="Import" // Added label prop for consistent button width
-            className={responsiveBtnClass} // Responsive Class
+            label="Import" 
+            className={responsiveBtnClass} 
             checkDuplicate={(newItem, existing) => 
                 newItem.vehicleNo.trim().toLowerCase() === existing.vehicleNo.trim().toLowerCase()
             }
             mapRow={(row) => {
                 if (!row.vehicleno || !row.vehiclename) return null;
+                
+                // 🟢 Regex Validation
+                if (!VEHICLE_REGEX.test(row.vehicleno)) return null;
+                if (row.ownermobile && !MOBILE_REGEX.test(row.ownermobile)) return null;
+
                 return {
                     id: `veh-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
                     vehicleNo: row.vehicleno,
                     vehicleName: row.vehiclename,
-                    // UPDATED: Mapping Owner fields from CSV
                     ownerName: row.ownername || '',
                     ownerMobile: row.ownermobile || ''
                 };
             }}
           />
           
-          <Button 
-            variant="primary" 
-            onClick={handleCreateNew}
-            size="sm" // CHANGED: Explicitly set size to 'sm' to match others
-            className={responsiveBtnClass}
-          >
+          <Button variant="primary" onClick={handleCreateNew} size="sm" className={responsiveBtnClass}>
             + Add Vehicle
           </Button>
         </div>
       </div>
 
-      {/* 2. Data Table */}
       <div className="bg-background rounded-lg shadow border border-muted overflow-hidden">
-
-        {/* Desktop Table */}
         <div className="hidden md:block overflow-x-auto">
           <table className="min-w-full divide-y divide-muted">
             <thead className="bg-muted/50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
-                  S.No
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
-                  Vehicle No
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
-                  Vehicle Name
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
-                  Owner Name
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
-                  Owner Mobile
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
-                  Actions
-                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">S.No</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Vehicle No</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Vehicle Name</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Owner Name</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Owner Mobile</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Actions</th>
               </tr>
             </thead>
 
@@ -252,7 +222,6 @@ export const VehicleList = () => {
           </table>
         </div>
 
-        {/* Mobile Cards */}
         <div className="block md:hidden divide-y divide-muted">
           {paginatedData.length > 0 ? (
             paginatedData.map((entry: VehicleEntry, index) => (
@@ -263,15 +232,9 @@ export const VehicleList = () => {
                       #{(currentPage - 1) * itemsPerPage + index + 1}
                     </div>
                     <div className="text-lg font-semibold text-foreground">{entry.vehicleNo}</div>
-                    <div className="text-sm text-muted-foreground">
-                      Name: {entry.vehicleName}
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      Owner: {entry.ownerName || "-"}
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      Mobile: {entry.ownerMobile || "-"}
-                    </div>
+                    <div className="text-sm text-muted-foreground">Name: {entry.vehicleName}</div>
+                    <div className="text-sm text-muted-foreground">Owner: {entry.ownerName || "-"}</div>
+                    <div className="text-sm text-muted-foreground">Mobile: {entry.ownerMobile || "-"}</div>
                   </div>
 
                   <div className="flex flex-col space-y-3 pt-1">
@@ -314,7 +277,6 @@ export const VehicleList = () => {
         />
       )}
 
-      {/* Delete Confirmation */}
       <ConfirmationDialog
         open={isConfirmOpen}
         onClose={() => setIsConfirmOpen(false)}

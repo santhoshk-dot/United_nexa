@@ -11,8 +11,13 @@ import { Pagination } from '../../components/shared/Pagination';
 import { CsvImporter } from '../../components/shared/CsvImporter';
 import { useToast } from '../../contexts/ToastContext';
 
+// 🟢 NEW: Regex Patterns
+const GST_REGEX = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
+const MOBILE_REGEX = /^[6-9]\d{9}$/;
+const AADHAR_REGEX = /^\d{12}$/;
+const PAN_REGEX = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
+
 export const ConsigneeList = () => {
-  // 🟢 Get importConsignees from useData
   const { consignees, addConsignee, updateConsignee, deleteConsignee, fetchConsignees, importConsignees } = useData();
   const toast = useToast();
   const [search, setSearch] = useState('');
@@ -28,7 +33,6 @@ export const ConsigneeList = () => {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deleteMessage, setDeleteMessage] = useState("");
 
-  // --- Fetch on Mount (Screen-Wise API Call) ---
   useEffect(() => {
     fetchConsignees();
   }, [fetchConsignees]);
@@ -88,7 +92,6 @@ export const ConsigneeList = () => {
     handleFormClose();
   };
 
-  // 🟢 UPDATED: Use Single Bulk API Call
   const handleImport = async (data: Consignee[]) => {
     await importConsignees(data);
   };
@@ -127,16 +130,11 @@ export const ConsigneeList = () => {
   };
 
   const hasActiveFilters = filterType !== 'all' || search !== '';
-
-  // --- RESPONSIVE BUTTON STYLE HELPER ---
   const responsiveBtnClass = "flex-1 md:flex-none text-[10px] xs:text-xs sm:text-sm h-8 sm:h-10 px-1 sm:px-4 whitespace-nowrap";
 
   return (
     <div className="space-y-6">
-      {/* Top Bar */}
       <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-background p-4 rounded-lg shadow border border-muted">
-        
-        {/* LEFT: Search + Filter Toggle */}
         <div className="flex items-center gap-2 w-full md:w-1/2">
           <div className="relative flex-1">
             <input
@@ -158,57 +156,69 @@ export const ConsigneeList = () => {
           </Button>
         </div>
 
-        {/* RIGHT: Actions */}
         <div className="flex gap-2 w-full md:w-auto justify-between md:justify-end">
-          <Button 
-            variant="outline" 
-            onClick={handleExport} 
-            size="sm" 
-            title="Export CSV"
-            className={responsiveBtnClass}
-          >
+          <Button variant="outline" onClick={handleExport} size="sm" title="Export CSV" className={responsiveBtnClass}>
             <Download size={14} className="mr-1 sm:mr-2" /> Export
           </Button>
           
           <CsvImporter<Consignee>
             onImport={handleImport}
             existingData={consignees}
-            label="Import" // Added label for mobile fit
-            className={responsiveBtnClass} // Responsive Class
+            label="Import" 
+            className={responsiveBtnClass} 
             checkDuplicate={(newItem, existing) => 
               newItem.name.trim().toLowerCase() === existing.name.trim().toLowerCase() && 
               newItem.destination.trim().toLowerCase() === existing.destination.trim().toLowerCase()
             }
             mapRow={(row) => {
-              const hasProof = !!row.gst || !!row.pan || !!row.aadhar;
-              if (!row.name || !row.phone || !row.destination || !row.address || !hasProof) return null;
+              // 🟢 FIX: Map 'row.mobile' (from CSV) to this variable
+              // The CSV header "Mobile" is normalized to "mobile" by the importer.
+              const mobileInput = row.mobile || row.phone || row.mobilenumber || '';
+              const nameInput = row.name || '';
+              const destinationInput = row.destination || '';
+              const addressInput = row.address || '';
+
+              // 🟢 PATTERN VALIDATION
+              const gst = row.gst || undefined;
+              const pan = row.pan || undefined;
+              const aadhar = row.aadhar || undefined;
+
+              // Basic presence check
+              if (!nameInput || !mobileInput || !destinationInput || !addressInput) return null;
               
+              // Validate Mobile
+              const mobileStr = String(mobileInput).trim();
+              if (!MOBILE_REGEX.test(mobileStr)) return null;
+
+              // Validate Proofs (If present)
+              let hasValidProof = false;
+              if (gst && GST_REGEX.test(gst)) hasValidProof = true;
+              if (pan && PAN_REGEX.test(pan)) hasValidProof = true;
+              // Aadhar might be read as number, convert to string
+              if (aadhar && AADHAR_REGEX.test(String(aadhar))) hasValidProof = true;
+
+              if (!hasValidProof) return null; // Reject if no valid proof provided
+
               return {
                 id: `ce-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
-                name: row.name,
-                phone: row.phone,
-                destination: row.destination,
-                address: row.address,
+                name: nameInput,
+                phone: mobileStr,
+                destination: destinationInput,
+                address: addressInput,
                 filingDate: row.filingdate || getTodayDate(),
-                gst: row.gst || undefined,
-                pan: row.pan || undefined,
-                aadhar: row.aadhar || undefined,
+                gst: gst && GST_REGEX.test(gst) ? gst : undefined,
+                pan: pan && PAN_REGEX.test(pan) ? pan : undefined,
+                aadhar: aadhar && AADHAR_REGEX.test(String(aadhar)) ? String(aadhar) : undefined,
               };
             }}
           />
           
-          <Button 
-            variant="primary" 
-            onClick={handleCreateNew}
-            size="sm" 
-            className={responsiveBtnClass}
-          >
+          <Button variant="primary" onClick={handleCreateNew} size="sm" className={responsiveBtnClass}>
             + Add Consignee
           </Button>
         </div>
       </div>
 
-      {/* Filters */}
       {showFilters && (
         <div className="p-4 bg-muted/20 rounded-lg border border-muted animate-in fade-in slide-in-from-top-2">
            <div className="flex justify-between items-center mb-4">
@@ -268,7 +278,6 @@ export const ConsigneeList = () => {
           </table>
         </div>
 
-        {/* Mobile */}
         <div className="block md:hidden divide-y divide-muted">
           {paginatedData.length > 0 ? (
             paginatedData.map((consignee, index) => (

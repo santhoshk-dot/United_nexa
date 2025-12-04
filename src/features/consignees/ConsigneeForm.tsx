@@ -59,7 +59,7 @@ export const ConsigneeForm = ({ initialData, onClose, onSave }: ConsigneeFormPro
     const { name, value } = e.target;
     setConsignee(prev => ({ ...prev, [name]: value }));
     if (duplicateMessage) setDuplicateMessage(null);
-    // Clear error
+    // Clear error specifically for the changed field
     if (formErrors[name]) setFormErrors(prev => ({ ...prev, [name]: '' }));
   };
 
@@ -128,7 +128,7 @@ export const ConsigneeForm = ({ initialData, onClose, onSave }: ConsigneeFormPro
 
     if (!validationResult.success) {
         const newErrors: Record<string, string> = {};
-        // Use .issues and type cast error
+        // Map Zod errors to specific fields
         validationResult.error.issues.forEach((err: any) => {
             if (err.path[0]) newErrors[err.path[0].toString()] = err.message;
         });
@@ -176,34 +176,49 @@ export const ConsigneeForm = ({ initialData, onClose, onSave }: ConsigneeFormPro
           )}
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Input 
-              label="GST Number" 
-              id="gst" 
-              name="gst" 
-              value={consignee.gst} 
-              onChange={handleChange} 
-              onBlur={handleProofBlur}
-              placeholder="Search GST..."
-            />
-            <Input 
-              label="PAN Number" 
-              id="pan" 
-              name="pan" 
-              value={consignee.pan} 
-              onChange={handleChange} 
-              onBlur={handleProofBlur}
-              placeholder="Search PAN..."
-            />
-            <Input 
-              label="Aadhar Number" 
-              id="aadhar" 
-              name="aadhar" 
-              value={consignee.aadhar} 
-              onChange={handleChange} 
-              onBlur={handleProofBlur}
-              placeholder="Search Aadhar..."
-            />
+            <div>
+              <Input 
+                label="GST Number" 
+                id="gst" 
+                name="gst" 
+                value={consignee.gst} 
+                onChange={handleChange} 
+                onBlur={handleProofBlur}
+                placeholder="Search GST..."
+              />
+              {/* 🟢 ADDED: Error message for GST */}
+              {formErrors.gst && <p className="text-xs text-red-500 mt-1">{formErrors.gst}</p>}
+            </div>
+
+            <div>
+              <Input 
+                label="PAN Number" 
+                id="pan" 
+                name="pan" 
+                value={consignee.pan} 
+                onChange={handleChange} 
+                onBlur={handleProofBlur}
+                placeholder="Search PAN..."
+              />
+              {/* 🟢 ADDED: Error message for PAN */}
+              {formErrors.pan && <p className="text-xs text-red-500 mt-1">{formErrors.pan}</p>}
+            </div>
+
+            <div>
+              <Input 
+                label="Aadhar Number" 
+                id="aadhar" 
+                name="aadhar" 
+                value={consignee.aadhar} 
+                onChange={handleChange} 
+                onBlur={handleProofBlur}
+                placeholder="Search Aadhar..."
+              />
+              {/* 🟢 ADDED: Error message for Aadhar */}
+              {formErrors.aadhar && <p className="text-xs text-red-500 mt-1">{formErrors.aadhar}</p>}
+            </div>
           </div>
+
           {/* Helper Text for Proof Requirement */}
           <div className="text-xs text-muted-foreground -mt-3 italic">
             * At least one of the above proofs is required.
@@ -231,6 +246,7 @@ export const ConsigneeForm = ({ initialData, onClose, onSave }: ConsigneeFormPro
             
             <div>
               <Input label="Phone Number" id="phone" name="phone" value={consignee.phone} onChange={handleChange} required { ...getValidationProp(consignee.phone)} />
+              {/* 🟢 ADDED: Error message for Phone */}
               {formErrors.phone && <p className="text-xs text-red-500 mt-1">{formErrors.phone}</p>}
             </div>
 

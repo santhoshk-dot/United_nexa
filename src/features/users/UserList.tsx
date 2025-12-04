@@ -8,6 +8,10 @@ import { Button } from '../../components/shared/Button';
 import { CsvImporter } from '../../components/shared/CsvImporter';
 import { useToast } from '../../contexts/ToastContext';
 
+// 🟢 NEW: Regex Patterns
+const MOBILE_REGEX = /^[6-9]\d{9}$/;
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 export const UserList = () => {
   const { users, addUser, updateUser, deleteUser, user: currentUser, refreshUsers, importUsers } = useAuth();
   const toast = useToast();
@@ -19,7 +23,6 @@ export const UserList = () => {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deleteMessage, setDeleteMessage] = useState("");
 
-  // --- Fetch Users on Mount (Screen-Wise) ---
   useEffect(() => {
     if (refreshUsers) {
       refreshUsers();
@@ -29,7 +32,7 @@ export const UserList = () => {
   const filteredUsers = users.filter(u => 
     u.name.toLowerCase().includes(search.toLowerCase()) ||
     u.email.toLowerCase().includes(search.toLowerCase()) ||
-    u.mobile.toLowerCase().includes(search.toLowerCase())
+    (u.mobile && u.mobile.toLowerCase().includes(search.toLowerCase()))
   );
 
   const handleEdit = (user: AppUser) => { setEditingUser(user); setIsFormOpen(true); };
@@ -51,12 +54,10 @@ export const UserList = () => {
     setEditingUser(undefined);
   };
 
-  // 🟢 Use Single Bulk API Call
   const handleImport = async (data: AppUser[]) => {
     await importUsers(data);
   };
 
-  // --- CSV EXPORT HANDLER ---
   const handleExport = () => {
     if (filteredUsers.length === 0) {
       toast.error("No data to export");
@@ -70,7 +71,7 @@ export const UserList = () => {
         `"${u.name.replace(/"/g, '""')}"`,
         `"${u.email.replace(/"/g, '""')}"`,
         `"${u.password ? u.password.replace(/"/g, '""') : ''}"`,
-        `"${u.mobile.replace(/"/g, '""')}"`,
+        `"${u.mobile ? u.mobile.replace(/"/g, '""') : ''}"`,
         `"${u.role}"`
       ].join(','))
     ].join('\n');
@@ -92,9 +93,7 @@ export const UserList = () => {
 
   return (
     <div className="space-y-6">
-      {/* Top Bar */}
       <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-background p-4 rounded-lg shadow border border-muted">
-        {/* LEFT: Search */}
         <div className="w-full md:w-1/2 relative">
           <input
             type="text"
@@ -106,15 +105,8 @@ export const UserList = () => {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
         </div>
 
-        {/* RIGHT: Actions */}
         <div className="flex gap-2 w-full md:w-auto justify-between md:justify-end">
-          <Button 
-            variant="outline" 
-            onClick={handleExport} 
-            size="sm" 
-            title="Export CSV"
-            className={responsiveBtnClass}
-          >
+          <Button variant="outline" onClick={handleExport} size="sm" title="Export CSV" className={responsiveBtnClass}>
             <Download size={14} className="mr-1 sm:mr-2" /> Export
           </Button>
           
@@ -127,12 +119,21 @@ export const UserList = () => {
               newItem.email.trim().toLowerCase() === existing.email.trim().toLowerCase()
             }
             mapRow={(row) => {
-              // 🟢 FIX: Check for multiple header variations for Mobile
-              const mobileValue = row.mobile || row.mobileno || row.phone || row.contact || '';
+              // 🟢 Map fields safely
+              const mobileValue = row.mobile || row.mobileno || row.phone || row.contact || row.contactno || '';
+              const nameValue = row.name ? String(row.name).trim() : '';
+              const emailValue = row.email ? String(row.email).trim() : '';
+              const passwordValue = row.password ? String(row.password).trim() : '';
 
-              // VALIDATION: Require Name, Email, Password AND Mobile
-              if (!row.name || !row.email || !row.password || !mobileValue) return null;
+              // 🟢 1. Check for Missing Fields (Empty Strings)
+              if (!nameValue || !emailValue || !passwordValue || !mobileValue) return null;
               
+              // 🟢 2. Regex Validation for Mobile
+              if (!MOBILE_REGEX.test(String(mobileValue))) return null;
+
+              // 🟢 3. Regex Validation for Email (Fixes your issue)
+              if (!EMAIL_REGEX.test(emailValue)) return null;
+
               let role: 'admin' | 'user' = 'user';
               if (row.role && row.role.toLowerCase().includes('admin')) {
                 role = 'admin';
@@ -140,21 +141,16 @@ export const UserList = () => {
 
               return {
                 id: `user-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
-                name: row.name,
-                email: row.email,
-                password: row.password, 
-                mobile: mobileValue, // 🟢 Use the resolved mobile value
+                name: nameValue,
+                email: emailValue,
+                password: passwordValue, 
+                mobile: String(mobileValue), 
                 role: role,
               };
             }}
           />
           
-          <Button 
-            variant="primary" 
-            onClick={handleCreateNew}
-            className={responsiveBtnClass}
-            size="sm" 
-          >
+          <Button variant="primary" onClick={handleCreateNew} className={responsiveBtnClass} size="sm">
             <UserPlus size={14} className="mr-1 sm:mr-2" />
             Add User
           </Button>
@@ -162,8 +158,6 @@ export const UserList = () => {
       </div>
 
       <div className="bg-background rounded-lg shadow border border-muted overflow-hidden">
-        
-        {/* Desktop Table View */}
         <div className="hidden md:block overflow-x-auto">
           <table className="min-w-full divide-y divide-muted">
             <thead className="bg-muted/50">
@@ -215,7 +209,6 @@ export const UserList = () => {
           </table>
         </div>
 
-        {/* Mobile Card View */}
         <div className="block md:hidden divide-y divide-muted">
            {filteredUsers.length > 0 ? (
              filteredUsers.map((u) => (
@@ -261,7 +254,6 @@ export const UserList = () => {
               </div>
            )}
         </div>
-        
       </div>
 
       {isFormOpen && <UserForm initialData={editingUser} onClose={() => setIsFormOpen(false)} onSave={handleFormSave} />}

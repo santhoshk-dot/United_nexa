@@ -10,8 +10,10 @@ import { Pagination } from "../../components/shared/Pagination";
 import { CsvImporter } from "../../components/shared/CsvImporter";
 import { useToast } from "../../contexts/ToastContext";
 
+// 🟢 NEW: Regex
+const MOBILE_REGEX = /^[6-9]\d{9}$/;
+
 export const DriverList = () => {
-  // 🟢 Get importDrivers from useData
   const {
     driverEntries,
     addDriverEntry,
@@ -30,12 +32,10 @@ export const DriverList = () => {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deleteMessage, setDeleteMessage] = useState("");
 
-  // --- Fetch on Mount ---
   useEffect(() => {
     fetchDriverEntries();
   }, [fetchDriverEntries]);
 
-  // Filtered Data
   const filteredEntries = useMemo(() => {
     return driverEntries.filter(
       (entry: DriverEntry) =>
@@ -45,7 +45,6 @@ export const DriverList = () => {
     );
   }, [driverEntries, search]);
 
-  // Pagination Setup
   const {
     paginatedData,
     currentPage,
@@ -59,7 +58,6 @@ export const DriverList = () => {
     initialItemsPerPage: 10,
   });
 
-  // Actions
   const handleEdit = (entry: DriverEntry) => {
     setEditingEntry(entry);
     setIsFormOpen(true);
@@ -93,7 +91,6 @@ export const DriverList = () => {
     handleFormClose();
   };
 
-  // 🟢 UPDATED: Use Single Bulk API Call
   const handleImport = async (data: DriverEntry[]) => {
     await importDrivers(data);
   };
@@ -127,15 +124,11 @@ export const DriverList = () => {
     }
   };
 
-  // --- RESPONSIVE BUTTON STYLE HELPER ---
   const responsiveBtnClass = "flex-1 md:flex-none text-[10px] xs:text-xs sm:text-sm h-8 sm:h-10 px-1 sm:px-4 whitespace-nowrap";
 
   return (
     <div className="space-y-6">
-
-      {/* 1. Top Bar */}
       <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-background p-4 rounded-lg shadow border border-muted">
-        {/* LEFT: Search */}
         <div className="w-full md:w-1/2 relative">
           <input
             type="text"
@@ -147,15 +140,8 @@ export const DriverList = () => {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
         </div>
 
-        {/* RIGHT: Buttons */}
         <div className="flex gap-2 w-full md:w-auto justify-between md:justify-end">
-          <Button 
-            variant="outline" 
-            onClick={handleExport} 
-            size="sm" 
-            title="Export CSV"
-            className={responsiveBtnClass}
-          >
+          <Button variant="outline" onClick={handleExport} size="sm" title="Export CSV" className={responsiveBtnClass}>
             <Download size={14} className="mr-1 sm:mr-2" /> Export
           </Button>
           
@@ -169,30 +155,29 @@ export const DriverList = () => {
             }
             mapRow={(row) => {
                 if (!row.drivername || !row.dlno) return null;
+                const mobile = row.mobile || '';
+                
+                // 🟢 Regex Validation for Import
+                if (mobile && !MOBILE_REGEX.test(mobile)) return null; 
+                // Basic DL Length Check
+                if (row.dlno.length < 5) return null;
+
                 return {
                     id: `drv-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
                     driverName: row.drivername,
                     dlNo: row.dlno,
-                    mobile: row.mobile || ''
+                    mobile: mobile
                 };
             }}
           />
           
-          <Button 
-            variant="primary" 
-            onClick={handleCreateNew}
-            size="sm"
-            className={responsiveBtnClass}
-          >
+          <Button variant="primary" onClick={handleCreateNew} size="sm" className={responsiveBtnClass}>
             + Add Driver
           </Button>
         </div>
       </div>
 
-      {/* 2. Data Table */}
       <div className="bg-background rounded-lg shadow border border-muted overflow-hidden">
-
-        {/* Desktop Table */}
         <div className="hidden md:block overflow-x-auto">
           <table className="min-w-full divide-y divide-muted">
             <thead className="bg-muted/50">
@@ -236,7 +221,6 @@ export const DriverList = () => {
           </table>
         </div>
 
-        {/* Mobile Cards */}
         <div className="block md:hidden divide-y divide-muted">
           {paginatedData.length > 0 ? (
             paginatedData.map((entry, index) => (
@@ -291,7 +275,6 @@ export const DriverList = () => {
         />
       )}
 
-      {/* Delete Confirmation */}
       <ConfirmationDialog
         open={isConfirmOpen}
         onClose={() => setIsConfirmOpen(false)}

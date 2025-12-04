@@ -11,8 +11,13 @@ import { Pagination } from '../../components/shared/Pagination';
 import { CsvImporter } from '../../components/shared/CsvImporter';
 import { useToast } from '../../contexts/ToastContext';
 
+// 🟢 REGEX VALIDATORS FOR IMPORT
+const GST_REGEX = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
+const MOBILE_REGEX = /^[6-9]\d{9}$/;
+const AADHAR_REGEX = /^\d{12}$/;
+const PAN_REGEX = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
+
 export const ConsignorList = () => {
-  // 🟢 Get importConsignors from useData
   const { consignors, addConsignor, updateConsignor, deleteConsignor, addConsignee, fetchConsignors, importConsignors } = useData();
   const toast = useToast();
   const [search, setSearch] = useState('');
@@ -28,7 +33,6 @@ export const ConsignorList = () => {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deleteMessage, setDeleteMessage] = useState(""); 
 
-  // --- Fetch on Mount ---
   useEffect(() => {
     fetchConsignors();
   }, [fetchConsignors]);
@@ -102,7 +106,6 @@ export const ConsignorList = () => {
     handleFormClose();
   };
 
-  // 🟢 UPDATED: Use Single Bulk API Call
   const handleImport = async (data: Consignor[]) => {
     await importConsignors(data);
   };
@@ -141,16 +144,12 @@ export const ConsignorList = () => {
   };
 
   const hasActiveFilters = filterType !== 'all' || search !== '';
-
-  // --- RESPONSIVE BUTTON STYLE HELPER ---
   const responsiveBtnClass = "flex-1 md:flex-none text-[10px] xs:text-xs sm:text-sm h-8 sm:h-10 px-1 sm:px-4 whitespace-nowrap";
 
   return (
     <div className="space-y-6">
-      {/* Top Bar */}
       <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-background p-4 rounded-lg shadow border border-muted">
         
-        {/* LEFT: Search + Filter Toggle */}
         <div className="flex items-center gap-2 w-full md:w-1/2">
           <div className="relative flex-1">
             <input
@@ -173,7 +172,6 @@ export const ConsignorList = () => {
           </Button>
         </div>
 
-        {/* RIGHT: Actions */}
         <div className="flex gap-2 w-full md:w-auto justify-between md:justify-end">
           <Button 
             variant="outline" 
@@ -195,6 +193,13 @@ export const ConsignorList = () => {
             }
             mapRow={(row) => {
               if (!row.name || !row.gst || !row.address) return null;
+              
+              // 🟢 Strict Regex Validation for CSV Rows
+              if (!GST_REGEX.test(row.gst)) return null;
+              if (row.mobile && !MOBILE_REGEX.test(row.mobile)) return null;
+              if (row.pan && !PAN_REGEX.test(row.pan)) return null;
+              if (row.aadhar && !AADHAR_REGEX.test(row.aadhar)) return null;
+
               return {
                 id: `cn-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
                 name: row.name,
@@ -220,7 +225,6 @@ export const ConsignorList = () => {
         </div>
       </div>
 
-      {/* Filters */}
       {showFilters && (
         <div className="p-4 bg-muted/20 rounded-lg border border-muted animate-in fade-in slide-in-from-top-2">
           <div className="flex justify-between items-center mb-4">
@@ -243,7 +247,6 @@ export const ConsignorList = () => {
         </div>
       )}
 
-      {/* Data Table */}
       <div className="bg-background rounded-lg shadow border border-muted overflow-hidden">
         <div className="hidden md:block overflow-x-auto">
           <table className="min-w-full divide-y divide-muted">
@@ -281,7 +284,6 @@ export const ConsignorList = () => {
           </table>
         </div>
 
-        {/* Mobile View */}
         <div className="block md:hidden divide-y divide-muted">
           {paginatedData.length > 0 ? (
             paginatedData.map((consignor, index) => (

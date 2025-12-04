@@ -1,7 +1,13 @@
 import { z } from 'zod';
 
-// --- Helper: Coerce inputs to numbers, defaulting to 0 if missing/invalid ---
-// This handles strings from HTML inputs ("100", "", etc.) automatically.
+// --- SHARED PATTERNS (Match Backend) ---
+const GST_REGEX = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
+const PAN_REGEX = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
+const AADHAR_REGEX = /^\d{12}$/;
+const MOBILE_REGEX = /^[6-9]\d{9}$/;
+const VEHICLE_REGEX = /^[A-Z]{2}[ -]?[0-9]{1,2}(?:[ -]?[A-Z])?(?:[ -]?[A-Z]*)?[ -]?[0-9]{4}$/;
+
+// --- Helper ---
 const optionalNumericString = z.coerce.number().default(0);
 
 // --- 1. Auth Schemas ---
@@ -14,28 +20,41 @@ export const registerUserSchema = z.object({
   name: z.string().min(1, "Name is required"),
   email: z.string().email("Please enter a valid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
-  mobile: z.string().length(10, "Mobile number must be 10 digits").regex(/^\d+$/, "Mobile must be numeric"),
+  mobile: z.string().regex(MOBILE_REGEX, "Invalid Mobile Number"),
   role: z.enum(['admin', 'user']).optional(),
 });
 
 // --- 2. Master Data Schemas ---
 export const consignorSchema = z.object({
   name: z.string().min(1, "Consignor Name is required"),
-  gst: z.string().min(1, "GST Number is required"),
+  gst: z.string().regex(GST_REGEX, "Invalid GST Format"),
   address: z.string().min(1, "Address is required"),
-  mobile: z.string().optional(),
+  mobile: z.string().optional().refine(val => !val || MOBILE_REGEX.test(val), {
+    message: "Invalid Mobile Number"
+  }),
   from: z.string().default('Sivakasi'),
+  pan: z.string().optional().refine(val => !val || PAN_REGEX.test(val), {
+    message: "Invalid PAN Format"
+  }),
+  aadhar: z.string().optional().refine(val => !val || AADHAR_REGEX.test(val), {
+    message: "Invalid Aadhar Format"
+  }),
 });
 
-// 🟢 UPDATED: Consignee Schema with "At least one proof" validation
 export const consigneeSchema = z.object({
   name: z.string().min(1, "Consignee Name is required"),
   destination: z.string().min(1, "Destination is required"),
   address: z.string().min(1, "Address is required"),
-  phone: z.string().min(1, "Phone/Mobile is required"),
-  gst: z.string().optional(),
-  pan: z.string().optional(),
-  aadhar: z.string().optional(),
+  phone: z.string().regex(MOBILE_REGEX, "Invalid Mobile Number"),
+  gst: z.string().optional().refine(val => !val || GST_REGEX.test(val), {
+    message: "Invalid GST Format"
+  }),
+  pan: z.string().optional().refine(val => !val || PAN_REGEX.test(val), {
+    message: "Invalid PAN Format"
+  }),
+  aadhar: z.string().optional().refine(val => !val || AADHAR_REGEX.test(val), {
+    message: "Invalid Aadhar Format"
+  }),
 }).refine((data) => {
   const hasGst = data.gst && data.gst.trim().length > 0;
   const hasPan = data.pan && data.pan.trim().length > 0;
@@ -43,20 +62,22 @@ export const consigneeSchema = z.object({
   return hasGst || hasPan || hasAadhar;
 }, {
   message: "At least one proof (GST, PAN, or Aadhar) is required",
-  path: ["gst"], // Attach error to GST field so it shows up in the form
+  path: ["gst"], 
 });
 
 export const vehicleSchema = z.object({
-  vehicleNo: z.string().min(1, "Vehicle Number is required"),
+  vehicleNo: z.string().regex(VEHICLE_REGEX, "Invalid Vehicle Number (e.g., TN01AB1234)"),
   vehicleName: z.string().min(1, "Vehicle Name is required"),
   ownerName: z.string().optional(),
-  ownerMobile: z.string().optional(),
+  ownerMobile: z.string().optional().refine(val => !val || MOBILE_REGEX.test(val), {
+    message: "Invalid Owner Mobile Number"
+  }),
 });
 
 export const driverSchema = z.object({
   driverName: z.string().min(1, "Driver Name is required"),
-  dlNo: z.string().min(1, "License Number (DL) is required"),
-  mobile: z.string().min(1, "Mobile Number is required"),
+  dlNo: z.string().min(5, "License Number is required"),
+  mobile: z.string().regex(MOBILE_REGEX, "Invalid Mobile Number"),
 });
 
 export const placeSchema = z.object({
@@ -83,7 +104,6 @@ export const gcEntrySchema = z.object({
   consignorId: z.string().min(1, "Consignor is required"),
   consigneeId: z.string().min(1, "Consignee is required"),
   
-  // Numeric Fields (Coerced)
   quantity: z.coerce.number().min(1, "Quantity must be at least 1"),
   netQty: z.coerce.number().min(1, "Net Quantity is required"),
   fromNo: z.coerce.number().min(1, "From No is required"),
@@ -99,7 +119,6 @@ export const gcEntrySchema = z.object({
   billDate: z.string().min(1, "Bill Date is required"),
   billValue: optionalNumericString, 
 
-  // Charges (Optional/Default 0)
   tollFee: optionalNumericString,
   freight: optionalNumericString,
   godownCharge: optionalNumericString,
@@ -118,10 +137,12 @@ export const tripSheetSchema = z.object({
   lorryNo: z.string().min(1, "Lorry No is required"),
   lorryName: z.string().min(1, "Lorry Name is required"),
   driverName: z.string().min(1, "Driver Name is required"),
-  driverMobile: z.string().min(1, "Driver Mobile is required"),
+  driverMobile: z.string().regex(MOBILE_REGEX, "Invalid Driver Mobile"),
   dlNo: z.string().min(1, "DL No is required"),
   ownerName: z.string().min(1, "Owner Name is required"),
-  ownerMobile: z.string().min(1, "Owner Mobile is required"),
+  ownerMobile: z.string().optional().refine(val => !val || MOBILE_REGEX.test(val), {
+    message: "Invalid Owner Mobile Number"
+  }),
 
   items: z.array(z.any()).min(1, "At least one GC entry must be added to the Trip Sheet"),
 });

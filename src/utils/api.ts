@@ -4,7 +4,7 @@ import { loadingManager } from './loadingManager';
 
 // Use environment variable or default to localhost
 export const API_URL = 'https://unitedtransportbackend-443415591723.asia-south1.run.app/api';
-// export const API_URL = 'http://localhost:5000/api';
+//export const API_URL = 'http://localhost:5000/api';
 
 const api = axios.create({
   baseURL: API_URL,

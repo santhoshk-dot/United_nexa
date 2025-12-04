@@ -229,6 +229,8 @@ export const ConsignorForm = ({ initialData, onClose, onSave }: ConsignorFormPro
                  onBlur={handleProofBlur}
                  placeholder="Enter PAN..."
                />
+               {/* 🟢 ADDED: Error message display for PAN */}
+               {formErrors.pan && <p className="text-xs text-red-500 mt-1">{formErrors.pan}</p>}
              </div>
              <div>
                <Input 
@@ -240,6 +242,8 @@ export const ConsignorForm = ({ initialData, onClose, onSave }: ConsignorFormPro
                  onBlur={handleProofBlur} 
                  placeholder="Enter Aadhar..."
                />
+               {/* 🟢 ADDED: Error message display for Aadhar */}
+               {formErrors.aadhar && <p className="text-xs text-red-500 mt-1">{formErrors.aadhar}</p>}
              </div>
           </div>
 

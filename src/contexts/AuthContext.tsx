@@ -77,16 +77,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  // 🟢 LOGOUT FUNCTION (UI SIDE)
-  // This triggers the backend 'logout' controller
   const logout = async () => {
     try {
-      // 1. Call Backend to clear HTTPOnly Cookie
       await api.post('/auth/logout');
     } catch (error) {
       console.error("Logout error", error);
     } finally {
-      // 2. Clear Client-Side State & Storage
       setUser(null);
       setFinancialYear(null);
       setUsers([]);
@@ -107,19 +103,31 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  // 🟢 NEW: Import Users implementation
+  // 🟢 FIXED: Import Users implementation with Data Merging
   const importUsers = async (data: AppUser[]) => {
     try {
       // Calls the bulk API
       const { data: response } = await api.post('/users/bulk', data);
       
       if (response.importedUsers && response.importedUsers.length > 0) {
-          setUsers(prev => [...prev, ...response.importedUsers]);
-          toast.success(`${response.importedUsers.length} users imported successfully`);
+          // 🛑 FIX: Merge backend response with input data to ensure 'mobile' is preserved
+          // if the backend response schema is incomplete.
+          const mergedUsers = response.importedUsers.map((backendUser: AppUser) => {
+             const inputUser = data.find(d => d.email === backendUser.email);
+             return {
+                 ...backendUser,
+                 // Prefer backend data, fallback to input data if backend field is missing/empty
+                 mobile: backendUser.mobile || inputUser?.mobile || '',
+                 role: backendUser.role || inputUser?.role || 'user',
+                 name: backendUser.name || inputUser?.name || '',
+             };
+          });
+
+          setUsers(prev => [...prev, ...mergedUsers]);
+          toast.success(`${mergedUsers.length} users imported successfully`);
       }
       
       if (response.errors && response.errors.length > 0) {
-          // Show alert or toast for errors
           console.warn("Import errors:", response.errors);
           if (response.importedUsers.length > 0) {
              toast.error(`Some records failed. check console.`);
@@ -172,7 +180,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     addUser,
     updateUser,
     deleteUser,
-    importUsers, // 🟢 Exported
+    importUsers, 
     refreshUsers: fetchUsers
   };
 
