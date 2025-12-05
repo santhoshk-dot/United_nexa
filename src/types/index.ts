@@ -181,3 +181,144 @@ export interface TripSheetEntry {
   createdBy?: string;
   updatedBy?: string;
 }
+export type LoadingSheetLabels = {
+    companyName: string;
+    mainHeader: string;
+    totalLabel: string;
+    companySignatureLine: string;
+};
+
+
+export type GcEntryLabels   = {
+    fixedGstinLabel: string,                
+    fixedGstinValue: string,                
+    mobileLabel: string,                
+    mobileNumberValue: string,                
+    gcNoLabel: string,              
+    dateLabel: string,                
+    companyName: string,                
+    tagLine: string,                
+    companyAddress: string,                
+    fromLabel: string,                
+    toLabel: string,                
+    ownerRiskText: string,              
+    consignorLabel: string,                
+    consigneeLabel: string,                
+    tableHeaderPackages: string,              
+    tableHeaderDescription: string,                
+    tableHeaderWeight: string,              
+    tableHeaderRate: string,                
+    tableHeaderFreight: string,                
+    labelFreight: string,                
+    labelGodownCharge: string,              
+    labelStatisticalCharge: string,                
+    labelTollFee: string,                
+    labelTotal: string,                
+    labelAdvancePaid: string,                
+    labelBalanceToPay: string,                
+    invoiceNoLabel: string,              
+    invoiceDateLabel: string,                
+    marksLabel: string,                
+    labelValueGoods: string,                
+    deliveryAtLabel: string,                
+    toPayRsLabel: string,                
+    scanLabel:string,
+    freightFixedUptoLabel: string,                
+    footerSignatureLine: string,                
+    footerNote: string,                
+    footerUnloadingNote: string,              
+  }
+
+
+export type StockLabels  = {
+  title: string,                
+  companyName: string,                
+  companyAddress: string,                
+  fixedGstinLabel: string,                
+  fixedGstinValue: string,                
+  mobileLabel: string,                
+  mobileNumberValue: string,                
+  mainHeader: string,                
+  gcLabel:string,
+  stockCountLabel:string,
+  contentLabel:string,
+  consignorLabel:string,
+  consigneeLabel:string,
+  dateLabel:string,
+  totalLabel: string,                
+};
+
+
+export type TripReportLabels  = {
+  title: string,                
+  companyName: string,                
+  companyAddress: string,                
+  fixedGstinLabel: string,                
+  fixedGstinValue: string,                
+  mobileLabel: string,                
+  mobileNumberValue: string,                
+  mainHeader: string,                
+  tsLabel:string,
+  fromPlaceLabel:string,
+  toPlaceLabel:string,
+  amountLabel:string,
+  dateLabel:string,
+  totalLabel: string,                
+};
+
+
+export type TripPrintLabels = {
+    // Header/Company Details
+    title: string;
+    fixedGstinLabel: string;
+    fixedGstinValue: string;
+    mobileLabel: string;
+    mobileNumberValue: string;
+    companyName: string;
+    companyAddress: string;
+
+
+    // Meta Details
+    mfNoLabel: string;
+    carriersLabel: string;
+
+
+    // Trip Details
+    fromLabel: string;
+    toLabel: string;
+    dateLabel: string;
+
+
+    // Table Headers
+    cnNoHeader: string;
+    packagesHeader: string;
+    contentsHeader: string;
+    consignorHeader: string;
+    consigneeHeader: string;
+    toPayHeader: string;
+
+
+    // Footer Text
+    footerNote0: string;
+    footerNote1: string;
+    footerNote2: string; // The "Please pay lorry hire..." part
+    footerNote3: string; // The "on receiving the goods..." part
+    totalPackagesLabel: string;
+    lorryHireLabel: string;
+
+
+    // Driver/Owner/Lorry Details Labels
+    driverNameLabel: string;
+    dlNoLabel: string;
+    driverMobileLabel: string;
+    ownerNameLabel: string;
+    ownerMobileLabel: string;
+    lorryNoLabel: string;
+    lorryNameLabel: string;
+   
+    // Legal/Signatures
+    legalNote: string;
+    signatureDriverLabel: string;
+    signatureClerkLabel: string;
+};
+

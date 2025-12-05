@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import type { FromPlace } from '../../types';
 import { Input } from '../../components/shared/Input';
 import { Button } from '../../components/shared/Button';
 import { X } from 'lucide-react';
 import type { DuplicateCheckFn } from './FromPlacesList';
-// 🟢 NEW: Imports
+// 泙 NEW: Imports
 import { placeSchema } from '../../schemas';
 
 interface FromPlacesFormProps {
@@ -34,21 +34,71 @@ export const FromPlacesForm = ({ initialData, onClose, onSave, onError, checkDup
         shortName: initialData?.shortName || '',
     });
     
-    // 🟢 NEW: Validation State
+    // 泙 NEW: Validation State
     const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+
+    // 泙 NEW: Ref for debouncing
+    const validationTimeouts = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
+        
+        // 1. Update State
         setFromPlace(prev => ({ ...prev, [name]: value }));
-        // Clear Zod error on change
-        if (formErrors[name]) setFormErrors(prev => ({ ...prev, [name]: '' }));
+        
+        // 2. Clear Immediate Errors
+        if (formErrors[name]) {
+            setFormErrors(prev => {
+                const next = { ...prev };
+                delete next[name];
+                return next;
+            });
+        }
+
+        // 3. Clear Timeout
+        if (validationTimeouts.current[name]) {
+            clearTimeout(validationTimeouts.current[name]);
+        }
+
+        // 4. Delayed Validation
+        validationTimeouts.current[name] = setTimeout(() => {
+            // A. Zod Schema Check
+            try {
+                const fieldSchema = (placeSchema.shape as any)[name];
+                if (fieldSchema) {
+                    const result = fieldSchema.safeParse(value);
+                    if (!result.success) {
+                        setFormErrors(prev => ({ ...prev, [name]: result.error.issues[0].message }));
+                        return;
+                    }
+                }
+            } catch (e) {}
+
+            // B. Duplicate Check
+            const checkPlaceName = name === 'placeName' ? value : fromPlace.placeName;
+            const checkShortName = name === 'shortName' ? value : fromPlace.shortName;
+
+            const duplicateErrors = checkDuplicates(
+                checkPlaceName, 
+                checkShortName, 
+                initialData?.id
+            );
+
+            if (duplicateErrors.place && name === 'placeName') {
+                setFormErrors(prev => ({ ...prev, placeName: duplicateErrors.place! }));
+            }
+            if (duplicateErrors.short && name === 'shortName') {
+                setFormErrors(prev => ({ ...prev, shortName: duplicateErrors.short! }));
+            }
+        }, 500);
     };
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         setFormErrors({});
         
-        // 🟢 1. Validate against Zod Schema (Matches Backend)
+        // 泙 1. Validate against Zod Schema (Matches Backend)
         const validationResult = placeSchema.safeParse(fromPlace);
 
         if (!validationResult.success) {
@@ -57,12 +107,10 @@ export const FromPlacesForm = ({ initialData, onClose, onSave, onError, checkDup
                 if (err.path[0]) newErrors[err.path[0].toString()] = err.message;
             });
             setFormErrors(newErrors);
-            // Don't return yet, we might want to show toast or let the inline errors speak
-            // returning to stop submission
             return;
         }
 
-        // 🟢 2. Check for duplicates (Business Logic)
+        // 泙 2. Check for duplicates (Business Logic)
         const duplicateErrors = checkDuplicates(
             fromPlace.placeName, 
             fromPlace.shortName, 

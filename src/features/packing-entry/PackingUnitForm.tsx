@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import type { PackingEntry } from "../../types";
 import { Input } from "../../components/shared/Input";
 import { Button } from "../../components/shared/Button";
 import { X } from "lucide-react";
 import { useData } from "../../hooks/useData";
-// 🟢 NEW: Imports
+// 泙 NEW: Imports
 import { packingSchema } from "../../schemas";
 import { useToast } from "../../contexts/ToastContext";
 
@@ -40,47 +40,88 @@ export const PackingUnitForm = ({
     shortName: initialData?.shortName || "",
   });
 
-  // 🟢 NEW: Validation State
+  // 泙 NEW: Validation State
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
-  // Manual duplicate check state (preserved)
+  // Manual duplicate check state
   const [dupErrors, setDupErrors] = useState({
     packingName: "",
   });
 
+  // 泙 NEW: Ref for debouncing
+  const validationTimeouts = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+
+
+  // 泙 NEW: Field Validation Helper
+  const validateField = (name: string, value: string) => {
+    try {
+      const fieldSchema = (packingSchema.shape as any)[name];
+      if (fieldSchema) {
+        const result = fieldSchema.safeParse(value);
+        if (!result.success) {
+          setFormErrors(prev => ({ ...prev, [name]: result.error.issues[0].message }));
+        } else {
+          setFormErrors(prev => {
+            const next = { ...prev };
+            delete next[name];
+            return next;
+          });
+        }
+      }
+    } catch (e) {}
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
+    
+    // 1. Update State
     setEntry((prev) => ({ ...prev, [name]: value }));
     
-    if (formErrors[name]) setFormErrors(prev => ({ ...prev, [name]: '' }));
-
-    // --- IMMEDIATE DUPLICATE VALIDATION ---
-    if (name === "packingName") {
-      const trimmedValue = value.trim();
-      const exists = packingEntries.some(
-          (p) =>
-            p.packingName.toLowerCase() === trimmedValue.toLowerCase() &&
-            p.id !== initialData?.id
-        );
-        
-      setDupErrors(prev => ({ 
-          ...prev, 
-          packingName: exists ? "Packing name already exists" : "" 
-      }));
+    // 2. Clear immediate errors
+    if (formErrors[name]) {
+        setFormErrors(prev => { const n = {...prev}; delete n[name]; return n; });
     }
+    if (name === "packingName" && dupErrors.packingName) {
+        setDupErrors(prev => ({ ...prev, packingName: "" }));
+    }
+
+    // 3. Clear timeout
+    if (validationTimeouts.current[name]) {
+        clearTimeout(validationTimeouts.current[name]);
+    }
+
+    // 4. Delayed Validation
+    validationTimeouts.current[name] = setTimeout(() => {
+        // Run Zod Validation
+        validateField(name, value);
+
+        // Run Duplicate Check
+        if (name === "packingName") {
+            const trimmedValue = value.trim();
+            const exists = packingEntries.some(
+                (p) =>
+                    p.packingName.toLowerCase() === trimmedValue.toLowerCase() &&
+                    p.id !== initialData?.id
+            );
+            
+            setDupErrors(prev => ({ 
+                ...prev, 
+                packingName: exists ? "Packing name already exists" : "" 
+            }));
+        }
+    }, 500);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setFormErrors({});
-
-    // 🟢 1. Check Duplicates
+    
+    // 泙 1. Check Duplicates
     if (dupErrors.packingName) {
         toast.error("Please resolve duplicate entries.");
         return;
     }
 
-    // 🟢 2. Validate against Zod Schema
+    // 泙 2. Validate against Zod Schema
     const validationResult = packingSchema.safeParse(entry);
 
     if (!validationResult.success) {

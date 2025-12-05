@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import type { Consignee } from '../../types';
 import { Input } from '../../components/shared/Input';
 import { Button } from '../../components/shared/Button';
@@ -55,12 +55,56 @@ export const ConsigneeForm = ({ initialData, onClose, onSave }: ConsigneeFormPro
 
   const isUpdateMode = !!consignee.id;
 
+  // 泙 NEW: Ref to store active timeouts for each field
+  const validationTimeouts = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+
+
+  // 泙 NEW: Field Validation Helper
+  const validateField = (name: string, value: string) => {
+    try {
+      const fieldSchema = (consigneeSchema.shape as any)[name];
+      if (fieldSchema) {
+        const result = fieldSchema.safeParse(value);
+        if (!result.success) {
+          setFormErrors(prev => ({ ...prev, [name]: result.error.issues[0].message }));
+        } else {
+          setFormErrors(prev => {
+            const next = { ...prev };
+            delete next[name];
+            return next;
+          });
+        }
+      }
+    } catch (e) {
+      // Ignore schema lookup errors
+    }
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
+    
+    // 1. Update State
     setConsignee(prev => ({ ...prev, [name]: value }));
     if (duplicateMessage) setDuplicateMessage(null);
-    // Clear error specifically for the changed field
-    if (formErrors[name]) setFormErrors(prev => ({ ...prev, [name]: '' }));
+    
+    // 2. Clear Immediate Errors
+    if (formErrors[name]) {
+        setFormErrors(prev => {
+            const next = { ...prev };
+            delete next[name];
+            return next;
+        });
+    }
+
+    // 3. Clear Existing Timeout
+    if (validationTimeouts.current[name]) {
+        clearTimeout(validationTimeouts.current[name]);
+    }
+
+    // 4. Set Delayed Validation
+    validationTimeouts.current[name] = setTimeout(() => {
+        validateField(name, value);
+    }, 1000);
   };
 
   const loadDestinationOptions = async (search: string, _prevOptions: any, { page }: any) => {
@@ -74,9 +118,20 @@ export const ConsigneeForm = ({ initialData, onClose, onSave }: ConsigneeFormPro
 
   const handleDestinationChange = (option: any) => {
       setDestinationOption(option);
-      setConsignee(prev => ({ ...prev, destination: option?.value || '' }));
+      const val = option?.value || '';
+      setConsignee(prev => ({ ...prev, destination: val }));
+      
       if (duplicateMessage) setDuplicateMessage(null);
-      if (formErrors.destination) setFormErrors(prev => ({ ...prev, destination: '' }));
+      if (formErrors.destination) {
+          setFormErrors(prev => ({ ...prev, destination: '' }));
+      }
+
+      // Validate destination immediately (selection event) or debounce if preferred
+      // Using debounce here for consistency if user types in search box (though this is a selection event)
+      if (validationTimeouts.current['destination']) clearTimeout(validationTimeouts.current['destination']);
+      validationTimeouts.current['destination'] = setTimeout(() => {
+          validateField('destination', val);
+      }, 500);
   };
 
   const handleProofBlur = (e: React.FocusEvent<HTMLInputElement>) => {

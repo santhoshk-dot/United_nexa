@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import type { VehicleEntry } from "../../types";
 import { Input } from "../../components/shared/Input";
 import { Button } from "../../components/shared/Button";
 import { X } from "lucide-react";
 import { useData } from "../../hooks/useData";
-// 🟢 NEW: Imports
+// 泙 NEW: Imports
 import { vehicleSchema } from "../../schemas";
 import { useToast } from "../../contexts/ToastContext";
 
@@ -33,7 +33,7 @@ export const VehicleForm = ({
   const { vehicleEntries } = useData();
   const toast = useToast();
 
-  // 🟢 NEW: Validation State
+  // 泙 NEW: Validation State
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
   const [entry, setEntry] = useState({
@@ -44,45 +44,87 @@ export const VehicleForm = ({
     ownerMobile: initialData?.ownerMobile || "",
   });
 
-  // Manual checks state (kept for immediate duplicate feedback)
+  // Manual checks state
   const [manualErrors, setManualErrors] = useState({
     vehicleNo: "",
   });
 
+  // 泙 NEW: Ref to store active timeouts for each field
+ const validationTimeouts = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+
+
+  // 泙 NEW: Field Validation Helper
+  const validateField = (name: string, value: string) => {
+    try {
+      // Cast to any to access shape dynamically
+      const fieldSchema = (vehicleSchema.shape as any)[name];
+      if (fieldSchema) {
+        const result = fieldSchema.safeParse(value);
+        if (!result.success) {
+          setFormErrors(prev => ({ ...prev, [name]: result.error.issues[0].message }));
+        } else {
+          setFormErrors(prev => {
+            const next = { ...prev };
+            delete next[name];
+            return next;
+          });
+        }
+      }
+    } catch (e) {
+      // Ignore schema lookup errors
+    }
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
+    
+    // 1. Update State immediately so input is responsive
     setEntry((prev) => ({ ...prev, [name]: value }));
     
-    // Clear Zod error
-    if (formErrors[name]) setFormErrors(prev => ({ ...prev, [name]: '' }));
-
-    // Immediate Duplicate Check for Vehicle No
-    if (name === "vehicleNo") {
-      const trimmed = value.trim();
-      const exists = vehicleEntries.some(
-        (v) =>
-          v.vehicleNo.toLowerCase() === trimmed.toLowerCase() &&
-          v.id !== initialData?.id
-      );
-
-      setManualErrors((prev) => ({
-        ...prev,
-        vehicleNo: exists ? "Vehicle number already exists" : "",
-      }));
+    // 2. Clear existing errors immediately while typing
+    if (formErrors[name]) {
+        setFormErrors(prev => {
+            const next = { ...prev };
+            delete next[name];
+            return next;
+        });
     }
+    // Clear duplicate error immediately if editing vehicleNo
+    if (name === "vehicleNo" && manualErrors.vehicleNo) {
+        setManualErrors(prev => ({ ...prev, vehicleNo: "" }));
+    }
+
+    // 3. Clear existing timeout for this field
+    if (validationTimeouts.current[name]) {
+        clearTimeout(validationTimeouts.current[name]);
+    }
+
+    // 4. Set new timeout for delayed validation (500ms)
+    validationTimeouts.current[name] = setTimeout(() => {
+        // Run Schema Validation
+        validateField(name, value);
+
+        // Run Duplicate Check Logic
+        if (name === "vehicleNo") {
+            const trimmed = value.trim();
+            const exists = vehicleEntries.some(
+                (v) =>
+                v.vehicleNo.toLowerCase() === trimmed.toLowerCase() &&
+                v.id !== initialData?.id
+            );
+
+            setManualErrors((prev) => ({
+                ...prev,
+                vehicleNo: exists ? "Vehicle number already exists" : "",
+            }));
+        }
+    }, 1000);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setFormErrors({});
-
-    // 🟢 1. Check duplicates first
-    if (manualErrors.vehicleNo) {
-        toast.error("Vehicle number already exists.");
-        return;
-    }
-
-    // 🟢 2. Zod Validation
+    
+    // Final complete validation before save (immediate)
     const validationResult = vehicleSchema.safeParse(entry);
 
     if (!validationResult.success) {
@@ -92,6 +134,12 @@ export const VehicleForm = ({
         });
         setFormErrors(newErrors);
         toast.error("Please correct the errors in the form.");
+        return;
+    }
+
+    // 泙 Check duplicates first
+    if (manualErrors.vehicleNo) {
+        toast.error("Vehicle number already exists.");
         return;
     }
 

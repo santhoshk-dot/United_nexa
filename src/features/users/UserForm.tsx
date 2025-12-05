@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Input } from '../../components/shared/Input';
 import { Button } from '../../components/shared/Button';
 import { X, Eye, EyeOff } from 'lucide-react'; 
@@ -39,31 +39,89 @@ export const UserForm = ({ initialData, onClose, onSave }: UserFormProps) => {
     role: initialData?.role || 'user',
   });
 
+  // Ref for debouncing
+ const validationTimeouts = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+
+
+  // 泙 NEW: Field Validation Helper
+  const validateField = (name: string, value: string) => {
+    // Special handling for password in edit mode (optional)
+    if (name === 'password' && initialData && value === '') {
+        setFormErrors(prev => {
+            const next = { ...prev };
+            delete next['password'];
+            return next;
+        });
+        return;
+    }
+
+    try {
+        const fieldSchema = (registerUserSchema.shape as any)[name];
+        if (fieldSchema) {
+            const result = fieldSchema.safeParse(value);
+            if (!result.success) {
+                setFormErrors(prev => ({ ...prev, [name]: result.error.issues[0].message }));
+            } else {
+                setFormErrors(prev => {
+                    const next = { ...prev };
+                    delete next[name];
+                    return next;
+                });
+            }
+        }
+    } catch (e) {
+      // Ignore if field not in schema (e.g. role might strictly be enum)
+    }
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
+    
+    // 1. Update State
     setFormData(prev => ({ ...prev, [name]: value }));
     
-    if (formErrors[name]) setFormErrors(prev => ({ ...prev, [name]: '' }));
-
-    if (name === 'email') {
-      const normalizedEmail = value.trim().toLowerCase();
-      const exists = users.some(u => 
-        u.email.toLowerCase() === normalizedEmail && 
-        u.id !== initialData?.id
-      );
-
-      if (exists) {
-        setEmailError("This email is already assigned to another user.");
-      } else {
-        setEmailError("");
-      }
+    // 2. Clear immediate errors
+    if (formErrors[name]) {
+        setFormErrors(prev => {
+            const next = { ...prev };
+            delete next[name];
+            return next;
+        });
     }
+    if (name === 'email' && emailError) {
+        setEmailError("");
+    }
+
+    // 3. Clear pending timeouts
+    if (validationTimeouts.current[name]) {
+        clearTimeout(validationTimeouts.current[name]);
+    }
+
+    // 4. Set delayed validation
+    validationTimeouts.current[name] = setTimeout(() => {
+        // Run Zod Validation
+        validateField(name, value);
+
+        // Run Duplicate Email Check
+        if (name === 'email') {
+            const normalizedEmail = value.trim().toLowerCase();
+            const exists = users.some(u => 
+                u.email.toLowerCase() === normalizedEmail && 
+                u.id !== initialData?.id
+            );
+
+            if (exists) {
+                setEmailError("This email is already assigned to another user.");
+            } else {
+                setEmailError("");
+            }
+        }
+    }, 1000); // 1000ms delay
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setFormErrors({});
-
+    
     if (emailError) {
         toast.error("Please resolve email errors.");
         return;

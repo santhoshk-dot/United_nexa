@@ -1,4 +1,3 @@
-
 import { Suspense, lazy } from 'react';
 import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { Layout } from '../components/layout/Layout';
@@ -39,6 +38,10 @@ const PackingEntryList = lazy(() => load(import('../features/packing-entry/Packi
 const ContentList = lazy(() => load(import('../features/content-entry/ContentList'), 'ContentList'));
 const VehicleList = lazy(() => load(import('../features/vehicle-details/VehicleList'), 'VehicleList'));
 const DriverList = lazy(() => load(import('../features/driver-details copy/DriverList'), 'DriverList'));
+
+// Features -> Templates (Settings)
+// 🟢 Using load helper with 'default' because MainScreen is a default export
+const MainScreen = lazy(() => load(import('../features/templates/MainScreen'), 'default'));
 
 // Features -> Admin
 const UserList = lazy(() => load(import('../features/users/UserList'), 'UserList'));
@@ -95,6 +98,10 @@ const AppRouter = () => {
         <Route path="/trip-sheet" element={<TripSheetList />} />
         <Route path="/tripsheet/new" element={<TripSheetForm />} />
         <Route path="/tripsheet/edit/:id" element={<TripSheetForm />} />
+        
+        {/* 🟢 Added Route for MainScreen (Settings) */}
+        <Route path="/settings" element={<MainScreen />} />
+
         <Route path="/master" element={<MasterDashboardPage />} />
         <Route path="/master/consignors" element={<ConsignorList />} />
         <Route path="/master/consignees" element={<ConsigneeList />} />

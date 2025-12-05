@@ -16,7 +16,8 @@ import {
   Database,
   BarChart3,
   Car, // Added for Vehicles
-  UserCircle // Added for Drivers
+  UserCircle, // Added for Drivers
+  Settings // 🟢 Added for Print Settings
 } from 'lucide-react'; 
 import { useAuth } from '../../hooks/useAuth';
 
@@ -32,9 +33,9 @@ export const Sidebar = ({ isSidebarOpen, setIsSidebarOpen }: SidebarProps) => {
   // State for the collapsible Data Management menu
   const [isDataMgmtOpen, setIsDataMgmtOpen] = useState(false);
 
-  // Automatically open the sub-menu if the current URL is a master route or users route
+  // Automatically open the sub-menu if the current URL is a master route, users, or settings route
   useEffect(() => {
-    if (location.pathname.startsWith('/master') || location.pathname === '/users') {
+    if (location.pathname.startsWith('/master') || location.pathname === '/users' || location.pathname === '/settings') {
       setIsDataMgmtOpen(true);
     }
   }, [location.pathname]);
@@ -57,13 +58,14 @@ export const Sidebar = ({ isSidebarOpen, setIsSidebarOpen }: SidebarProps) => {
     { name: 'Pending Stock', href: '/pending-stock', icon: Archive },
   ];
 
-  // 2. Sub-Menu Links (Data Management)
+  // 2. Sub-Menu Links (Data Management & Settings)
   const dataManagementLinks = [
     { name: 'Master Dashboard', href: '/master', icon: BarChart3 }, 
+    { name: 'Print Settings', href: '/settings', icon: Settings }, // 🟢 Added MainScreen link here
     { name: 'Consignors', href: '/master/consignors', icon: Truck },
     { name: 'Consignees', href: '/master/consignees', icon: Users },
-    { name: 'Vehicles', href: '/master/vehicles', icon: Car }, // ADDED
-    { name: 'Drivers', href: '/master/drivers', icon: UserCircle }, // ADDED
+    { name: 'Vehicles', href: '/master/vehicles', icon: Car },
+    { name: 'Drivers', href: '/master/drivers', icon: UserCircle },
     { name: 'From Places', href: '/master/from-places', icon: MapPin },
     { name: 'To Places', href: '/master/to-places', icon: MapPin },
     { name: 'Packings', href: '/master/packings', icon: Package },
@@ -80,7 +82,7 @@ export const Sidebar = ({ isSidebarOpen, setIsSidebarOpen }: SidebarProps) => {
   }
 
   // Helper to check if the Data Management section is active
-  const isDataMgmtActive = location.pathname.startsWith('/master') || location.pathname === '/users';
+  const isDataMgmtActive = location.pathname.startsWith('/master') || location.pathname === '/users' || location.pathname === '/settings';
 
   return (
     <>

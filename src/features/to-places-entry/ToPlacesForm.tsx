@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import type { ToPlace } from '../../types'; 
 import { Input } from '../../components/shared/Input'; 
 import { Button } from '../../components/shared/Button'; 
 import { X } from 'lucide-react';
 import type { DuplicateCheckFn } from './ToPlacesList';
-// 🟢 NEW: Imports
+// 泙 NEW: Imports
 import { placeSchema } from '../../schemas';
 
 interface ToPlacesFormProps {
@@ -32,20 +32,74 @@ export const ToPlacesForm = ({ initialData, onClose, onSave, onError, checkDupli
         shortName: initialData?.shortName || '',
     });
 
-    // 🟢 NEW: Validation State
+    // 泙 NEW: Validation State
     const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+
+    // 泙 NEW: Ref to store active timeouts for each field
+    const validationTimeouts = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
+        
+        // 1. Update State
         setToPlace(prev => ({ ...prev, [name]: value }));
-        if (formErrors[name]) setFormErrors(prev => ({ ...prev, [name]: '' }));
+        
+        // 2. Clear Immediate Errors
+        if (formErrors[name]) {
+            setFormErrors(prev => {
+                const next = { ...prev };
+                delete next[name];
+                return next;
+            });
+        }
+
+        // 3. Clear Existing Timeout
+        if (validationTimeouts.current[name]) {
+            clearTimeout(validationTimeouts.current[name]);
+        }
+
+        // 4. Delayed Validation (Zod + Duplicate Check)
+        validationTimeouts.current[name] = setTimeout(() => {
+            // A. Zod Schema Check
+            try {
+                const fieldSchema = (placeSchema.shape as any)[name];
+                if (fieldSchema) {
+                    const result = fieldSchema.safeParse(value);
+                    if (!result.success) {
+                        setFormErrors(prev => ({ ...prev, [name]: result.error.issues[0].message }));
+                        return; // Stop if format invalid
+                    }
+                }
+            } catch (e) {}
+
+            // B. Duplicate Check (using updated state implicitly via value)
+            // We need to check duplicates based on the *hypothetical* new state
+            // Since we can't access updated state inside closure easily without refs, we construct checking params:
+            const checkPlaceName = name === 'placeName' ? value : toPlace.placeName;
+            const checkShortName = name === 'shortName' ? value : toPlace.shortName;
+
+            const duplicateErrors = checkDuplicates(
+                checkPlaceName, 
+                checkShortName, 
+                initialData?.id
+            );
+
+            if (duplicateErrors.place && name === 'placeName') {
+                setFormErrors(prev => ({ ...prev, placeName: duplicateErrors.place! }));
+            }
+            if (duplicateErrors.short && name === 'shortName') {
+                setFormErrors(prev => ({ ...prev, shortName: duplicateErrors.short! }));
+            }
+
+        }, 500);
     };
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         setFormErrors({});
         
-        // 🟢 1. Validate against Zod Schema
+        // 泙 1. Validate against Zod Schema
         const validationResult = placeSchema.safeParse(toPlace);
 
         if (!validationResult.success) {
@@ -57,7 +111,7 @@ export const ToPlacesForm = ({ initialData, onClose, onSave, onError, checkDupli
             return;
         }
 
-        // 🟢 2. Check for duplicates
+        // 泙 2. Check for duplicates
         const duplicateErrors = checkDuplicates(
             toPlace.placeName, 
             toPlace.shortName, 

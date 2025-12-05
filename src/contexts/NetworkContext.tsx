@@ -13,7 +13,6 @@ export const NetworkProvider = ({ children }: { children: React.ReactNode }) => 
   const navigate = useNavigate();
   const location = useLocation();
 
-  // 🟢 1. STABLE CHECK: Ping your own app (window.location.origin)
   // This is instant and won't get blocked by firewalls like Cloudflare might.
   const checkInternetConnection = useCallback(async () => {
     try {

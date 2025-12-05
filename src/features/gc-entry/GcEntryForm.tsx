@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useData } from '../../hooks/useData';
 import type { GcEntry, Consignee, Consignor } from '../../types';
@@ -9,7 +9,7 @@ import { AsyncAutocomplete } from '../../components/shared/AsyncAutocomplete';
 import { Printer, Save, X } from 'lucide-react';
 import { GcPrintManager, type GcPrintJob } from './GcPrintManager';
 import { useToast } from '../../contexts/ToastContext';
-// 🟢 NEW: Import Zod Schema
+// 泙 NEW: Import Zod Schema
 import { gcEntrySchema } from '../../schemas';
 
 type ProofType = 'gst' | 'pan' | 'aadhar';
@@ -44,8 +44,12 @@ export const GcEntryForm = () => {
   const isEditMode = !!gcNo;
   const [loading, setLoading] = useState(isEditMode);
   
-  // 🟢 NEW: Validation Errors State
+  // 泙 NEW: Validation Errors State
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+
+  // 泙 NEW: Ref for debouncing
+  const validationTimeouts = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+
 
   // Form State
   const [form, setForm] = useState<Omit<GcEntry, 'id'>>({
@@ -91,6 +95,28 @@ export const GcEntryForm = () => {
 
   const [consignorGst, setConsignorGst] = useState('');
   const [consigneeDestDisplay, setConsigneeDestDisplay] = useState('');
+
+  // 泙 NEW: Field Validation Helper
+  const validateField = (name: string, value: any) => {
+    try {
+      // Access specific field schema
+      const fieldSchema = (gcEntrySchema.shape as any)[name];
+      if (fieldSchema) {
+        const result = fieldSchema.safeParse(value);
+        if (!result.success) {
+          setFormErrors(prev => ({ ...prev, [name]: result.error.issues[0].message }));
+        } else {
+          setFormErrors(prev => {
+            const next = { ...prev };
+            delete next[name];
+            return next;
+          });
+        }
+      }
+    } catch (e) {
+      // Ignore if schema key doesn't exist
+    }
+  };
 
   // --- Load Data Effect (Enriched for Edit) ---
   useEffect(() => {
@@ -192,38 +218,82 @@ export const GcEntryForm = () => {
     };
   };
 
-  // --- Handlers ---
+  // --- Handlers with Debounced Validation ---
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
+    
+    // 1. Update State
     setForm(prev => {
       const newData = { ...prev, [name]: value };
+      // Keep dependent field logic instant
       if (name === 'quantity') newData.netQty = value;
       return newData;
     });
-    // Clear specific error on change
+
+    // 2. Clear immediate errors
     if (formErrors[name]) {
-      setFormErrors(prev => ({ ...prev, [name]: '' }));
+        setFormErrors(prev => { const n = {...prev}; delete n[name]; return n; });
     }
+
+    // 3. Clear pending timeout
+    if (validationTimeouts.current[name]) {
+        clearTimeout(validationTimeouts.current[name]);
+    }
+
+    // 4. Set new timeout for validation
+    validationTimeouts.current[name] = setTimeout(() => {
+        validateField(name, value);
+        // Also validate netQty if quantity changes
+        if (name === 'quantity') validateField('netQty', value);
+    }, 500);
   };
 
   const handleFormValueChange = (name: keyof typeof form, value: string | number) => { 
+      // 1. Update State
       setForm(prev => ({ ...prev, [name]: value as string })); 
+      
+      // 2. Clear Errors
       if (formErrors[name]) {
-        setFormErrors(prev => ({ ...prev, [name]: '' }));
+        setFormErrors(prev => { const n = {...prev}; delete n[name]; return n; });
       }
+
+      // 3. Debounce Validation
+      if (validationTimeouts.current[name]) clearTimeout(validationTimeouts.current[name]);
+      
+      validationTimeouts.current[name] = setTimeout(() => {
+          validateField(name, value);
+      }, 500);
   };
   
   const handleDestinationSelect = (option: any) => {
       setDestinationOption(option);
       const val = option?.value || '';
+      
+      // Update state
       setForm(prev => ({ ...prev, destination: val, deliveryAt: val, freightUptoAt: val }));
       setDeliveryOption(option);
       setFreightOption(option);
-      setFormErrors(prev => ({ ...prev, destination: '', deliveryAt: '', freightUptoAt: '' }));
+      
+      // Clear errors immediately for all updated fields
+      setFormErrors(prev => {
+          const next = { ...prev };
+          delete next['destination'];
+          delete next['deliveryAt'];
+          delete next['freightUptoAt'];
+          return next;
+      });
+
+      // Validate immediately (Selection = Commit)
+      validateField('destination', val);
+      validateField('deliveryAt', val);
+      validateField('freightUptoAt', val);
   };
   
   const handleConsignorSelect = (option: any) => {
     setConsignorOption(option);
+    
+    // Update State
     if (option) { 
         setForm(prev => ({ ...prev, consignorId: option.value, from: option.from || 'Sivakasi' })); 
         setConsignorGst(option.gst || ''); 
@@ -231,11 +301,17 @@ export const GcEntryForm = () => {
         setForm(prev => ({ ...prev, consignorId: '', from: 'Sivakasi' })); 
         setConsignorGst(''); 
     }
-    setFormErrors(prev => ({ ...prev, consignorId: '' }));
+    
+    // Clear Error
+    setFormErrors(prev => { const n = {...prev}; delete n['consignorId']; return n; });
+    // Validate
+    validateField('consignorId', option?.value || '');
   };
   
   const handleConsigneeSelect = (option: any) => {
     setConsigneeOption(option);
+    
+    // Update State
     if (option) {
       const dest = option.destination || '';
       setConsigneeDestDisplay(dest);
@@ -267,7 +343,10 @@ export const GcEntryForm = () => {
         setConsigneeDestDisplay(''); 
         setForm(prev => ({ ...prev, consigneeId: '', consigneeProofType: 'gst', consigneeProofValue: '' })); 
     }
-    setFormErrors(prev => ({ ...prev, consigneeId: '' }));
+    
+    // Clear Error & Validate
+    setFormErrors(prev => { const n = {...prev}; delete n['consigneeId']; return n; });
+    validateField('consigneeId', option?.value || '');
   };
   
   const handleProofTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -283,7 +362,7 @@ export const GcEntryForm = () => {
   const handleSave = async (andPrint = false) => {
     setFormErrors({}); // Clear previous errors
 
-    // 🟢 1. Validate Form Data against Schema
+    // 泙 1. Validate Form Data against Schema
     const validationResult = gcEntrySchema.safeParse(form);
 
     if (!validationResult.success) {
@@ -300,7 +379,7 @@ export const GcEntryForm = () => {
       return;
     }
 
-    // 🟢 2. Use validated data (coerced types)
+    // 泙 2. Use validated data (coerced types)
     // NOTE: validationResult.data contains numbers for numeric fields now
     const validatedData = validationResult.data;
 
@@ -429,7 +508,13 @@ export const GcEntryForm = () => {
                   label="Delivery At" 
                   loadOptions={loadPlaceOptions} 
                   value={deliveryOption} 
-                  onChange={(v: any) => { setDeliveryOption(v); handleFormValueChange('deliveryAt', v?.value || ''); }} 
+                  onChange={(v: any) => { 
+                      setDeliveryOption(v); 
+                      const val = v?.value || '';
+                      handleFormValueChange('deliveryAt', val); 
+                      setFormErrors(p => { const n = {...p}; delete n['deliveryAt']; return n; });
+                      validateField('deliveryAt', val);
+                  }} 
                   placeholder="" 
                   required 
                   defaultOptions={false}
@@ -442,7 +527,13 @@ export const GcEntryForm = () => {
                   label="Freight Upto" 
                   loadOptions={loadPlaceOptions} 
                   value={freightOption} 
-                  onChange={(v: any) => { setFreightOption(v); handleFormValueChange('freightUptoAt', v?.value || ''); }} 
+                  onChange={(v: any) => { 
+                      setFreightOption(v); 
+                      const val = v?.value || '';
+                      handleFormValueChange('freightUptoAt', val);
+                      setFormErrors(p => { const n = {...p}; delete n['freightUptoAt']; return n; });
+                      validateField('freightUptoAt', val);
+                  }} 
                   placeholder="" 
                   required 
                   defaultOptions={false}
@@ -475,7 +566,13 @@ export const GcEntryForm = () => {
                   label="Packing" 
                   loadOptions={loadPackingOptions} 
                   value={packingOption} 
-                  onChange={(v: any) => { setPackingOption(v); handleFormValueChange('packing', v?.value || ''); }} 
+                  onChange={(v: any) => { 
+                      setPackingOption(v); 
+                      const val = v?.value || '';
+                      handleFormValueChange('packing', val);
+                      setFormErrors(p => { const n = {...p}; delete n['packing']; return n; });
+                      validateField('packing', val);
+                  }} 
                   placeholder="" 
                   required 
                   defaultOptions={false}
@@ -488,7 +585,13 @@ export const GcEntryForm = () => {
                   label="Contents" 
                   loadOptions={loadContentOptions} 
                   value={contentOption} 
-                  onChange={(v: any) => { setContentOption(v); handleFormValueChange('contents', v?.value || ''); }} 
+                  onChange={(v: any) => { 
+                      setContentOption(v); 
+                      const val = v?.value || '';
+                      handleFormValueChange('contents', val);
+                      setFormErrors(p => { const n = {...p}; delete n['contents']; return n; });
+                      validateField('contents', val);
+                  }} 
                   placeholder="" 
                   required 
                   defaultOptions={false}

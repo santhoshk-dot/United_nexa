@@ -33,6 +33,9 @@ export const Header = ({ setIsSidebarOpen }: HeaderProps) => {
     if (pathname.startsWith('/trip-sheet')) return 'Trip Sheet Listing';
     if (pathname.startsWith('/pending-stock')) return 'Pending Stock History';
 
+    // Settings / MainScreen
+    if (pathname === '/settings') return 'Print Settings'; // 🟢 Added this line
+
     // Masters
     if (pathname === '/master') return 'Master Dashboard';
     if (pathname.startsWith('/master/consignors')) return 'Consignors Management';

@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import type { DriverEntry } from "../../types";
 import { Input } from "../../components/shared/Input";
 import { Button } from "../../components/shared/Button";
 import { X } from "lucide-react";
 import { useData } from "../../hooks/useData";
-// 🟢 NEW: Imports
+// 泙 NEW: Imports
 import { driverSchema } from "../../schemas";
 import { useToast } from "../../contexts/ToastContext";
 
@@ -33,7 +33,7 @@ export const DriverForm = ({
   const { driverEntries } = useData();
   const toast = useToast();
 
-  // 🟢 NEW: Validation State
+  // 泙 NEW: Validation State
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   
   // Manual duplicate checking state
@@ -50,48 +50,93 @@ export const DriverForm = ({
     mobile: initialData?.mobile || "",
   });
 
+  // 泙 NEW: Ref for debouncing
+  const validationTimeouts = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+
+
+  // 泙 NEW: Field Validation Helper
+  const validateField = (name: string, value: string) => {
+    try {
+      const fieldSchema = (driverSchema.shape as any)[name];
+      if (fieldSchema) {
+        const result = fieldSchema.safeParse(value);
+        if (!result.success) {
+          setFormErrors(prev => ({ ...prev, [name]: result.error.issues[0].message }));
+        } else {
+          setFormErrors(prev => {
+            const next = { ...prev };
+            delete next[name];
+            return next;
+          });
+        }
+      }
+    } catch (e) {}
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     const trimmed = value.trim();
 
+    // 1. Update State
     setEntry((prev) => ({ ...prev, [name]: value }));
     
-    if (formErrors[name]) setFormErrors(prev => ({ ...prev, [name]: '' }));
-
-    // ---------------- IMMEDIATE DUPLICATE CHECKS -----------------
-    if (name === "driverName") {
-      const exists = driverEntries.some(
-        (d) => d.driverName.toLowerCase() === trimmed.toLowerCase() && d.id !== initialData?.id
-      );
-      setDupErrors(prev => ({ ...prev, driverName: exists ? "Driver name already exists" : "" }));
+    // 2. Clear immediate error UI
+    if (formErrors[name]) {
+        setFormErrors(prev => {
+            const next = { ...prev };
+            delete next[name];
+            return next;
+        });
+    }
+    // Clear dup error for this field
+    if (dupErrors[name as keyof typeof dupErrors]) {
+        setDupErrors(prev => ({ ...prev, [name]: "" }));
     }
 
-    if (name === "dlNo") {
-        const exists = driverEntries.some(
-          (d) => d.dlNo.toLowerCase() === trimmed.toLowerCase() && d.id !== initialData?.id
-        );
-        setDupErrors(prev => ({ ...prev, dlNo: exists ? "DL number already exists" : "" }));
+    // 3. Clear Timeout
+    if (validationTimeouts.current[name]) {
+        clearTimeout(validationTimeouts.current[name]);
     }
 
-    if (name === "mobile") {
-        const exists = driverEntries.some(
-          (d) => d.mobile === trimmed && d.id !== initialData?.id
-        );
-        setDupErrors(prev => ({ ...prev, mobile: exists ? "Mobile number already exists" : "" }));
-    }
+    // 4. Set Delayed Validation
+    validationTimeouts.current[name] = setTimeout(() => {
+        // Run Zod
+        validateField(name, value);
+
+        // Run Duplicate Checks
+        if (name === "driverName") {
+            const exists = driverEntries.some(
+                (d) => d.driverName.toLowerCase() === trimmed.toLowerCase() && d.id !== initialData?.id
+            );
+            setDupErrors(prev => ({ ...prev, driverName: exists ? "Driver name already exists" : "" }));
+        }
+
+        if (name === "dlNo") {
+            const exists = driverEntries.some(
+                (d) => d.dlNo.toLowerCase() === trimmed.toLowerCase() && d.id !== initialData?.id
+            );
+            setDupErrors(prev => ({ ...prev, dlNo: exists ? "DL number already exists" : "" }));
+        }
+
+        if (name === "mobile") {
+            const exists = driverEntries.some(
+                (d) => d.mobile === trimmed && d.id !== initialData?.id
+            );
+            setDupErrors(prev => ({ ...prev, mobile: exists ? "Mobile number already exists" : "" }));
+        }
+    }, 1000);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setFormErrors({});
-
-    // 🟢 1. Check Duplicates
+    
+    // 泙 1. Check Duplicates
     if (dupErrors.driverName || dupErrors.dlNo || dupErrors.mobile) {
         toast.error("Please resolve duplicate entries.");
         return;
     }
 
-    // 🟢 2. Zod Validation
+    // 泙 2. Zod Validation
     const validationResult = driverSchema.safeParse(entry);
 
     if (!validationResult.success) {

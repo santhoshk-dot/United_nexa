@@ -98,6 +98,50 @@ interface DataContextType {
   searchPackings: (search: string, page: number) => Promise<any>;
   searchContents: (search: string, page: number) => Promise<any>;
 }
+export const useDataContext = () => {
+    const context = React.useContext(DataContext);
+    if (context === undefined) {
+        throw new Error('useDataContext must be used within a DataProvider');
+    }
+    return context;
+};
+
+
+export const useGcContext = () => {
+    const context = React.useContext(DataContext);
+    if (context === undefined) {
+        throw new Error('useGcContext must be used within a DataProvider');
+    }
+    return context;
+};
+
+
+export const useStockContext = () => {
+    const context = React.useContext(DataContext);
+    if (context === undefined) {
+        throw new Error('useStockContext must be used within a DataProvider');
+    }
+    return context;
+};
+
+
+export const useReportContext = () => {
+    const context = React.useContext(DataContext);
+    if (context === undefined) {
+        throw new Error('useReportContext must be used within a DataProvider');
+    }
+    return context;
+};
+
+
+export const useTripPrintContext = () => {
+    const context = React.useContext(DataContext);
+    if (context === undefined) {
+        throw new Error('useTripPrintContext must be used within a DataProvider');
+    }
+    return context;
+};
+
 
 export const DataContext = createContext<DataContextType | undefined>(undefined);
 

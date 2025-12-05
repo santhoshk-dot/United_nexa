@@ -1,5 +1,5 @@
 import { Button } from './Button';
-import { AlertTriangle, Trash2 } from 'lucide-react';
+import { AlertTriangle, Trash2, type LucideIcon } from 'lucide-react';
 
 interface ConfirmationDialogProps {
   open: boolean;
@@ -7,6 +7,11 @@ interface ConfirmationDialogProps {
   onConfirm: () => void;
   title: string;
   description: string;
+  confirmText?: string;
+  ConfirmIcon?: LucideIcon;
+  variant?: 'primary' | 'secondary' | 'destructive' | 'outline' | 'ghost';
+  // Alias to support usage as 'theme' in MainScreen.tsx
+  theme?: 'primary' | 'secondary' | 'destructive' | 'outline' | 'ghost'; 
 }
 
 export const ConfirmationDialog = ({
@@ -15,10 +20,26 @@ export const ConfirmationDialog = ({
   onConfirm,
   title,
   description,
+  confirmText = "Confirm Delete",
+  ConfirmIcon = Trash2,
+  variant,
+  theme,
 }: ConfirmationDialogProps) => {
   if (!open) {
     return null;
   }
+
+  // Determine effective variant (defaulting to 'destructive' to maintain backward compatibility)
+  const effectiveVariant = variant || theme || 'destructive';
+
+  // Dynamic styles for the icon container based on variant
+  const iconContainerClass = effectiveVariant === 'destructive' 
+    ? 'bg-destructive/10' 
+    : 'bg-primary/10';
+    
+  const iconClass = effectiveVariant === 'destructive'
+    ? 'text-destructive'
+    : 'text-primary';
 
   return (
     // Modal Backdrop
@@ -28,8 +49,8 @@ export const ConfirmationDialog = ({
         {/* Modal Body */}
         <div className="p-6">
           <div className="flex items-start gap-4">
-            <div className="flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-destructive/10 sm:h-10 sm:w-10">
-              <AlertTriangle className="h-6 w-6 text-destructive" />
+            <div className={`flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full ${iconContainerClass} sm:h-10 sm:w-10`}>
+              <AlertTriangle className={`h-6 w-6 ${iconClass}`} />
             </div>
             <div className="mt-0 flex-1">
               <h3 className="text-lg font-semibold leading-6 text-foreground">
@@ -45,21 +66,21 @@ export const ConfirmationDialog = ({
         </div>
         
         {/* Modal Footer (Actions) */}
-        <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2  p-4 rounded-b-lg">
+        <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 p-4 rounded-b-lg">
           <Button type="button" variant="secondary" onClick={onClose} className="w-full sm:w-auto">
             Cancel
           </Button>
           <Button
             type="button"
-            variant="destructive"
+            variant={effectiveVariant}
             onClick={() => {
               onConfirm();
               onClose();
             }}
             className="w-full sm:w-auto"
           >
-            <Trash2 className="size-4 mr-2" />
-            Confirm Delete
+            <ConfirmIcon className="size-4 mr-2" />
+            {confirmText}
           </Button>
         </div>
       </div>

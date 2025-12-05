@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import type { Consignor, Consignee } from '../../types';
 import { Input } from '../../components/shared/Input';
 import { Button } from '../../components/shared/Button';
@@ -61,11 +61,49 @@ export const ConsignorForm = ({ initialData, onClose, onSave }: ConsignorFormPro
 
   const isUpdateMode = !!consignor.id;
 
+  // 泙 NEW: Ref for debouncing
+ const validationTimeouts = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+
+
+  // 泙 NEW: Field Validation Helper
+  const validateField = (name: string, value: string, schema: any, errorPrefix: string = "") => {
+    try {
+      const fieldSchema = (schema.shape as any)[name];
+      if (fieldSchema) {
+        const result = fieldSchema.safeParse(value);
+        const errorKey = `${errorPrefix}${name}`;
+        
+        if (!result.success) {
+          setFormErrors(prev => ({ ...prev, [errorKey]: result.error.issues[0].message }));
+        } else {
+          setFormErrors(prev => {
+            const next = { ...prev };
+            delete next[errorKey];
+            return next;
+          });
+        }
+      }
+    } catch (e) {}
+  };
+
   const handleConsignorChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
+    
+    // 1. Update State
     setConsignor(prev => ({ ...prev, [name]: value }));
     if (duplicateMessage) setDuplicateMessage(null);
-    if (formErrors[name]) setFormErrors(prev => ({ ...prev, [name]: '' }));
+    
+    // 2. Clear immediate error
+    if (formErrors[name]) {
+        setFormErrors(prev => { const n = {...prev}; delete n[name]; return n; });
+    }
+
+    // 3. Debounce Validation
+    if (validationTimeouts.current[name]) clearTimeout(validationTimeouts.current[name]);
+    
+    validationTimeouts.current[name] = setTimeout(() => {
+        validateField(name, value, consignorSchema);
+    }, 1000);
   };
 
   const loadDestinationOptions = async (search: string, _prevOptions: any, { page }: any) => {
@@ -79,9 +117,16 @@ export const ConsignorForm = ({ initialData, onClose, onSave }: ConsignorFormPro
 
   const handleDestinationChange = (option: any) => {
       setDestinationOption(option);
-      setConsignee(prev => ({ ...prev, destination: option?.value || '' }));
+      const val = option?.value || '';
+      setConsignee(prev => ({ ...prev, destination: val }));
+      
       if (duplicateMessage) setDuplicateMessage(null);
-      if (formErrors['consignee.destination']) setFormErrors(prev => ({ ...prev, 'consignee.destination': '' }));
+      if (formErrors['consignee.destination']) {
+          setFormErrors(prev => { const n = {...prev}; delete n['consignee.destination']; return n; });
+      }
+
+      // Validate immediately (or debounce, but selection is usually valid)
+      if (addFirstConsignee) validateField('destination', val, consigneeSchema, "consignee.");
   };
   
   const handleProofBlur = (e: React.FocusEvent<HTMLInputElement>) => {
@@ -114,8 +159,32 @@ export const ConsignorForm = ({ initialData, onClose, onSave }: ConsignorFormPro
 
   const handleConsigneeChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
+    
+    // 1. Update State
     setConsignee(prev => ({ ...prev, [name]: value }));
-    if (formErrors[`consignee.${name}`]) setFormErrors(prev => ({ ...prev, [`consignee.${name}`]: '' }));
+    
+    // 2. Clear immediate error
+    const errorKey = `consignee.${name}`;
+    if (formErrors[errorKey]) {
+        setFormErrors(prev => { const n = {...prev}; delete n[errorKey]; return n; });
+    }
+
+    // 3. Debounce Validation
+    const timeoutKey = `consignee_${name}`; // distinct key
+    if (validationTimeouts.current[timeoutKey]) clearTimeout(validationTimeouts.current[timeoutKey]);
+
+    validationTimeouts.current[timeoutKey] = setTimeout(() => {
+        // Validate Consignee Fields if checkbox is checked
+        if (addFirstConsignee) {
+            // Special case for proofValue as schema uses gst/pan/aadhar keys
+            if (name === 'proofValue') {
+                if(!value) setFormErrors(prev => ({ ...prev, 'consignee.proofValue': 'Proof Value is required' }));
+                else setFormErrors(prev => { const n = {...prev}; delete n['consignee.proofValue']; return n; });
+            } else if (name !== 'proofType') {
+                validateField(name, value, consigneeSchema, "consignee.");
+            }
+        }
+    }, 500);
   };
 
   const handleSubmit = (e: React.FormEvent) => {

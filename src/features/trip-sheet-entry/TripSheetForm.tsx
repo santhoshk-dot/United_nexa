@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useMemo, useState, useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Save, Trash2, X } from "lucide-react";
 
@@ -10,7 +10,7 @@ import { useData } from "../../hooks/useData";
 import { getTodayDate } from "../../utils/dateHelpers";
 import api from "../../utils/api";
 import { useToast } from "../../contexts/ToastContext";
-// 🟢 NEW: Import Zod Schema
+// 泙 NEW: Import Zod Schema
 import { tripSheetSchema } from "../../schemas";
 
 const toNum = (v: any) => (Number.isFinite(Number(v)) ? Number(v) : 0);
@@ -64,6 +64,10 @@ export const TripSheetForm = () => {
   // 🟢 NEW: Validation Errors State
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
+  // 泙 NEW: Ref for debouncing
+  const validationTimeouts = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+
+
   // Option States for AsyncDropdowns (to show labels correctly without fetching)
   const [fromPlaceOption, setFromPlaceOption] = useState<any>({ label: 'Sivakasi', value: 'Sivakasi' });
   const [toPlaceOption, setToPlaceOption] = useState<any>(null);
@@ -75,6 +79,48 @@ export const TripSheetForm = () => {
   const [lorryNameOption, setLorryNameOption] = useState<any>(null);
 
   const [loading, setLoading] = useState(isEditMode);
+
+  // 泙 NEW: Field Validation Helper
+  const validateField = (name: string, value: any) => {
+    try {
+      const fieldSchema = (tripSheetSchema.shape as any)[name];
+      if (fieldSchema) {
+        const result = fieldSchema.safeParse(value);
+        if (!result.success) {
+          setFormErrors(prev => ({ ...prev, [name]: result.error.issues[0].message }));
+        } else {
+          setFormErrors(prev => {
+            const next = { ...prev };
+            delete next[name];
+            return next;
+          });
+        }
+      }
+    } catch (e) {
+      // Ignore schema lookup errors
+    }
+  };
+
+  // 泙 NEW: Generic Change Handler for Text Inputs with Debounce
+  const handleInputChange = (setter: React.Dispatch<React.SetStateAction<string>>, name: string, value: string) => {
+    // 1. Update State
+    setter(value);
+    
+    // 2. Clear immediate errors
+    if (formErrors[name]) {
+        setFormErrors(prev => { const n = {...prev}; delete n[name]; return n; });
+    }
+
+    // 3. Clear timeout
+    if (validationTimeouts.current[name]) {
+        clearTimeout(validationTimeouts.current[name]);
+    }
+
+    // 4. Set delayed validation
+    validationTimeouts.current[name] = setTimeout(() => {
+        validateField(name, value);
+    }, 500);
+  };
 
   // --- LOAD DATA (Edit Mode) ---
   useEffect(() => {
@@ -276,33 +322,59 @@ export const TripSheetForm = () => {
 
   const handleDriverSelect = (option: any) => {
       if (!option) return;
-      setDriverName(option.driverName.toUpperCase());
-      setDlNo(option.dlNo);
-      setDriverMobile(option.mobile);
-
-      setDriverNameOption({ value: option.id, label: option.driverName.toUpperCase() });
-      setDriverDlOption({ value: option.id, label: option.dlNo });
-      setDriverMobileOption({ value: option.id, label: option.mobile });
       
-      setFormErrors(prev => ({ ...prev, driverName: '', dlNo: '', driverMobile: '' }));
+      const newName = option.driverName.toUpperCase();
+      const newDl = option.dlNo;
+      const newMob = option.mobile;
+
+      setDriverName(newName);
+      setDlNo(newDl);
+      setDriverMobile(newMob);
+
+      setDriverNameOption({ value: option.id, label: newName });
+      setDriverDlOption({ value: option.id, label: newDl });
+      setDriverMobileOption({ value: option.id, label: newMob });
+      
+      // Clear errors immediately for all updated fields
+      setFormErrors(prev => {
+          const next = { ...prev };
+          delete next['driverName'];
+          delete next['dlNo'];
+          delete next['driverMobile'];
+          return next;
+      });
   };
 
   const handleVehicleSelect = (option: any) => {
       if (!option) return;
-      setLorryNo(option.vehicleNo);
-      setLorryName(option.vehicleName.toUpperCase());
-      setOwnerName(option.ownerName ? option.ownerName.toUpperCase() : "");
-      setOwnerMobile(option.ownerMobile ?? "");
       
-      setLorryNoOption({ value: option.id, label: option.vehicleNo });
-      setLorryNameOption({ value: option.id, label: option.vehicleName.toUpperCase() });
+      const newLorryNo = option.vehicleNo;
+      const newLorryName = option.vehicleName.toUpperCase();
+      const newOwnerName = option.ownerName ? option.ownerName.toUpperCase() : "";
+      const newOwnerMob = option.ownerMobile ?? "";
+
+      setLorryNo(newLorryNo);
+      setLorryName(newLorryName);
+      setOwnerName(newOwnerName);
+      setOwnerMobile(newOwnerMob);
       
-      setFormErrors(prev => ({ ...prev, lorryNo: '', lorryName: '', ownerName: '', ownerMobile: '' }));
+      setLorryNoOption({ value: option.id, label: newLorryNo });
+      setLorryNameOption({ value: option.id, label: newLorryName });
+      
+      // Clear errors immediately
+      setFormErrors(prev => {
+          const next = { ...prev };
+          delete next['lorryNo'];
+          delete next['lorryName'];
+          delete next['ownerName'];
+          delete next['ownerMobile'];
+          return next;
+      });
   };
 
   const onOwnerNameChange = (v: string) => { 
-      setOwnerName(v.toUpperCase());
-      setFormErrors(prev => ({ ...prev, ownerName: '' }));
+      const upperV = v.toUpperCase();
+      handleInputChange(setOwnerName, 'ownerName', upperV);
   };
 
   const handleSave = async (e?: React.FormEvent) => {
@@ -336,7 +408,6 @@ export const TripSheetForm = () => {
 
     if (!validationResult.success) {
       const newErrors: Record<string, string> = {};
-      // FIX: Changed .errors to .issues and typed err as any
       validationResult.error.issues.forEach((err: any) => {
         if (err.path[0]) {
           newErrors[err.path[0].toString()] = err.message;
@@ -378,7 +449,7 @@ export const TripSheetForm = () => {
                   type="date"
                   label="Trip Date"
                   value={tsDate}
-                  onChange={(e) => { setTsDate(e.target.value); setFormErrors(p => ({...p, tsDate: ''})); }}
+                  onChange={(e) => handleInputChange(setTsDate, 'tsDate', e.target.value)}
                   required
                   {...getValidationProp(tsDate)}
                 />
@@ -392,8 +463,11 @@ export const TripSheetForm = () => {
                   value={fromPlaceOption}
                   onChange={(v: any) => {
                       setFromPlaceOption(v);
-                      setFromPlace(v?.value || '');
-                      setFormErrors(p => ({...p, fromPlace: ''}));
+                      const val = v?.value || '';
+                      setFromPlace(val);
+                      // Clear error and validate immediately for selects
+                      setFormErrors(p => { const n = {...p}; delete n['fromPlace']; return n; });
+                      validateField('fromPlace', val);
                   }}
                   required
                   defaultOptions={false} 
@@ -412,8 +486,13 @@ export const TripSheetForm = () => {
                       setToPlaceOption(v);
                       const val = v?.value || '';
                       setToPlace(val); 
-                      if(!isEditMode) setUnloadPlace(val); 
-                      setFormErrors(p => ({...p, toPlace: ''}));
+                      if(!isEditMode) {
+                          setUnloadPlace(val);
+                          // Also clear unloadPlace error if it matches
+                          setFormErrors(p => { const n = {...p}; delete n['unloadPlace']; return n; });
+                      } 
+                      setFormErrors(p => { const n = {...p}; delete n['toPlace']; return n; });
+                      validateField('toPlace', val);
                   }}
                   required
                   defaultOptions={false} 
@@ -426,7 +505,7 @@ export const TripSheetForm = () => {
                 <Input
                   label="Carriers"
                   value={carriers}
-                  onChange={(e) => { setCarriers(e.target.value); setFormErrors(p => ({...p, carriers: ''})); }}
+                  onChange={(e) => handleInputChange(setCarriers, 'carriers', e.target.value)}
                   required
                   {...getValidationProp(carriers)}
                 />
@@ -625,7 +704,7 @@ export const TripSheetForm = () => {
                 <Input
                   label="Owner Mobile"
                   value={ownerMobile}
-                  onChange={(e) => { setOwnerMobile(e.target.value); setFormErrors(p => ({...p, ownerMobile: ''})); }}
+                  onChange={(e) => handleInputChange(setOwnerMobile, 'ownerMobile', e.target.value)}
                   required
                   {...getValidationProp(ownerMobile)}
                 />
@@ -637,7 +716,7 @@ export const TripSheetForm = () => {
                   label="Unload Place"
                   placeholder="Select Unload Place"
                   value={unloadPlace}
-                  onChange={(e) => { setUnloadPlace(e.target.value); setFormErrors(p => ({...p, unloadPlace: ''})); }}
+                  onChange={(e) => handleInputChange(setUnloadPlace, 'unloadPlace', e.target.value)}
                   required
                   {...getValidationProp(unloadPlace)}
                 />
