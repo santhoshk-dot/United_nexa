@@ -14,7 +14,6 @@ import {
   ChevronDown,
   ChevronRight,
   Database,
-  BarChart3,
   Car, // Added for Vehicles
   UserCircle, // Added for Drivers
   Settings // 🟢 Added for Print Settings
@@ -60,7 +59,7 @@ export const Sidebar = ({ isSidebarOpen, setIsSidebarOpen }: SidebarProps) => {
 
   // 2. Sub-Menu Links (Data Management & Settings)
   const dataManagementLinks = [
-    { name: 'Master Dashboard', href: '/master', icon: BarChart3 }, 
+    // { name: 'Master Dashboard', href: '/master', icon: BarChart3 }, 
     { name: 'Print Settings', href: '/settings', icon: Settings }, // 🟢 Added MainScreen link here
     { name: 'Consignors', href: '/master/consignors', icon: Truck },
     { name: 'Consignees', href: '/master/consignees', icon: Users },

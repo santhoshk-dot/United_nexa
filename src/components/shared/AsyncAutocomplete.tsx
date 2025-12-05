@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { AsyncPaginate } from 'react-select-async-paginate';
 import { 
   components, 
@@ -52,8 +52,6 @@ const ClearIndicator = (props: any) => {
   );
 };
 
-// 🟢 FIX: Do not spread {...props} onto the DOM element. 
-// It was passing invalid props like 'clearValue', 'selectOption' etc. to the div.
 const LoadingIndicator = () => {
   return (
     <div className="p-2 mr-1">
@@ -62,7 +60,7 @@ const LoadingIndicator = () => {
   );
 };
 
-// 泙 NEW: Custom Value Container to handle "+ N more" logic
+// Custom Value Container to handle "+ N more" logic
 const CustomValueContainer = ({ children, ...props }: ValueContainerProps<OptionType, boolean>) => {
   const { isMulti, getValue } = props;
   const selected = getValue();
@@ -114,6 +112,9 @@ export const AsyncAutocomplete = ({
 
   const showAsterisk = required && !hideRequiredIndicator;
   const [shouldLoad, setShouldLoad] = useState(defaultOptions);
+  
+  // 🟢 NEW: Cache to store the default list (page 1) loaded when search is empty
+  const defaultOptionsCache = useRef<OptionType[]>([]);
 
   const handleMenuOpen = () => {
     if (!shouldLoad) {
@@ -122,23 +123,36 @@ export const AsyncAutocomplete = ({
   };
 
   const loadOptionsWrapper = async (search: string, prevOptions: any, { page }: any) => {
-    if (search && prevOptions && prevOptions.length > 0) {
+    // 🟢 1. OPTIMIZATION: Local filtering from Cache
+    // If we have cached default options and user is typing, try to find match locally first.
+    if (search && defaultOptionsCache.current.length > 0) {
       const normalizedSearch = search.toLowerCase();
-      const localMatches = prevOptions.filter((opt: OptionType) => 
+      const localMatches = defaultOptionsCache.current.filter((opt: OptionType) => 
         opt.label.toLowerCase().includes(normalizedSearch)
       );
 
+      // If we found matches in our cache, return them immediately.
+      // This prevents the API call.
       if (localMatches.length > 0) {
         return {
           options: localMatches,
-          hasMore: false, 
+          hasMore: false, // Assume no more from server if we found local matches (optional strictness)
         };
       }
     }
-    return loadOptions(search, prevOptions, { page });
+
+    // 🟢 2. NORMAL FETCH: If no local match or search is empty, call API
+    const response = await loadOptions(search, prevOptions, { page });
+
+    // 🟢 3. CACHE UPDATE: If this was a default load (no search, page 1), save to cache
+    if (!search && page === 1 && response.options) {
+      defaultOptionsCache.current = response.options;
+    }
+
+    return response;
   };
 
-  // 耳 STYLES
+  // 耳 STYLES
   const customStyles: StylesConfig<OptionType, boolean, GroupBase<OptionType>> = {
     control: (provided, state) => ({
       ...provided,
@@ -149,8 +163,7 @@ export const AsyncAutocomplete = ({
       color: 'hsl(var(--foreground))',
       borderRadius: '0.375rem', 
       padding: '0 2px', 
-      minHeight: '38px', // 泙 CHANGED: Reduced from 42px to 38px to match Input field
-      // Prevent massive expansion
+      minHeight: '38px',
       maxHeight: isMulti ? '80px' : undefined,
       overflowY: isMulti ? 'auto' : undefined,
       boxShadow: state.isFocused 
@@ -165,7 +178,7 @@ export const AsyncAutocomplete = ({
     }),
     valueContainer: (provided) => ({
       ...provided,
-      padding: '0 8px', // 泙 CHANGED: Adjusted padding for better vertical centering in 38px height
+      padding: '0 8px', 
       gap: '4px',
     }),
     menu: (provided) => ({
@@ -192,7 +205,6 @@ export const AsyncAutocomplete = ({
         backgroundColor: 'hsl(var(--primary) / 0.2)',
       }
     }),
-    // 泙 Focus Ring Fix
     input: (provided) => ({
       ...provided,
       color: 'hsl(var(--foreground))',
@@ -255,12 +267,11 @@ export const AsyncAutocomplete = ({
         defaultOptions={shouldLoad}
         additional={{ page: 1 }}
         styles={customStyles}
-        // 泙 Inject Custom Components
         components={{ 
           DropdownIndicator, 
           ClearIndicator, 
           LoadingIndicator,
-          ValueContainer: CustomValueContainer // 争 The logic to truncate tags
+          ValueContainer: CustomValueContainer 
         }}
         debounceTimeout={400} 
         classNamePrefix="react-select"
