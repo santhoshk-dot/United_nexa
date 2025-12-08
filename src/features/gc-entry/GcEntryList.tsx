@@ -1,12 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FilePenLine, Trash2, Search, Printer, Filter, XCircle, RotateCcw } from 'lucide-react';
 import { DateFilterButtons, getTodayDate, getYesterdayDate } from '../../components/shared/DateFilterButtons';
 import { ConfirmationDialog } from '../../components/shared/ConfirmationDialog';
 import { useData } from '../../hooks/useData';
-import { useServerPagination } from '../../hooks/useServerPagination';
+// import { useServerPagination } from '../../hooks/useServerPagination'; // 🟡 MOCK: Commented out
 import { Button } from '../../components/shared/Button';
-import { AsyncAutocomplete } from '../../components/shared/AsyncAutocomplete'; // 🟢 Updated Import
+import { AsyncAutocomplete } from '../../components/shared/AsyncAutocomplete';
 import { GcPrintManager, type GcPrintJob } from './GcPrintManager';
 import { Pagination } from '../../components/shared/Pagination';
 import type { GcEntry, Consignor, Consignee } from '../../types';
@@ -14,50 +14,82 @@ import { useToast } from '../../contexts/ToastContext';
 
 export const GcEntryList = () => {
   const navigate = useNavigate();
-  const { 
-    deleteGcEntry, 
+  const {
+    deleteGcEntry,
     fetchGcPrintData,
-    // 🟢 NEW: Destructure search functions from context
+    gcEntries, // 🟡 MOCK: Get mock data from context
     searchConsignors,
     searchConsignees,
-    searchToPlaces 
+    searchToPlaces
   } = useData();
-  
+
   const toast = useToast();
 
-  // Use Server Pagination Hook
-  const {
-    data: paginatedData,
-    loading,
-    currentPage,
-    setCurrentPage,
-    totalPages,
-    totalItems,
-    itemsPerPage,
-    setItemsPerPage,
-    setFilters,
-    filters,
-    refresh
-  } = useServerPagination<GcEntry>({ 
-    endpoint: '/operations/gc',
-    initialFilters: { search: '', filterType: 'all' },
-  });
+  // 🟡 MOCK: Local state instead of server pagination
+  const [filters, setFiltersState] = useState<any>({ search: '', filterType: 'all' });
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const loading = false;
+
+  const setFilters = (newFilters: any) => {
+    setFiltersState((prev: any) => ({ ...prev, ...newFilters }));
+    setCurrentPage(1); // Reset to first page on filter change
+  };
+
+  // 🟡 MOCK: Filter and paginate locally
+  const filteredData = useMemo(() => {
+    let data = [...gcEntries];
+
+    // Search filter
+    if (filters.search) {
+      const searchLower = filters.search.toLowerCase();
+      data = data.filter(gc =>
+        gc.gcNo.toLowerCase().includes(searchLower) ||
+        gc.destination.toLowerCase().includes(searchLower) ||
+        gc.packing?.toLowerCase().includes(searchLower) ||
+        gc.contents?.toLowerCase().includes(searchLower)
+      );
+    }
+
+    // Date filter
+    if (filters.filterType === 'today') {
+      const today = getTodayDate();
+      data = data.filter(gc => gc.gcDate === today);
+    } else if (filters.filterType === 'yesterday') {
+      const yesterday = getYesterdayDate();
+      data = data.filter(gc => gc.gcDate === yesterday);
+    } else if (filters.filterType === 'custom' && filters.startDate && filters.endDate) {
+      data = data.filter(gc => gc.gcDate >= filters.startDate && gc.gcDate <= filters.endDate);
+    }
+
+    // Destination filter
+    if (filters.destination) {
+      data = data.filter(gc => gc.destination === filters.destination);
+    }
+
+    return data;
+  }, [gcEntries, filters]);
+
+  const totalItems = filteredData.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const paginatedData = filteredData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+  const refresh = () => {
+    // No-op for mock data (state updates automatically)
+  };
 
   const [showFilters, setShowFilters] = useState(false);
-  
-  // 🟢 NEW: Local state for dropdown option objects (needed for UI display)
-  // We keep these separate from 'filters' because 'filters' only stores IDs for the API
+
   const [destinationOption, setDestinationOption] = useState<any>(null);
   const [consignorOption, setConsignorOption] = useState<any>(null);
   const [consigneeOptions, setConsigneeOptions] = useState<any[]>([]);
 
-  // Local state for UI controls
   const [selectedGcIds, setSelectedGcIds] = useState<string[]>([]);
   const [selectAllMode, setSelectAllMode] = useState(false);
 
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [deleteMessage, setDeleteMessage] = useState(""); 
+  const [deleteMessage, setDeleteMessage] = useState("");
   const [printingJobs, setPrintingJobs] = useState<GcPrintJob[] | null>(null);
 
   // --- Filter Handlers ---
@@ -68,37 +100,37 @@ export const GcEntryList = () => {
   const handleFilterTypeChange = (type: string) => {
     let start = '';
     let end = '';
-    
+
     if (type === 'today') {
-        start = getTodayDate();
-        end = getTodayDate();
+      start = getTodayDate();
+      end = getTodayDate();
     } else if (type === 'yesterday') {
-        start = getYesterdayDate();
-        end = getYesterdayDate();
+      start = getYesterdayDate();
+      end = getYesterdayDate();
     } else if (type === 'week') {
-        const d = new Date();
-        d.setDate(d.getDate() - 7);
-        start = d.toISOString().split('T')[0];
-        end = getTodayDate();
+      const d = new Date();
+      d.setDate(d.getDate() - 7);
+      start = d.toISOString().split('T')[0];
+      end = getTodayDate();
     }
 
-    setFilters({ 
-        filterType: type, 
-        startDate: start, 
-        endDate: end,
-        customStart: '', 
-        customEnd: ''
+    setFilters({
+      filterType: type,
+      startDate: start,
+      endDate: end,
+      customStart: '',
+      customEnd: ''
     });
   };
 
   const handleCustomDateChange = (start: string, end: string) => {
-      setFilters({ 
-          filterType: 'custom', 
-          customStart: start, 
-          customEnd: end,
-          startDate: start,
-          endDate: end
-      });
+    setFilters({
+      filterType: 'custom',
+      customStart: start,
+      customEnd: end,
+      startDate: start,
+      endDate: end
+    });
   };
 
   const clearAllFilters = () => {
@@ -108,14 +140,14 @@ export const GcEntryList = () => {
     setConsigneeOptions([]);
 
     // Reset API filters
-    setFilters({ 
-        search: '', 
-        filterType: 'all', 
-        startDate: '', 
-        endDate: '', 
-        destination: '', 
-        consignor: '', 
-        consignee: []
+    setFilters({
+      search: '',
+      filterType: 'all',
+      startDate: '',
+      endDate: '',
+      destination: '',
+      consignor: '',
+      consignee: []
     });
   };
 
@@ -150,88 +182,88 @@ export const GcEntryList = () => {
   };
 
   const handleEdit = (gcNo: string) => navigate(`/gc-entry/edit/${gcNo}`);
-  
-  const handleDelete = (gcNo: string) => { 
-    setDeletingId(gcNo); 
+
+  const handleDelete = (gcNo: string) => {
+    setDeletingId(gcNo);
     setDeleteMessage(`Are you sure you want to delete GC Entry #${gcNo}?`);
-    setIsConfirmOpen(true); 
+    setIsConfirmOpen(true);
   };
-  
-  const handleConfirmDelete = async () => { 
+
+  const handleConfirmDelete = async () => {
     if (deletingId) {
-        await deleteGcEntry(deletingId);
-        refresh();
+      await deleteGcEntry(deletingId);
+      refresh();
     }
-    setIsConfirmOpen(false); 
-    setDeletingId(null); 
+    setIsConfirmOpen(false);
+    setDeletingId(null);
   };
-  
+
   // --- PRINT HANDLERS ---
 
   const handlePrintSingle = async (gcNo: string) => {
     try {
       const printData = await fetchGcPrintData([gcNo]);
-      
+
       if (printData && printData.length > 0) {
-          const item = printData[0];
-          const { consignor, consignee, ...gcData } = item;
-          
-          setPrintingJobs([{ 
-              gc: gcData as GcEntry, 
-              consignor: consignor as Consignor, 
-              consignee: consignee as Consignee 
-          }]);
+        const item = printData[0];
+        const { consignor, consignee, ...gcData } = item;
+
+        setPrintingJobs([{
+          gc: gcData as GcEntry,
+          consignor: consignor as Consignor,
+          consignee: consignee as Consignee
+        }]);
       } else {
-          toast.error("Failed to fetch GC details for printing.");
+        toast.error("Failed to fetch GC details for printing.");
       }
     } catch (error) {
       console.error("Print error:", error);
       toast.error("An error occurred while fetching print data.");
     }
   };
-  
+
   const handlePrintSelected = async () => {
     if (selectedGcIds.length === 0 && !selectAllMode) return;
-    
+
     try {
-        let printData = [];
-        
-        if (selectAllMode) {
-            printData = await fetchGcPrintData([], true, filters);
-        } else {
-            printData = await fetchGcPrintData(selectedGcIds);
-        }
-        
-        if (!printData || printData.length === 0) {
-            toast.error("Could not fetch data for selected GCs.");
-            return;
+      let printData = [];
+
+      if (selectAllMode) {
+        printData = await fetchGcPrintData([], true, filters);
+      } else {
+        printData = await fetchGcPrintData(selectedGcIds);
+      }
+
+      if (!printData || printData.length === 0) {
+        toast.error("Could not fetch data for selected GCs.");
+        return;
+      }
+
+      const jobs = printData.map((item: any): GcPrintJob | null => {
+        const { consignor, consignee, ...gcData } = item;
+
+        if (!consignor || !consignee) {
+          console.warn(`Incomplete data for GC ${gcData.gcNo}`);
+          return null;
         }
 
-        const jobs = printData.map((item: any): GcPrintJob | null => {
-            const { consignor, consignee, ...gcData } = item;
-            
-            if (!consignor || !consignee) {
-                console.warn(`Incomplete data for GC ${gcData.gcNo}`);
-                return null;
-            }
+        return {
+          gc: gcData as GcEntry,
+          consignor: consignor as Consignor,
+          consignee: consignee as Consignee
+        };
+      }).filter((job): job is GcPrintJob => job !== null);
 
-            return {
-                gc: gcData as GcEntry,
-                consignor: consignor as Consignor,
-                consignee: consignee as Consignee
-            };
-        }).filter((job): job is GcPrintJob => job !== null);
-
-        if (jobs.length > 0) { 
-          setPrintingJobs(jobs); 
-          if (!selectAllMode) setSelectedGcIds([]); 
-          setSelectAllMode(false); 
-        } else {
-          toast.error("Could not prepare print jobs. Check data integrity.");
-        }
+      if (jobs.length > 0) {
+        setPrintingJobs(jobs);
+        if (!selectAllMode) setSelectedGcIds([]);
+        setSelectAllMode(false);
+      } else {
+        toast.error("Could not prepare print jobs. Check data integrity.");
+      }
     } catch (error) {
-        console.error("Bulk print error:", error);
-        toast.error("An error occurred while preparing print jobs.");
+      console.error("Bulk print error:", error);
+      toast.error("An error occurred while preparing print jobs.");
     }
   };
 
@@ -239,28 +271,28 @@ export const GcEntryList = () => {
 
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.checked) {
-        setSelectAllMode(true);
-        setSelectedGcIds(paginatedData.map(gc => gc.gcNo));
+      setSelectAllMode(true);
+      setSelectedGcIds(paginatedData.map(gc => gc.gcNo));
     } else {
-        setSelectAllMode(false);
-        setSelectedGcIds([]);
+      setSelectAllMode(false);
+      setSelectedGcIds([]);
     }
   };
 
   useEffect(() => {
-      if (selectAllMode) {
-          setSelectedGcIds(paginatedData.map(gc => gc.gcNo));
-      }
+    if (selectAllMode) {
+      setSelectedGcIds(paginatedData.map(gc => gc.gcNo));
+    }
   }, [paginatedData, selectAllMode]);
 
   const handleSelectRow = (e: React.ChangeEvent<HTMLInputElement>, id: string) => {
     if (selectAllMode) {
-        setSelectAllMode(false);
-        if (!e.target.checked) {
-            setSelectedGcIds(prev => prev.filter(x => x !== id));
-        }
+      setSelectAllMode(false);
+      if (!e.target.checked) {
+        setSelectedGcIds(prev => prev.filter(x => x !== id));
+      }
     } else {
-        setSelectedGcIds(prev => e.target.checked ? [...prev, id] : prev.filter(x => x !== id));
+      setSelectedGcIds(prev => e.target.checked ? [...prev, id] : prev.filter(x => x !== id));
     }
   };
 
@@ -268,27 +300,27 @@ export const GcEntryList = () => {
   const hasActiveFilters = !!filters.destination || !!filters.consignor || (filters.consignee && filters.consignee.length > 0) || filters.filterType !== 'all' || !!filters.search;
   const responsiveBtnClass = "flex-1 md:flex-none text-[10px] xs:text-xs sm:text-sm h-8 sm:h-10 px-1 sm:px-4 whitespace-nowrap";
 
-  const printButtonText = selectAllMode 
-    ? `Print All (${totalItems})` 
+  const printButtonText = selectAllMode
+    ? `Print All (${totalItems})`
     : `Print (${selectedGcIds.length})`;
 
   return (
     <div className="space-y-6">
-      
+
       {/* Top Bar */}
       <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-background p-4 rounded-lg shadow border border-muted">
         <div className="flex items-center gap-2 w-full md:w-1/2">
-           <div className="relative flex-1">
+          <div className="relative flex-1">
             <input
               type="text"
               placeholder="Search all data..."
               value={filters.search || ''}
-              onChange={handleSearchChange} 
+              onChange={handleSearchChange}
               className="w-full pl-10 pr-4 py-2 bg-background text-foreground border border-muted-foreground/30 rounded-md focus:outline-none focus:ring-primary focus:border-primary"
             />
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
           </div>
-          <Button 
+          <Button
             variant={hasActiveFilters ? 'primary' : 'outline'}
             onClick={() => setShowFilters(!showFilters)}
             className="h-10 px-3 shrink-0"
@@ -300,7 +332,7 @@ export const GcEntryList = () => {
         </div>
 
         <div className="flex gap-2 w-full md:w-auto justify-between md:justify-end">
-          <Button 
+          <Button
             variant="secondary"
             onClick={handlePrintSelected}
             disabled={selectedGcIds.length === 0 && !selectAllMode}
@@ -309,7 +341,7 @@ export const GcEntryList = () => {
             <Printer size={14} className="mr-1 sm:mr-2" />
             {printButtonText}
           </Button>
-          <Button 
+          <Button
             variant="primary"
             onClick={() => navigate('/gc-entry/new')}
             className={responsiveBtnClass}
@@ -331,9 +363,9 @@ export const GcEntryList = () => {
               <button onClick={() => setShowFilters(false)} className="text-muted-foreground hover:text-foreground ml-2"><XCircle size={18} /></button>
             </div>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-            
+
             {/* 🟢 Destination Filter (Async) */}
             <AsyncAutocomplete
               label="Filter by Destination"
@@ -347,7 +379,7 @@ export const GcEntryList = () => {
               loadOptions={loadDestinationOptions}
               defaultOptions
             />
-            
+
             {/* 🟢 Consignor Filter (Async) */}
             <AsyncAutocomplete
               label="Filter by Consignor"
@@ -363,32 +395,32 @@ export const GcEntryList = () => {
 
             {/* 🟢 Consignee Filter (Async Multi-Select) */}
             <div>
-               <AsyncAutocomplete
-                  label="Filter by Consignee"
-                  placeholder="Select consignees..."
-                  value={consigneeOptions} 
-                  onChange={(val) => {
-                    // 'val' is MultiValue<OptionType> (Array) or SingleValue.
-                    // Ensure we treat it as an array.
-                    const selectedItems = Array.isArray(val) ? val : (val ? [val] : []);
-                    setConsigneeOptions(selectedItems);
-                    const ids = selectedItems.map((v: any) => v.value);
-                    setFilters({ consignee: ids });
-                  }}
-                  loadOptions={loadConsigneeOptions}
-                  defaultOptions
-                  isMulti={true} // Enable multi-select
-               />
+              <AsyncAutocomplete
+                label="Filter by Consignee"
+                placeholder="Select consignees..."
+                value={consigneeOptions}
+                onChange={(val) => {
+                  // 'val' is MultiValue<OptionType> (Array) or SingleValue.
+                  // Ensure we treat it as an array.
+                  const selectedItems = Array.isArray(val) ? val : (val ? [val] : []);
+                  setConsigneeOptions(selectedItems);
+                  const ids = selectedItems.map((v: any) => v.value);
+                  setFilters({ consignee: ids });
+                }}
+                loadOptions={loadConsigneeOptions}
+                defaultOptions
+                isMulti={true} // Enable multi-select
+              />
             </div>
           </div>
-          
-          <DateFilterButtons 
-            filterType={filters.filterType || 'all'} 
-            setFilterType={handleFilterTypeChange} 
-            customStart={filters.customStart || ''} 
-            setCustomStart={(val) => handleCustomDateChange(val, filters.customEnd)} 
-            customEnd={filters.customEnd || ''} 
-            setCustomEnd={(val) => handleCustomDateChange(filters.customStart, val)} 
+
+          <DateFilterButtons
+            filterType={filters.filterType || 'all'}
+            setFilterType={handleFilterTypeChange}
+            customStart={filters.customStart || ''}
+            setCustomStart={(val) => handleCustomDateChange(val, filters.customEnd)}
+            customEnd={filters.customEnd || ''}
+            setCustomEnd={(val) => handleCustomDateChange(filters.customStart, val)}
           />
         </div>
       )}
@@ -412,66 +444,66 @@ export const GcEntryList = () => {
             </thead>
             <tbody className="divide-y divide-muted">
               {loading ? (
-                  <tr><td colSpan={9} className="px-6 py-12 text-center">Loading data...</td></tr>
+                <tr><td colSpan={9} className="px-6 py-12 text-center">Loading data...</td></tr>
               ) : paginatedData.length > 0 ? (
-                  paginatedData.map((gc) => {
-                    // 🟢 FIX: Use the new fields returned by backend instead of lookups
-                    // Type casting as 'any' because our frontend interface might strictly expect only base fields
-                    const consignorName = (gc as any).consignorName || 'N/A';
-                    const consigneeName = (gc as any).consigneeName || 'N/A';
-                    
-                    const tripSheetId = gc.tripSheetId;
-                    const isAssigned = tripSheetId && tripSheetId !== "";
+                paginatedData.map((gc) => {
+                  // 🟢 FIX: Use the new fields returned by backend instead of lookups
+                  // Type casting as 'any' because our frontend interface might strictly expect only base fields
+                  const consignorName = (gc as any).consignorName || 'N/A';
+                  const consigneeName = (gc as any).consigneeName || 'N/A';
 
-                    return (
-                      <tr key={gc.id} className="hover:bg-muted/30 transition-colors">
-                        <td className="px-4 py-4"><input type="checkbox" className="h-4 w-4 accent-primary" checked={selectedGcIds.includes(gc.gcNo)} onChange={(e) => handleSelectRow(e, gc.gcNo)} /></td>
-                        <td className="px-6 py-4 text-sm font-semibold text-primary">{gc.gcNo}</td>
-                        <td className="px-6 py-4 text-sm">{consignorName}</td>
-                        <td className="px-6 py-4 text-sm">{consigneeName}</td>
-                        <td className="px-6 py-4 text-sm">{gc.destination}</td>
+                  const tripSheetId = gc.tripSheetId;
+                  const isAssigned = tripSheetId && tripSheetId !== "";
 
-                        <td className="px-6 py-4 text-sm">{gc.quantity}</td>
-                        
-                        <td className="px-6 py-4 text-sm">
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${isAssigned ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
-                                {isAssigned ? `TS# ${tripSheetId}` : 'Pending'}
-                            </span>
-                        </td>
-                        
-                        <td className="px-6 py-4 text-sm space-x-2">
-                          <button onClick={() => handleEdit(gc.gcNo)} className="text-blue-600 hover:text-blue-800"><FilePenLine size={18} /></button>
-                          <button onClick={() => handlePrintSingle(gc.gcNo)} className="text-green-600 hover:text-green-800"><Printer size={18} /></button>
-                          <button onClick={() => handleDelete(gc.gcNo)} className="text-destructive hover:text-destructive/80"><Trash2 size={18} /></button>
-                        </td>
-                      </tr>
-                    );
-                  })
+                  return (
+                    <tr key={gc.id} className="hover:bg-muted/30 transition-colors">
+                      <td className="px-4 py-4"><input type="checkbox" className="h-4 w-4 accent-primary" checked={selectedGcIds.includes(gc.gcNo)} onChange={(e) => handleSelectRow(e, gc.gcNo)} /></td>
+                      <td className="px-6 py-4 text-sm font-semibold text-primary">{gc.gcNo}</td>
+                      <td className="px-6 py-4 text-sm">{consignorName}</td>
+                      <td className="px-6 py-4 text-sm">{consigneeName}</td>
+                      <td className="px-6 py-4 text-sm">{gc.destination}</td>
+
+                      <td className="px-6 py-4 text-sm">{gc.quantity}</td>
+
+                      <td className="px-6 py-4 text-sm">
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${isAssigned ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
+                          {isAssigned ? `TS# ${tripSheetId}` : 'Pending'}
+                        </span>
+                      </td>
+
+                      <td className="px-6 py-4 text-sm space-x-2">
+                        <button onClick={() => handleEdit(gc.gcNo)} className="text-blue-600 hover:text-blue-800"><FilePenLine size={18} /></button>
+                        <button onClick={() => handlePrintSingle(gc.gcNo)} className="text-green-600 hover:text-green-800"><Printer size={18} /></button>
+                        <button onClick={() => handleDelete(gc.gcNo)} className="text-destructive hover:text-destructive/80"><Trash2 size={18} /></button>
+                      </td>
+                    </tr>
+                  );
+                })
               ) : (
-                  <tr><td colSpan={9} className="px-6 py-12 text-center text-muted-foreground">No GC Entries found.</td></tr>
+                <tr><td colSpan={9} className="px-6 py-12 text-center text-muted-foreground">No GC Entries found.</td></tr>
               )}
             </tbody>
           </table>
         </div>
-        
-        <div className="block md:hidden divide-y divide-muted">
-           {paginatedData.map((gc) => {
-             // 🟢 FIX: Mobile view usage of new fields
-             const consignorName = (gc as any).consignorName || 'N/A';
-             const consigneeName = (gc as any).consigneeName || 'N/A';
-             const tripSheetId = gc.tripSheetId;
-             const isAssigned = tripSheetId && tripSheetId !== "";
 
-             return (
-             <div key={gc.id} className="p-4 hover:bg-muted/30 transition-colors">
+        <div className="block md:hidden divide-y divide-muted">
+          {paginatedData.map((gc) => {
+            // 🟢 FIX: Mobile view usage of new fields
+            const consignorName = (gc as any).consignorName || 'N/A';
+            const consigneeName = (gc as any).consigneeName || 'N/A';
+            const tripSheetId = gc.tripSheetId;
+            const isAssigned = tripSheetId && tripSheetId !== "";
+
+            return (
+              <div key={gc.id} className="p-4 hover:bg-muted/30 transition-colors">
                 <div className="flex justify-between items-start">
                   <div className="flex gap-3 flex-1">
                     <div className="pt-1">
-                      <input 
-                        type="checkbox" 
-                        className="h-5 w-5 accent-primary" 
-                        checked={selectedGcIds.includes(gc.gcNo)} 
-                        onChange={(e) => handleSelectRow(e, gc.gcNo)} 
+                      <input
+                        type="checkbox"
+                        className="h-5 w-5 accent-primary"
+                        checked={selectedGcIds.includes(gc.gcNo)}
+                        onChange={(e) => handleSelectRow(e, gc.gcNo)}
                       />
                     </div>
                     <div className="space-y-1 w-full">
@@ -497,12 +529,13 @@ export const GcEntryList = () => {
                 </div>
 
                 <div className="flex justify-end items-end mt-3 pt-3 border-t border-dashed border-muted">
-                   <div className={`text-sm font-bold ${isAssigned ? 'text-green-600' : 'text-muted-foreground'}`}>
-                      Status: {isAssigned ? `TS# ${tripSheetId}` : 'Pending'}
-                   </div>
+                  <div className={`text-sm font-bold ${isAssigned ? 'text-green-600' : 'text-muted-foreground'}`}>
+                    Status: {isAssigned ? `TS# ${tripSheetId}` : 'Pending'}
+                  </div>
                 </div>
-             </div>
-          )})}
+              </div>
+            )
+          })}
         </div>
 
         <div className="border-t border-muted p-4">
@@ -510,12 +543,12 @@ export const GcEntryList = () => {
         </div>
       </div>
 
-      <ConfirmationDialog 
-        open={isConfirmOpen} 
-        onClose={() => setIsConfirmOpen(false)} 
-        onConfirm={handleConfirmDelete} 
-        title="Delete GC" 
-        description={deleteMessage} 
+      <ConfirmationDialog
+        open={isConfirmOpen}
+        onClose={() => setIsConfirmOpen(false)}
+        onConfirm={handleConfirmDelete}
+        title="Delete GC"
+        description={deleteMessage}
       />
       {printingJobs && <GcPrintManager jobs={printingJobs} onClose={() => setPrintingJobs(null)} />}
     </div>

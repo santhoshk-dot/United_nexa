@@ -159,6 +159,78 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
   const [vehicleEntries, setVehicleEntries] = useState<VehicleEntry[]>([]);
   const [driverEntries, setDriverEntries] = useState<DriverEntry[]>([]);
 
+  // 🟡 MOCK: GC Entries State for testing
+  const [mockGcEntries, setMockGcEntries] = useState<GcEntry[]>([
+    {
+      id: 'gc-mock-1',
+      gcNo: 'GC001',
+      gcDate: '2025-12-08',
+      from: 'Sivakasi',
+      destination: 'Chennai',
+      consignorId: 'consignor-1',
+      consigneeId: 'consignee-1',
+      consigneeProofType: 'gst',
+      consigneeProofValue: '33AABCT1234A1Z5',
+      billDate: '2025-12-08',
+      deliveryAt: 'Chennai',
+      freightUptoAt: 'Chennai',
+      godown: 'Main Godown',
+      billNo: 'INV001',
+      billValue: 50000,
+      tollFee: 100,
+      freight: 500,
+      godownCharge: 50,
+      statisticCharge: 25,
+      advanceNone: 0,
+      balanceToPay: 675,
+      quantity: '10',
+      packing: 'Carton',
+      contents: 'Crackers',
+      prefix: 'A',
+      fromNo: '1',
+      netQty: 10,
+      contentItems: [
+        { id: 'item-1', qty: 5, packing: 'Carton', contents: 'Crackers', prefix: 'A', fromNo: 1 },
+        { id: 'item-2', qty: 5, packing: 'Box', contents: 'Sparklers', prefix: 'B', fromNo: 1 },
+      ],
+      paymentType: 'To Pay',
+    },
+    {
+      id: 'gc-mock-2',
+      gcNo: 'GC002',
+      gcDate: '2025-12-07',
+      from: 'Sivakasi',
+      destination: 'Bangalore',
+      consignorId: 'consignor-2',
+      consigneeId: 'consignee-2',
+      consigneeProofType: 'pan',
+      consigneeProofValue: 'ABCDE1234F',
+      billDate: '2025-12-07',
+      deliveryAt: 'Bangalore',
+      freightUptoAt: 'Bangalore',
+      godown: '',
+      billNo: 'INV002',
+      billValue: 75000,
+      tollFee: 150,
+      freight: 800,
+      godownCharge: 0,
+      statisticCharge: 30,
+      advanceNone: 500,
+      balanceToPay: 480,
+      quantity: '20',
+      packing: 'Box',
+      contents: 'Sparklers',
+      prefix: '',
+      fromNo: '1',
+      netQty: 20,
+      contentItems: [
+        { id: 'item-3', qty: 20, packing: 'Box', contents: 'Sparklers', prefix: '', fromNo: 1 },
+      ],
+      paymentType: 'Paid',
+    },
+  ]);
+  const [mockGcCounter, setMockGcCounter] = useState(3); // For generating new GC numbers
+
   const handleError = (error: any, defaultMsg: string) => {
     const msg = error.response?.data?.message || defaultMsg;
     toast.error(msg);
@@ -261,36 +333,84 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
     } catch (e) { return { data: [], hasMore: false }; }
   };
 
-  // GC Actions
-  const getNextGcNo = async () => { try { const { data } = await api.get('/operations/gc/next-no'); return data.nextGcNo; } catch (e) { return "Error"; } };
-  const fetchGcById = async (id: string) => { try { const { data } = await api.get(`/operations/gc/${id}`); return data; } catch (e) { return null; } };
-
-  const fetchGcDetailsForTripSheet = async (gcNo: string) => {
-    try { const { data } = await api.get(`/operations/gc/details/${gcNo}`); return data; }
-    catch (e: any) { toast.error(e.response?.data?.message || "Error fetching GC details"); return null; }
+  // 🟡 MOCK: GC Actions (API calls commented out for testing)
+  const getNextGcNo = async () => {
+    // try { const { data } = await api.get('/operations/gc/next-no'); return data.nextGcNo; } catch (e) { return "Error"; }
+    const nextNo = `GC${String(mockGcCounter).padStart(3, '0')}`;
+    return nextNo;
   };
 
-  const fetchGcPrintData = async (gcNos: string[], selectAll?: boolean, filters?: any) => { try { const { data } = await api.post('/operations/gc/print-data', { gcNos, selectAll, filters }); return data; } catch (e) { handleError(e, "Error fetching bulk print data"); return []; } };
+  const fetchGcById = async (id: string) => {
+    // try { const { data } = await api.get(`/operations/gc/${id}`); return data; } catch (e) { return null; }
+    const found = mockGcEntries.find(gc => gc.gcNo === id || gc.id === id);
+    if (found) {
+      // Simulate backend response with consignor/consignee names
+      return {
+        ...found,
+        consignorName: 'Mock Consignor',
+        consigneeName: 'Mock Consignee',
+        consignorGSTIN: '33AABCT1234A1Z5',
+      };
+    }
+    return null;
+  };
+
+  const fetchGcDetailsForTripSheet = async (gcNo: string) => {
+    // try { const { data } = await api.get(`/operations/gc/details/${gcNo}`); return data; }
+    // catch (e: any) { toast.error(e.response?.data?.message || "Error fetching GC details"); return null; }
+    const found = mockGcEntries.find(gc => gc.gcNo === gcNo);
+    return found || null;
+  };
+
+  const fetchGcPrintData = async (gcNos: string[]) => {
+    // try { const { data } = await api.post('/operations/gc/print-data', { gcNos, selectAll, filters }); return data; } catch (e) { handleError(e, "Error fetching bulk print data"); return []; }
+    return mockGcEntries.filter(gc => gcNos.includes(gc.gcNo)).map(gc => ({
+      ...gc,
+      consignor: { id: gc.consignorId, name: 'Mock Consignor', gst: '33AABCT1234A1Z5', address: 'Mock Address', from: 'Sivakasi', filingDate: '' },
+      consignee: { id: gc.consigneeId, name: 'Mock Consignee', destination: gc.destination, phone: '9876543210', address: 'Mock Address', filingDate: '' },
+    }));
+  };
+
   const fetchLoadingSheetPrintData = async (gcNos: string[], selectAll?: boolean, filters?: any) => { try { const { data } = await api.post('/operations/loading-sheet/print-data', { gcNos, selectAll, filters }); return data; } catch (e) { handleError(e, "Error fetching loading sheet print data"); return []; } };
   const fetchTripSheetPrintData = async (mfNos: string[], selectAll?: boolean, filters?: any) => { try { const { data } = await api.post('/operations/tripsheet/print-data', { mfNos, selectAll, filters }); return data; } catch (e) { handleError(e, "Error fetching trip sheet print data"); return []; } };
   const fetchPendingStockReport = async (filters: any) => { try { const { data } = await api.get('/operations/pending-stock/report', { params: filters }); return data; } catch (e) { handleError(e, "Error fetching report"); return []; } };
   const fetchTripSheetReport = async (filters: any) => { try { const { data } = await api.get('/operations/tripsheet/report', { params: filters }); return data; } catch (e) { handleError(e, "Error fetching report"); return []; } };
 
   const addGcEntry = async (data: GcEntry) => {
-    try { const response = await api.post('/operations/gc', data); toast.success("GC Entry created successfully"); return response.data; }
-    catch (e) { handleError(e, "Failed to create GC"); }
+    // try { const response = await api.post('/operations/gc', data); toast.success("GC Entry created successfully"); return response.data; }
+    // catch (e) { handleError(e, "Failed to create GC"); }
+    const newGcNo = `GC${String(mockGcCounter).padStart(3, '0')}`;
+    const newEntry: GcEntry = {
+      ...data,
+      id: `gc-mock-${Date.now()}`,
+      gcNo: newGcNo,
+    };
+    setMockGcEntries(prev => [newEntry, ...prev]);
+    setMockGcCounter(prev => prev + 1);
+    toast.success("GC Entry created successfully (MOCK)");
+    return newEntry;
   };
+
   const updateGcEntry = async (data: GcEntry) => {
-    try { const response = await api.put(`/operations/gc/${data.gcNo}`, data); toast.success("GC Entry updated successfully"); return response.data; }
-    catch (e) { handleError(e, "Failed to update GC"); }
+    // try { const response = await api.put(`/operations/gc/${data.gcNo}`, data); toast.success("GC Entry updated successfully"); return response.data; }
+    // catch (e) { handleError(e, "Failed to update GC"); }
+    setMockGcEntries(prev => prev.map(gc => gc.gcNo === data.gcNo ? { ...gc, ...data } : gc));
+    toast.success("GC Entry updated successfully (MOCK)");
+    return data;
   };
+
   const deleteGcEntry = async (identifier: string) => {
-    try { await api.delete(`/operations/gc/${identifier}`); toast.success("GC Entry deleted successfully"); }
-    catch (e) { handleError(e, "Failed to delete GC"); }
+    // try { await api.delete(`/operations/gc/${identifier}`); toast.success("GC Entry deleted successfully"); }
+    // catch (e) { handleError(e, "Failed to delete GC"); }
+    setMockGcEntries(prev => prev.filter(gc => gc.gcNo !== identifier && gc.id !== identifier));
+    toast.success("GC Entry deleted successfully (MOCK)");
   };
+
   const saveLoadingProgress = async (gcId: string, selectedQuantities: number[]) => {
-    try { await api.put('/operations/loading/save', { gcId, selectedQuantities }); toast.success("Loading progress saved"); }
-    catch (e) { handleError(e, "Failed to save loading progress"); }
+    // try { await api.put('/operations/loading/save', { gcId, selectedQuantities }); toast.success("Loading progress saved"); }
+    // catch (e) { handleError(e, "Failed to save loading progress"); }
+    setMockGcEntries(prev => prev.map(gc => gc.gcNo === gcId ? { ...gc, loadedPackages: selectedQuantities } : gc));
+    toast.success("Loading progress saved (MOCK)");
   };
 
   const fetchTripSheetById = async (id: string) => { try { const { data } = await api.get(`/operations/tripsheet/${id}`); return data; } catch (e) { return null; } };
@@ -380,7 +500,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
   const getContentsTypes = useCallback(() => contentEntries.map(c => ({ value: c.contentName, label: c.contentName })), [contentEntries]);
 
   const value = useMemo(() => ({
-    consignors, consignees, gcEntries: [], tripSheets: [], fromPlaces, toPlaces, packingEntries, contentEntries, vehicleEntries, driverEntries,
+    consignors, consignees, gcEntries: mockGcEntries, tripSheets: [], fromPlaces, toPlaces, packingEntries, contentEntries, vehicleEntries, driverEntries,
     addConsignor, updateConsignor, deleteConsignor, addConsignee, updateConsignee, deleteConsignee,
     getNextGcNo, fetchGcById, fetchTripSheetById, addGcEntry, updateGcEntry, deleteGcEntry, saveLoadingProgress,
     fetchGcPrintData, fetchLoadingSheetPrintData, fetchTripSheetPrintData, fetchPendingStockReport, fetchTripSheetReport, fetchGcDetailsForTripSheet,
@@ -393,7 +513,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
     searchConsignors, searchConsignees, searchVehicles, searchDrivers, searchFromPlaces, searchToPlaces, searchPackings, searchContents, searchGodowns,
     // 🟢 Exporting new bulk import functions
     importConsignors, importConsignees, importFromPlaces, importToPlaces, importPackings, importContents, importVehicles, importDrivers
-  }), [consignors, consignees, fromPlaces, toPlaces, packingEntries, contentEntries, vehicleEntries, driverEntries, fetchAllData, fetchConsignors, fetchConsignees, fetchFromPlaces, fetchToPlaces, fetchPackingEntries, fetchContentEntries, fetchVehicleEntries, fetchDriverEntries]);
+  }), [consignors, consignees, mockGcEntries, fromPlaces, toPlaces, packingEntries, contentEntries, vehicleEntries, driverEntries, fetchAllData, fetchConsignors, fetchConsignees, fetchFromPlaces, fetchToPlaces, fetchPackingEntries, fetchContentEntries, fetchVehicleEntries, fetchDriverEntries]);
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
 };

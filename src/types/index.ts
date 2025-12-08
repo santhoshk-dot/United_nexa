@@ -2,7 +2,7 @@ export interface AppUser {
   id: string;
   name: string;
   email: string;
-  password: string; 
+  password: string;
   mobile: string;
   role: 'admin' | 'user';
   createdBy?: string;
@@ -27,7 +27,7 @@ export interface Consignee {
   id: string;
   consignorId?: string;
   name: string;
-  
+
   gst?: string;
   pan?: string;
   aadhar?: string;
@@ -41,6 +41,15 @@ export interface Consignee {
   updatedBy?: string;
 }
 
+export interface GcContentItem {
+  id: string;
+  qty: number | string;
+  packing: string;
+  contents: string;
+  prefix: string;
+  fromNo: number | string;
+}
+
 export interface GcEntry {
   // Optional legacy fields
   date?: string;
@@ -48,8 +57,8 @@ export interface GcEntry {
   invoiceNo?: string;
   pkgDesc?: string;
   marks?: any;
-  
-  gcNo: string; 
+
+  gcNo: string;
   id: string;
   gcDate: string;
   from: string;
@@ -75,6 +84,7 @@ export interface GcEntry {
   advanceNone: number;
   balanceToPay: number;
 
+  // Legacy single-row fields (for backward compatibility)
   quantity: string;
   packing: string;
   contents: string;
@@ -82,14 +92,17 @@ export interface GcEntry {
   fromNo: string;
   netQty: number;
 
-  paymentType: 'To Pay' | 'Paid'; 
+  // New repeater field for multiple content items
+  contentItems?: GcContentItem[];
+
+  paymentType: 'To Pay' | 'Paid';
 
   // Trip Sheet & Loading Fields
   tripSheetId?: string | null;
   isLoaded?: boolean;
   loadingStatus?: 'Pending' | 'Partially Loaded' | 'Loaded';
-  
-  loadedPackages?: number[]; 
+
+  loadedPackages?: number[];
 
   // Audit Fields
   createdBy?: string;
@@ -97,19 +110,19 @@ export interface GcEntry {
 }
 
 export interface FromPlace {
-    id: string;
-    placeName: string;
-    shortName: string;
-    createdBy?: string;
-    updatedBy?: string;
+  id: string;
+  placeName: string;
+  shortName: string;
+  createdBy?: string;
+  updatedBy?: string;
 }
 
 export interface ToPlace {
-    id: string;
-    placeName: string;
-    shortName: string;
-    createdBy?: string;
-    updatedBy?: string;
+  id: string;
+  placeName: string;
+  shortName: string;
+  createdBy?: string;
+  updatedBy?: string;
 }
 
 export interface PackingEntry {
@@ -176,149 +189,149 @@ export interface TripSheetEntry {
   ownerMobile?: string;
   lorryNo?: string;
   lorryName?: string;
-  consignorid?: string; 
+  consignorid?: string;
   consigneeid?: string;
   createdBy?: string;
   updatedBy?: string;
 }
 export type LoadingSheetLabels = {
-    companyName: string;
-    mainHeader: string;
-    totalLabel: string;
-    companySignatureLine: string;
+  companyName: string;
+  mainHeader: string;
+  totalLabel: string;
+  companySignatureLine: string;
 };
 
 
-export type GcEntryLabels   = {
-    fixedGstinLabel: string,                
-    fixedGstinValue: string,                
-    mobileLabel: string,                
-    mobileNumberValue: string,                
-    gcNoLabel: string,              
-    dateLabel: string,                
-    companyName: string,                
-    tagLine: string,                
-    companyAddress: string,                
-    fromLabel: string,                
-    toLabel: string,                
-    ownerRiskText: string,              
-    consignorLabel: string,                
-    consigneeLabel: string,                
-    tableHeaderPackages: string,              
-    tableHeaderDescription: string,                
-    tableHeaderWeight: string,              
-    tableHeaderRate: string,                
-    tableHeaderFreight: string,                
-    labelFreight: string,                
-    labelGodownCharge: string,              
-    labelStatisticalCharge: string,                
-    labelTollFee: string,                
-    labelTotal: string,                
-    labelAdvancePaid: string,                
-    labelBalanceToPay: string,                
-    invoiceNoLabel: string,              
-    invoiceDateLabel: string,                
-    marksLabel: string,                
-    labelValueGoods: string,                
-    deliveryAtLabel: string,                
-    toPayRsLabel: string,                
-    scanLabel:string,
-    freightFixedUptoLabel: string,                
-    footerSignatureLine: string,                
-    footerNote: string,                
-    footerUnloadingNote: string,              
-  }
+export type GcEntryLabels = {
+  fixedGstinLabel: string,
+  fixedGstinValue: string,
+  mobileLabel: string,
+  mobileNumberValue: string,
+  gcNoLabel: string,
+  dateLabel: string,
+  companyName: string,
+  tagLine: string,
+  companyAddress: string,
+  fromLabel: string,
+  toLabel: string,
+  ownerRiskText: string,
+  consignorLabel: string,
+  consigneeLabel: string,
+  tableHeaderPackages: string,
+  tableHeaderDescription: string,
+  tableHeaderWeight: string,
+  tableHeaderRate: string,
+  tableHeaderFreight: string,
+  labelFreight: string,
+  labelGodownCharge: string,
+  labelStatisticalCharge: string,
+  labelTollFee: string,
+  labelTotal: string,
+  labelAdvancePaid: string,
+  labelBalanceToPay: string,
+  invoiceNoLabel: string,
+  invoiceDateLabel: string,
+  marksLabel: string,
+  labelValueGoods: string,
+  deliveryAtLabel: string,
+  toPayRsLabel: string,
+  scanLabel: string,
+  freightFixedUptoLabel: string,
+  footerSignatureLine: string,
+  footerNote: string,
+  footerUnloadingNote: string,
+}
 
 
-export type StockLabels  = {
-  title: string,                
-  companyName: string,                
-  companyAddress: string,                
-  fixedGstinLabel: string,                
-  fixedGstinValue: string,                
-  mobileLabel: string,                
-  mobileNumberValue: string,                
-  mainHeader: string,                
-  gcLabel:string,
-  stockCountLabel:string,
-  contentLabel:string,
-  consignorLabel:string,
-  consigneeLabel:string,
-  dateLabel:string,
-  totalLabel: string,                
+export type StockLabels = {
+  title: string,
+  companyName: string,
+  companyAddress: string,
+  fixedGstinLabel: string,
+  fixedGstinValue: string,
+  mobileLabel: string,
+  mobileNumberValue: string,
+  mainHeader: string,
+  gcLabel: string,
+  stockCountLabel: string,
+  contentLabel: string,
+  consignorLabel: string,
+  consigneeLabel: string,
+  dateLabel: string,
+  totalLabel: string,
 };
 
 
-export type TripReportLabels  = {
-  title: string,                
-  companyName: string,                
-  companyAddress: string,                
-  fixedGstinLabel: string,                
-  fixedGstinValue: string,                
-  mobileLabel: string,                
-  mobileNumberValue: string,                
-  mainHeader: string,                
-  tsLabel:string,
-  fromPlaceLabel:string,
-  toPlaceLabel:string,
-  amountLabel:string,
-  dateLabel:string,
-  totalLabel: string,                
+export type TripReportLabels = {
+  title: string,
+  companyName: string,
+  companyAddress: string,
+  fixedGstinLabel: string,
+  fixedGstinValue: string,
+  mobileLabel: string,
+  mobileNumberValue: string,
+  mainHeader: string,
+  tsLabel: string,
+  fromPlaceLabel: string,
+  toPlaceLabel: string,
+  amountLabel: string,
+  dateLabel: string,
+  totalLabel: string,
 };
 
 
 export type TripPrintLabels = {
-    // Header/Company Details
-    title: string;
-    fixedGstinLabel: string;
-    fixedGstinValue: string;
-    mobileLabel: string;
-    mobileNumberValue: string;
-    companyName: string;
-    companyAddress: string;
+  // Header/Company Details
+  title: string;
+  fixedGstinLabel: string;
+  fixedGstinValue: string;
+  mobileLabel: string;
+  mobileNumberValue: string;
+  companyName: string;
+  companyAddress: string;
 
 
-    // Meta Details
-    mfNoLabel: string;
-    carriersLabel: string;
+  // Meta Details
+  mfNoLabel: string;
+  carriersLabel: string;
 
 
-    // Trip Details
-    fromLabel: string;
-    toLabel: string;
-    dateLabel: string;
+  // Trip Details
+  fromLabel: string;
+  toLabel: string;
+  dateLabel: string;
 
 
-    // Table Headers
-    cnNoHeader: string;
-    packagesHeader: string;
-    contentsHeader: string;
-    consignorHeader: string;
-    consigneeHeader: string;
-    toPayHeader: string;
+  // Table Headers
+  cnNoHeader: string;
+  packagesHeader: string;
+  contentsHeader: string;
+  consignorHeader: string;
+  consigneeHeader: string;
+  toPayHeader: string;
 
 
-    // Footer Text
-    footerNote0: string;
-    footerNote1: string;
-    footerNote2: string; // The "Please pay lorry hire..." part
-    footerNote3: string; // The "on receiving the goods..." part
-    totalPackagesLabel: string;
-    lorryHireLabel: string;
+  // Footer Text
+  footerNote0: string;
+  footerNote1: string;
+  footerNote2: string; // The "Please pay lorry hire..." part
+  footerNote3: string; // The "on receiving the goods..." part
+  totalPackagesLabel: string;
+  lorryHireLabel: string;
 
 
-    // Driver/Owner/Lorry Details Labels
-    driverNameLabel: string;
-    dlNoLabel: string;
-    driverMobileLabel: string;
-    ownerNameLabel: string;
-    ownerMobileLabel: string;
-    lorryNoLabel: string;
-    lorryNameLabel: string;
-   
-    // Legal/Signatures
-    legalNote: string;
-    signatureDriverLabel: string;
-    signatureClerkLabel: string;
+  // Driver/Owner/Lorry Details Labels
+  driverNameLabel: string;
+  dlNoLabel: string;
+  driverMobileLabel: string;
+  ownerNameLabel: string;
+  ownerMobileLabel: string;
+  lorryNoLabel: string;
+  lorryNameLabel: string;
+
+  // Legal/Signatures
+  legalNote: string;
+  signatureDriverLabel: string;
+  signatureClerkLabel: string;
 };
 
