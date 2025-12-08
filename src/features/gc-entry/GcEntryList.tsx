@@ -1,10 +1,10 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FilePenLine, Trash2, Search, Printer, Filter, XCircle, RotateCcw } from 'lucide-react';
 import { DateFilterButtons, getTodayDate, getYesterdayDate } from '../../components/shared/DateFilterButtons';
 import { ConfirmationDialog } from '../../components/shared/ConfirmationDialog';
 import { useData } from '../../hooks/useData';
-// import { useServerPagination } from '../../hooks/useServerPagination'; // 🟡 MOCK: Commented out
+import { useServerPagination } from '../../hooks/useServerPagination';
 import { Button } from '../../components/shared/Button';
 import { AsyncAutocomplete } from '../../components/shared/AsyncAutocomplete';
 import { GcPrintManager, type GcPrintJob } from './GcPrintManager';
@@ -17,7 +17,6 @@ export const GcEntryList = () => {
   const {
     deleteGcEntry,
     fetchGcPrintData,
-    gcEntries, // 🟡 MOCK: Get mock data from context
     searchConsignors,
     searchConsignees,
     searchToPlaces
@@ -25,58 +24,24 @@ export const GcEntryList = () => {
 
   const toast = useToast();
 
-  // 🟡 MOCK: Local state instead of server pagination
-  const [filters, setFiltersState] = useState<any>({ search: '', filterType: 'all' });
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
-  const loading = false;
-
-  const setFilters = (newFilters: any) => {
-    setFiltersState((prev: any) => ({ ...prev, ...newFilters }));
-    setCurrentPage(1); // Reset to first page on filter change
-  };
-
-  // 🟡 MOCK: Filter and paginate locally
-  const filteredData = useMemo(() => {
-    let data = [...gcEntries];
-
-    // Search filter
-    if (filters.search) {
-      const searchLower = filters.search.toLowerCase();
-      data = data.filter(gc =>
-        gc.gcNo.toLowerCase().includes(searchLower) ||
-        gc.destination.toLowerCase().includes(searchLower) ||
-        gc.packing?.toLowerCase().includes(searchLower) ||
-        gc.contents?.toLowerCase().includes(searchLower)
-      );
-    }
-
-    // Date filter
-    if (filters.filterType === 'today') {
-      const today = getTodayDate();
-      data = data.filter(gc => gc.gcDate === today);
-    } else if (filters.filterType === 'yesterday') {
-      const yesterday = getYesterdayDate();
-      data = data.filter(gc => gc.gcDate === yesterday);
-    } else if (filters.filterType === 'custom' && filters.startDate && filters.endDate) {
-      data = data.filter(gc => gc.gcDate >= filters.startDate && gc.gcDate <= filters.endDate);
-    }
-
-    // Destination filter
-    if (filters.destination) {
-      data = data.filter(gc => gc.destination === filters.destination);
-    }
-
-    return data;
-  }, [gcEntries, filters]);
-
-  const totalItems = filteredData.length;
-  const totalPages = Math.ceil(totalItems / itemsPerPage);
-  const paginatedData = filteredData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
-
-  const refresh = () => {
-    // No-op for mock data (state updates automatically)
-  };
+  // Server-side pagination with API fetching
+  const {
+    data: paginatedData,
+    loading,
+    currentPage,
+    totalPages,
+    totalItems,
+    itemsPerPage,
+    setItemsPerPage,
+    setCurrentPage,
+    setFilters,
+    filters,
+    refresh
+  } = useServerPagination<GcEntry>({
+    endpoint: '/operations/gc',
+    initialItemsPerPage: 10,
+    initialFilters: { search: '', filterType: 'all' }
+  });
 
   const [showFilters, setShowFilters] = useState(false);
 
@@ -463,7 +428,7 @@ export const GcEntryList = () => {
                       <td className="px-6 py-4 text-sm">{consigneeName}</td>
                       <td className="px-6 py-4 text-sm">{gc.destination}</td>
 
-                      <td className="px-6 py-4 text-sm">{gc.quantity}</td>
+                      <td className="px-6 py-4 text-sm">{gc.totalQty}</td>
 
                       <td className="px-6 py-4 text-sm">
                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${isAssigned ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>

@@ -93,12 +93,8 @@ export const GcEntryForm = () => {
         statisticCharge: 0,
         advanceNone: 0,
         balanceToPay: 0,
-        quantity: "",
-        packing: '',
-        contents: '',
-        prefix: '',
-        fromNo: "1",
         netQty: 0,
+        totalQty: 0,
         paymentType: 'To Pay',
     });
 
@@ -216,17 +212,17 @@ export const GcEntryForm = () => {
                             packingOption: item.packing ? { value: item.packing, label: item.packing } : null,
                             contentOption: item.contents ? { value: item.contents, label: item.contents } : null,
                         })));
-                    } else if (gc.quantity || gc.packing || gc.contents) {
+                    } else if ((gc as any).quantity || (gc as any).packing || (gc as any).contents) {
                         // Backward compatibility: convert old single-row data to new format
                         setContentItems([{
                             id: generateId(),
-                            qty: gc.quantity || '',
-                            packing: gc.packing || '',
-                            contents: gc.contents || '',
-                            prefix: gc.prefix || '',
-                            fromNo: gc.fromNo || 1,
-                            packingOption: gc.packing ? { value: gc.packing, label: gc.packing } : null,
-                            contentOption: gc.contents ? { value: gc.contents, label: gc.contents } : null,
+                            qty: (gc as any).quantity || '',
+                            packing: (gc as any).packing || '',
+                            contents: (gc as any).contents || '',
+                            prefix: (gc as any).prefix || '',
+                            fromNo: (gc as any).fromNo || 1,
+                            packingOption: (gc as any).packing ? { value: (gc as any).packing, label: (gc as any).packing } : null,
+                            contentOption: (gc as any).contents ? { value: (gc as any).contents, label: (gc as any).contents } : null,
                         }]);
                     }
 
@@ -766,7 +762,7 @@ export const GcEntryForm = () => {
                                             setCurrentPackingOption(v);
                                             setCurrentPacking(v?.value || '');
                                         }}
-                                        placeholder="Select packing..."
+                                        placeholder="Search packing..."
                                         defaultOptions={false}
                                     />
                                 </div>
@@ -779,7 +775,7 @@ export const GcEntryForm = () => {
                                             setCurrentContentOption(v);
                                             setCurrentContents(v?.value || '');
                                         }}
-                                        placeholder="Select contents..."
+                                        placeholder="Search contents..."
                                         defaultOptions={false}
                                     />
                                 </div>

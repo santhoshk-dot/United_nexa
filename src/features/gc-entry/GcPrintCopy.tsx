@@ -46,8 +46,10 @@ export const GcPrintCopy: React.FC<Props> = ({
   // 3. Generate QR Code Image URL
   const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&margin=0&data=${encodeURIComponent(directApiUrl)}`;
 
-  const quantityNum = parseFloat(gc.quantity) || 0;
-  const fromNoNum = parseFloat(gc.fromNo) || 0;
+  // Calculate totals from contentItems
+  const quantityNum = gc.contentItems?.reduce((sum, item) => sum + (parseFloat(String(item.qty)) || 0), 0) || gc.netQty || 0;
+  const firstItem = gc.contentItems?.[0];
+  const fromNoNum = parseFloat(String(firstItem?.fromNo)) || 0;
   const billValueNum = parseFloat(String(gc.billValue)) || 0;
 
   const balanceToPayNum = (gc as any).tripSheetAmount !== undefined
@@ -62,13 +64,13 @@ export const GcPrintCopy: React.FC<Props> = ({
   const totalCharges = freightNum + godownChargeNum + statisticChargeNum + tollFeeNum;
 
   const isPaid = gc.paymentType?.toLowerCase() === 'paid';
-  // 🟢 FIX: Use type-safe access or fallback. We will add this field to the type definition below.
   const paymentStatusLabel = isPaid ? "PAID" : (label as any).paymentTypeToPay || "TO PAY";
 
-  const marks = `${gc.prefix} ${fromNoNum} to ${(fromNoNum > 0 && quantityNum > 0) ? (fromNoNum + quantityNum - 1) : ''
-    }`;
+  // Calculate marks from first content item
+  const prefix = firstItem?.prefix || '';
+  const marks = prefix ? `${prefix} ${fromNoNum} to ${(fromNoNum > 0 && quantityNum > 0) ? (fromNoNum + quantityNum - 1) : ''}` : '';
 
-  // 🟡 MOCK: Build description lines from contentItems array (each item on new line)
+  // Build description lines from contentItems array (each item on new line)
   const descriptionLines: string[] = [];
   if (gc.contentItems && gc.contentItems.length > 0) {
     gc.contentItems.forEach(item => {
@@ -79,8 +81,8 @@ export const GcPrintCopy: React.FC<Props> = ({
     });
   }
   // Fallback for legacy single-item data
-  if (descriptionLines.length === 0 && gc.packing && gc.contents) {
-    descriptionLines.push(`${numberToWords(quantityNum)} ${gc.packing} of ${gc.contents}`);
+  if (descriptionLines.length === 0) {
+    descriptionLines.push(`${numberToWords(quantityNum)} packages`);
   }
 
   let proofLabel = "GSTIN";
@@ -216,7 +218,7 @@ export const GcPrintCopy: React.FC<Props> = ({
 
           <tbody className="text-sm font-bold">
             <tr className="align-top h-32">
-              <td className="border-r border-black text-center pt-2">{gc.quantity}</td>
+              <td className="border-r border-black text-center pt-2">{quantityNum}</td>
               <td className="border-r border-black pl-2 pt-2 uppercase">
                 {descriptionLines.map((line, idx) => (
                   <div key={idx}>{line}</div>

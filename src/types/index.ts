@@ -83,14 +83,8 @@ export interface GcEntry {
   statisticCharge: number;
   advanceNone: number;
   balanceToPay: number;
-
-  // Legacy single-row fields (for backward compatibility)
-  quantity: string;
-  packing: string;
-  contents: string;
-  prefix: string;
-  fromNo: string;
   netQty: number;
+  totalQty: number;
 
   // New repeater field for multiple content items
   contentItems?: GcContentItem[];
