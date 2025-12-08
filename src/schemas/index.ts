@@ -62,7 +62,7 @@ export const consigneeSchema = z.object({
   return hasGst || hasPan || hasAadhar;
 }, {
   message: "At least one proof (GST, PAN, or Aadhar) is required",
-  path: ["gst"], 
+  path: ["gst"],
 });
 
 export const vehicleSchema = z.object({
@@ -103,21 +103,17 @@ export const gcEntrySchema = z.object({
   destination: z.string().min(1, "Destination is required"),
   consignorId: z.string().min(1, "Consignor is required"),
   consigneeId: z.string().min(1, "Consignee is required"),
-  
-  quantity: z.coerce.number().min(1, "Quantity must be at least 1"),
-  netQty: z.coerce.number().min(1, "Net Quantity is required"),
-  fromNo: z.coerce.number().min(1, "From No is required"),
-  
-  packing: z.string().min(1, "Packing type is required"),
-  contents: z.string().min(1, "Contents description is required"),
-  
+
+  // netQty is calculated from contentItems
+  netQty: z.coerce.number().min(1, "At least one content item is required"),
+
   deliveryAt: z.string().min(1, "Delivery At is required"),
   freightUptoAt: z.string().min(1, "Freight Upto is required"),
   paymentType: z.enum(['Paid', 'To Pay']),
 
   billNo: z.string().min(1, "Bill No is required"),
   billDate: z.string().min(1, "Bill Date is required"),
-  billValue: optionalNumericString, 
+  billValue: optionalNumericString,
 
   tollFee: optionalNumericString,
   freight: optionalNumericString,
@@ -133,7 +129,7 @@ export const tripSheetSchema = z.object({
   toPlace: z.string().min(1, "To Place is required"),
   carriers: z.string().min(1, "Carriers is required"),
   unloadPlace: z.string().min(1, "Unload Place is required"),
-  
+
   lorryNo: z.string().min(1, "Lorry No is required"),
   lorryName: z.string().min(1, "Lorry Name is required"),
   driverName: z.string().min(1, "Driver Name is required"),

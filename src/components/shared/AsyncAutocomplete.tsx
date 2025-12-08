@@ -1,37 +1,38 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useRef } from 'react';
 import { AsyncPaginate } from 'react-select-async-paginate';
-import { 
-  components, 
-  type DropdownIndicatorProps, 
-  type StylesConfig, 
-  type MultiValue, 
-  type SingleValue, 
-  type GroupBase, 
-  type ValueContainerProps 
+import {
+  components,
+  type DropdownIndicatorProps,
+  type StylesConfig,
+  type MultiValue,
+  type SingleValue,
+  type GroupBase,
+  type ValueContainerProps
 } from 'react-select';
-import { ChevronDown, X, Loader2 } from 'lucide-react'; 
+import { ChevronDown, X, Loader2 } from 'lucide-react';
 import React from 'react';
 
 // Define the shape of an Option
 export interface OptionType {
   value: string;
   label: string;
-  [key: string]: any; 
+  [key: string]: any;
 }
 
 interface AsyncAutocompleteProps {
   label?: string;
   placeholder?: string;
-  value: OptionType | null | MultiValue<OptionType>; 
+  value: OptionType | null | MultiValue<OptionType>;
   onChange: (value: SingleValue<OptionType> | MultiValue<OptionType>) => void;
   loadOptions: (search: string, loadedOptions: any, { page }: any) => Promise<any>;
   isDisabled?: boolean;
   required?: boolean;
   isMulti?: boolean;
-  defaultOptions?: boolean; 
+  defaultOptions?: boolean;
   hideRequiredIndicator?: boolean;
   className?: string;
+  menuPortalTarget?: HTMLElement | null; // 🟢 NEW: For rendering dropdown outside overflow containers
 }
 
 // --- CUSTOM COMPONENTS ---
@@ -78,7 +79,7 @@ const CustomValueContainer = ({ children, ...props }: ValueContainerProps<Option
   // Extract the Input component (it's always the last child in react-select)
   const childrenArray = React.Children.toArray(children);
   const inputComponent = childrenArray[childrenArray.length - 1];
-  
+
   // Get the visible chips
   const visibleChips = childrenArray.slice(0, MAX_VISIBLE_TAGS);
   const hiddenCount = selected.length - MAX_VISIBLE_TAGS;
@@ -108,11 +109,12 @@ export const AsyncAutocomplete = ({
   hideRequiredIndicator,
   className,
   isMulti = false,
+  menuPortalTarget, // 🟢 NEW
 }: AsyncAutocompleteProps) => {
 
   const showAsterisk = required && !hideRequiredIndicator;
   const [shouldLoad, setShouldLoad] = useState(defaultOptions);
-  
+
   // 🟢 NEW: Cache to store the default list (page 1) loaded when search is empty
   const defaultOptionsCache = useRef<OptionType[]>([]);
 
@@ -127,7 +129,7 @@ export const AsyncAutocomplete = ({
     // If we have cached default options and user is typing, try to find match locally first.
     if (search && defaultOptionsCache.current.length > 0) {
       const normalizedSearch = search.toLowerCase();
-      const localMatches = defaultOptionsCache.current.filter((opt: OptionType) => 
+      const localMatches = defaultOptionsCache.current.filter((opt: OptionType) =>
         opt.label.toLowerCase().includes(normalizedSearch)
       );
 
@@ -157,28 +159,28 @@ export const AsyncAutocomplete = ({
     control: (provided, state) => ({
       ...provided,
       backgroundColor: 'hsl(var(--background))',
-      borderColor: state.isFocused 
-        ? 'hsl(var(--primary))' 
-        : 'hsl(var(--muted-foreground) / 0.3)', 
+      borderColor: state.isFocused
+        ? 'hsl(var(--primary))'
+        : 'hsl(var(--muted-foreground) / 0.3)',
       color: 'hsl(var(--foreground))',
-      borderRadius: '0.375rem', 
-      padding: '0 2px', 
+      borderRadius: '0.375rem',
+      padding: '0 2px',
       minHeight: '38px',
       maxHeight: isMulti ? '80px' : undefined,
       overflowY: isMulti ? 'auto' : undefined,
-      boxShadow: state.isFocused 
-        ? '0 0 0 1px hsl(var(--primary))' 
-        : '0 1px 2px 0 rgb(0 0 0 / 0.05)', 
+      boxShadow: state.isFocused
+        ? '0 0 0 1px hsl(var(--primary))'
+        : '0 1px 2px 0 rgb(0 0 0 / 0.05)',
       '&:hover': {
-        borderColor: state.isFocused 
-          ? 'hsl(var(--primary))' 
+        borderColor: state.isFocused
+          ? 'hsl(var(--primary))'
           : 'hsl(var(--muted-foreground) / 0.5)',
       },
       transition: 'all 0.2s',
     }),
     valueContainer: (provided) => ({
       ...provided,
-      padding: '0 8px', 
+      padding: '0 8px',
       gap: '4px',
     }),
     menu: (provided) => ({
@@ -192,10 +194,10 @@ export const AsyncAutocomplete = ({
     }),
     option: (provided, state) => ({
       ...provided,
-      backgroundColor: state.isFocused 
-        ? 'hsl(var(--muted))' 
-        : state.isSelected 
-          ? 'hsl(var(--primary) / 0.1)' 
+      backgroundColor: state.isFocused
+        ? 'hsl(var(--muted))'
+        : state.isSelected
+          ? 'hsl(var(--primary) / 0.1)'
           : 'transparent',
       color: state.isSelected ? 'hsl(var(--primary))' : 'hsl(var(--foreground))',
       cursor: 'pointer',
@@ -212,7 +214,7 @@ export const AsyncAutocomplete = ({
       margin: 0,
       padding: 0,
       "input:focus": {
-        boxShadow: "none !important", 
+        boxShadow: "none !important",
       },
     }),
     singleValue: (provided) => ({
@@ -224,7 +226,7 @@ export const AsyncAutocomplete = ({
       ...provided,
       backgroundColor: 'hsl(var(--muted))',
       borderRadius: '4px',
-      margin: '0', 
+      margin: '0',
     }),
     multiValueLabel: (provided) => ({
       ...provided,
@@ -246,6 +248,11 @@ export const AsyncAutocomplete = ({
       fontSize: '0.875rem',
     }),
     indicatorSeparator: () => ({ display: 'none' }),
+    // 🟢 NEW: Style for portal menu
+    menuPortal: (provided) => ({
+      ...provided,
+      zIndex: 9999,
+    }),
   };
 
   return (
@@ -257,7 +264,7 @@ export const AsyncAutocomplete = ({
       )}
       <AsyncPaginate
         value={value}
-        loadOptions={loadOptionsWrapper} 
+        loadOptions={loadOptionsWrapper}
         onChange={onChange}
         onMenuOpen={handleMenuOpen}
         isDisabled={isDisabled}
@@ -267,14 +274,16 @@ export const AsyncAutocomplete = ({
         defaultOptions={shouldLoad}
         additional={{ page: 1 }}
         styles={customStyles}
-        components={{ 
-          DropdownIndicator, 
-          ClearIndicator, 
+        components={{
+          DropdownIndicator,
+          ClearIndicator,
           LoadingIndicator,
-          ValueContainer: CustomValueContainer 
+          ValueContainer: CustomValueContainer
         }}
-        debounceTimeout={400} 
+        debounceTimeout={400}
         classNamePrefix="react-select"
+        menuPortalTarget={menuPortalTarget} // 🟢 NEW
+        menuPosition={menuPortalTarget ? 'fixed' : undefined} // 🟢 NEW
       />
     </div>
   );
