@@ -1,15 +1,15 @@
 import React from "react";
 import type { TripSheetEntry, TripSheetGCItem } from "../../types";
 import { numberToWordsInRupees } from "../../utils/toWords";
-import { useDataContext } from "../../contexts/DataContext"; // 🟢 Import DataContext
+import { useDataContext } from "../../contexts/DataContext";
 
 interface Props {
   sheet: TripSheetEntry;
 }
 
 export const TripSheetPrintCopy: React.FC<Props> = ({ sheet }) => {
-  const { printSettings } = useDataContext(); // 🟢 Get print settings
-  const label = printSettings.tripSheet; // 🟢 Alias for cleaner access
+  const { printSettings } = useDataContext(); 
+  const label = printSettings.tripSheet; 
 
   const fmtDate = (d?: string) => {
     if (!d) return "";
@@ -178,7 +178,7 @@ export const TripSheetPrintCopy: React.FC<Props> = ({ sheet }) => {
       `}
       </style>
 
-      <div className="page-heading uppercase">{label.title}</div> {/* 🟢 Dynamic Title */}
+      <div className="page-heading uppercase">{label.title}</div>
 
       <div className="box">
         {/* Header */}
@@ -187,19 +187,17 @@ export const TripSheetPrintCopy: React.FC<Props> = ({ sheet }) => {
             <div style={{  }}>
 
               <div style={{ fontSize: 11 }}>
-                {/* 🟢 Dynamic GSTIN & Mobile */}
                 <div>{label.fixedGstinLabel} {label.fixedGstinValue} </div> 
                 <div>{label.mobileLabel} {label.mobileNumberValue}</div>
               </div>
-              <div className="company-title uppercase">{label.companyName}</div> {/* 🟢 Dynamic Name */}
+              <div className="company-title uppercase">{label.companyName}</div>
               <div className="company-sub whitespace-pre-wrap">
-                {label.companyAddress} {/* 🟢 Dynamic Address */}
+                {label.companyAddress}
               </div>
             </div>
           </div>
 
           <div className="meta-block">
-            {/* 🟢 Dynamic Labels */}
             <div><strong>{label.mfNoLabel}</strong> {sheet.mfNo}</div>
             <div><strong>{label.carriersLabel}</strong> {(sheet.carriers ?? "").toUpperCase()}</div>
           </div>
@@ -208,15 +206,15 @@ export const TripSheetPrintCopy: React.FC<Props> = ({ sheet }) => {
         {/* From / To / Date */}
         <div className="fromto">
           <div>
-            <span className="w-10">{label.fromLabel} </span> {/* 🟢 Dynamic */}
+            <span className="w-10">{label.fromLabel} </span>
             <span className="font-bold">{sheet.fromPlace}</span>
           </div>
           <div>
-             <span className="w-10">{label.toLabel} </span> {/* 🟢 Dynamic */}
+             <span className="w-10">{label.toLabel} </span>
             <span className="font-bold">{sheet.toPlace}</span>
             </div>
           <div>
-            <span className="w-10">{label.dateLabel} </span> {/* 🟢 Dynamic */}
+            <span className="w-10">{label.dateLabel} </span>
             <span className="font-bold">{fmtDate(sheet.tsDate)}</span>
           </div>
         </div>
@@ -225,7 +223,6 @@ export const TripSheetPrintCopy: React.FC<Props> = ({ sheet }) => {
         <table className="ts-table">
           <thead>
             <tr>
-              {/* 🟢 Dynamic Table Headers */}
               <th style={{ width: "12%" }}>{label.cnNoHeader}</th>
               <th style={{ width: "18%" }}>{label.packagesHeader}</th>
               <th style={{ width: "15%" }}>{label.contentsHeader}</th>
@@ -236,18 +233,26 @@ export const TripSheetPrintCopy: React.FC<Props> = ({ sheet }) => {
           </thead>
 
           <tbody>
-            {items.map((it, idx) => (
-              <tr key={idx}>
-                <td>{it.gcNo}</td>
-                <td>{it.qty} {it.packingDts}</td>
-                <td>{it.contentDts}</td>
-                <td>{it.consignor}</td>
-                <td>{it.consignee}</td>
-                <td style={{ textAlign: "right" }}>
-                  ₹{(it.amount ?? 0).toLocaleString("en-IN")}
-                </td>
-              </tr>
-            ))}
+            {items.map((it, idx) => {
+              // Check if previous item's GC No is same as current one
+              const isRepeatedGc = idx > 0 && items[idx - 1].gcNo === it.gcNo;
+              
+              return (
+                <tr key={idx}>
+                  {/* Conditionally render GC No */}
+                  <td style={{ fontWeight: isRepeatedGc ? 'normal' : 'bold' }}>
+                    {isRepeatedGc ? "" : it.gcNo}
+                  </td>
+                  <td>{it.qty} {it.packingDts}</td>
+                  <td>{it.contentDts}</td>
+                  <td>{it.consignor}</td>
+                  <td>{it.consignee}</td>
+                  <td style={{ textAlign: "right" }}>
+                    ₹{(it.amount ?? 0).toLocaleString("en-IN")}
+                  </td>
+                </tr>
+              );
+            })}
 
             {/* Filler rows */}
             {Array.from({ length: fillerCount }).map((_, i) => (
@@ -260,7 +265,7 @@ export const TripSheetPrintCopy: React.FC<Props> = ({ sheet }) => {
             {/* TOTAL ROW */}
             <tr className="total-row">
               <td colSpan={5} className="total-left">
-                {label.totalPackagesLabel} {totalPackages} {/* 🟢 Dynamic */}
+                {label.totalPackagesLabel} {totalPackages}
               </td>
               <td className="total-right">
                 ₹{total.toLocaleString("en-IN")}
@@ -269,7 +274,7 @@ export const TripSheetPrintCopy: React.FC<Props> = ({ sheet }) => {
           </tbody>
         </table>
 
-        {/* Footer with Dynamic parts mixed with data */}
+        {/* Footer */}
          <div className="footer no-gap">
           {label.footerNote0}
           &nbsp;{label.footerNote1}<span className="dash bold font-semibold">{sheet.unloadPlace ?? sheet.toPlace}</span>
@@ -281,7 +286,6 @@ export const TripSheetPrintCopy: React.FC<Props> = ({ sheet }) => {
         <div style={{ borderTop: "1px solid #000", marginTop: 8, paddingTop: 8 }}>
           <div className="trip-footer-grid font-thin">
           <div>
-            {/* 🟢 Dynamic Labels */}
             <div><strong>{label.driverNameLabel}</strong> <span className="col-line font-semibold">{(sheet.driverName    ?? "").toUpperCase()}</span></div>
             <div style={{ marginTop: 6 }}>
               <strong>{label.dlNoLabel}</strong> <span className="col-line font-semibold">{(sheet.dlNo ?? "").toUpperCase()}</span>
@@ -310,7 +314,7 @@ export const TripSheetPrintCopy: React.FC<Props> = ({ sheet }) => {
         {/* Legal + Signature */}
         <div style={{ borderTop: "1px solid #000", marginTop: 8, paddingTop: 8 }}>
           <div className="legal mb-3 whitespace-pre-wrap">
-            {label.legalNote} {/* 🟢 Dynamic */}
+            {label.legalNote}
           </div>
 
           <div style={{ height: "25px" }}></div>
@@ -318,11 +322,11 @@ export const TripSheetPrintCopy: React.FC<Props> = ({ sheet }) => {
           <div className="sigs">
             <div className="sig-box">
               <span className="sig-line" />
-              {label.signatureDriverLabel} {/* 🟢 Dynamic */}
+              {label.signatureDriverLabel}
             </div>
             <div className="sig-box">
               <span className="sig-line" />
-              {label.signatureClerkLabel} {/* 🟢 Dynamic */}
+              {label.signatureClerkLabel}
             </div>
           </div>
         </div>

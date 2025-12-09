@@ -15,9 +15,12 @@ export const TripSheetPrintManager = ({
 }: TripSheetPrintManagerProps) => {
   const printTriggered = useRef(false);
 
+  // 🟢 REPLACED MOCK DATA WITH REAL BACKEND DATA
+  const dataToPrint = sheets;
+
   // --- AUTO PRINT TRIGGER ---
   useEffect(() => {
-    if (sheets.length === 0) return;
+    if (dataToPrint.length === 0) return;
     if (printTriggered.current) return;
 
     // Small delay ensures content renders into the portal before printing
@@ -29,14 +32,14 @@ export const TripSheetPrintManager = ({
     return () => {
       clearTimeout(timer);
     };
-  }, [sheets]);
+  }, [dataToPrint]);
 
   const handleManualPrint = () => {
     window.print();
   };
 
-  // Don't render anything if no sheets provided
-  if (sheets.length === 0) return null;
+  // Don't render anything if no data
+  if (dataToPrint.length === 0) return null;
 
   const printContent = (
     <div className="ts-print-wrapper">
@@ -245,7 +248,7 @@ export const TripSheetPrintManager = ({
       {/* HEADER TOOLBAR */}
       <div className="print-actions">
         <span className="preview-title">
-          Preview ({sheets.length} Sheets)
+          Preview ({dataToPrint.length} Sheets)
         </span>
         <div className="action-group">
           <button onClick={handleManualPrint} className="btn-base print-btn">
@@ -261,8 +264,8 @@ export const TripSheetPrintManager = ({
 
       {/* DOCUMENT PAGES */}
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-        {sheets.map((sheet) => (
-          <div className="print-page" key={sheet.mfNo}>
+        {dataToPrint.map((sheet) => (
+          <div className="print-page" key={sheet.id}>
             <TripSheetPrintCopy sheet={sheet} />
           </div>
         ))}
