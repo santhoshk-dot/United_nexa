@@ -397,7 +397,7 @@ export const PendingStockHistory = () => {
                   return (
                   <tr key={gc.id}>
                      <td className="px-4 py-4"><input type="checkbox" className="h-4 w-4 accent-primary" checked={selectedGcIds.includes(gc.gcNo)} onChange={(e) => handleSelectRow(e, gc.gcNo)} /></td>
-                     <td className="px-6 py-4 text-primary font-semibold">{gc.gcNo}</td>
+                     <td className="px-6 py-4 text-primary font-bold">{gc.gcNo}</td>
                      <td className="px-6 py-4 text-sm">{consignorName}</td>
                      <td className="px-6 py-4 text-sm">{consigneeName}</td>
                      <td className="px-6 py-4 text-sm">{gc.from}</td>

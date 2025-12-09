@@ -423,7 +423,7 @@ export const GcEntryList = () => {
                   return (
                     <tr key={gc.id} className="hover:bg-muted/30 transition-colors">
                       <td className="px-4 py-4"><input type="checkbox" className="h-4 w-4 accent-primary" checked={selectedGcIds.includes(gc.gcNo)} onChange={(e) => handleSelectRow(e, gc.gcNo)} /></td>
-                      <td className="px-6 py-4 text-sm font-semibold text-primary">{gc.gcNo}</td>
+                      <td className="px-6 py-4 text-sm font-bold text-primary">{gc.gcNo}</td>
                       <td className="px-6 py-4 text-sm">{consignorName}</td>
                       <td className="px-6 py-4 text-sm">{consigneeName}</td>
                       <td className="px-6 py-4 text-sm">{gc.destination}</td>

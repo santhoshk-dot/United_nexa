@@ -15,12 +15,6 @@ import { LoadListPrintManager, type LoadListJob } from './LoadListPrintManager';
 import { QtySelectionDialog } from './QtySelectionDialog';
 import { useToast } from '../../contexts/ToastContext';
 
-type ReportJob = {
-  gc: GcEntry;
-  consignor?: Consignor;
-  consignee?: Consignee;
-};
-
 export const LoadingSheetEntry = () => {
   const {
     deleteGcEntry,
@@ -62,9 +56,8 @@ export const LoadingSheetEntry = () => {
   const [consigneeOptions, setConsigneeOptions] = useState<any[]>([]);
 
   // --- Selection State ---
-  // selectedGcIds will now track EITHER (1) individually selected IDs OR (2) ALL filtered IDs in bulk mode.
-  const [selectedGcIds, setSelectedGcIds] = useState<string[]>([]); 
-  const [selectAllMode, setSelectAllMode] = useState(false); 
+  const [selectedGcIds, setSelectedGcIds] = useState<string[]>([]);
+  const [selectAllMode, setSelectAllMode] = useState(false);
   const [excludedGcIds, setExcludedGcIds] = useState<string[]>([]);
 
   // --- Print/Modal State ---
@@ -72,8 +65,17 @@ export const LoadingSheetEntry = () => {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deleteMessage, setDeleteMessage] = useState("");
   const [isQtySelectOpen, setIsQtySelectOpen] = useState(false);
-  const [currentQtySelection, setCurrentQtySelection] = useState<{ gcId: string; maxQty: number; startNo: number; loadedPackages: number[] } | null>(null);
-  const [reportPrintingJobs, setReportPrintingJobs] = useState<ReportJob[] | null>(null);
+  
+  // 🟢 UPDATED: State includes 'contentItems' for multi-item selection support
+  const [currentQtySelection, setCurrentQtySelection] = useState<{ 
+    gcId: string; 
+    maxQty: number; 
+    startNo: number; 
+    loadedPackages: number[];
+    contentItems: any[]; // Added field
+  } | null>(null);
+  
+  const [reportPrintingJobs, setReportPrintingJobs] = useState<any[] | null>(null);
   const [gcPrintingJobs, setGcPrintingJobs] = useState<GcPrintJob[] | null>(null);
   const [loadListPrintingJobs, setLoadListPrintingJobs] = useState<LoadListJob[] | null>(null);
 
@@ -174,7 +176,30 @@ export const LoadingSheetEntry = () => {
   }, [searchGodowns]);
 
 
-  // --- SELECTION LOGIC (INVERTED) ---
+  // --- SELECTION LOGIC (Unchanged) ---
+
+
+  const handleSelectRow = (e: React.ChangeEvent<HTMLInputElement>, id: string) => {
+    const isChecked = e.target.checked;
+
+    if (selectAllMode) {
+      // We are in bulk mode. This action modifies the exclusion list.
+      if (!isChecked) {
+        // DESELECT (User unchecks a box): Add this item to the exclusion list
+        setExcludedGcIds(prev => [...prev, id]);
+      } else {
+        // SELECT (User re-checks a box): Remove this item from the exclusion list
+        setExcludedGcIds(prev => prev.filter(gcId => gcId !== id));
+      }
+    } else {
+      // Standard row selection/deselection when not in Select All mode
+      if (isChecked) {
+        setSelectedGcIds(prev => [...prev, id]);
+      } else {
+        setSelectedGcIds(prev => prev.filter(gcId => gcId !== id));
+      }
+    }
+  };
 
   const isRowSelected = (gcNo: string): boolean => {
     if (selectAllMode) {
@@ -185,73 +210,68 @@ export const LoadingSheetEntry = () => {
     return selectedGcIds.includes(gcNo);
   }
 
-  // State to check if ALL visible rows are selected
-  const isAllVisibleSelected = paginatedData.length > 0 && paginatedData.every(gc => isRowSelected(gc.gcNo));
+  // COMBINED DESELECT HANDLER
+  const handleCombinedBulkDeselect = async () => {
+    const isConsignorActive = !!filters.consignor;
+    const isConsigneeActive = Array.isArray(filters.consignee) && filters.consignee.length > 0;
+    const isDestinationActive = !!filters.destination;
+    const isGodownActive = !!filters.godown;
+    const isDateActive = filters.filterType !== 'all';
+    const isSearchActive = !!filters.search;
 
-  const handleDeselectAllVisible = () => { 
-    const visibleGcNos = paginatedData.map(gc => gc.gcNo);
-    const currentlyAllSelected = isAllVisibleSelected; 
+    const hasFiltersToDeselect = isConsignorActive || isConsigneeActive || isDestinationActive || isGodownActive || isDateActive || isSearchActive;
+
+    let totalDeselected = 0;
+
+    if (!hasFiltersToDeselect) {
+      // Fallback: Deselect all visible items if no specific filters are active but there is a selection
+      const visibleSelectedIds = paginatedData.map(gc => gc.gcNo).filter(isRowSelected);
+      if (visibleSelectedIds.length > 0) {
+        if (selectAllMode) {
+          setExcludedGcIds(prev => Array.from(new Set([...prev, ...visibleSelectedIds])));
+        } else {
+          setSelectedGcIds(prev => prev.filter(id => !visibleSelectedIds.includes(id)));
+        }
+        totalDeselected = visibleSelectedIds.length;
+      }
+    } else {
+      try {
+        // 1. Fetch ALL IDs that match the current full set of filters
+        const allMatchingItems = await fetchLoadingSheetPrintData([], true, filters); 
+
+        if (!allMatchingItems || allMatchingItems.length === 0) {
+          toast.error(`No items found matching the current combination of active filters.`);
+          clearAllFilters();
+          return;
+        }
+
+        const allMatchingIds = allMatchingItems.map((item: any) => item.gcNo);
+        totalDeselected = allMatchingIds.length;
+
+        // 2. Deselect the matching IDs
+        if (!selectAllMode) {
+          setSelectedGcIds(prev => prev.filter(id => !allMatchingIds.includes(id)));
+        } else {
+          setExcludedGcIds(prev => Array.from(new Set([...prev, ...allMatchingIds])));
+        }
+        
+      } catch (error) {
+        console.error("Bulk deselect failed:", error);
+        toast.error(`An error occurred while deselecting filtered items.`);
+        return; 
+      }
+    }
     
-    if (currentlyAllSelected) {
-        // INTENDED ACTION: DESELECT ALL VISIBLE
-        if (selectAllMode) {
-            // In Bulk Mode, DESELECT is adding to exclusions
-            setExcludedGcIds(prev => Array.from(new Set([...prev, ...visibleGcNos])));
-        } else {
-            // In Standard Mode, DESELECT is removing from selected
-            setSelectedGcIds(prev => prev.filter(id => !visibleGcNos.includes(id)));
-        }
-    } else {
-        // INTENDED ACTION: SELECT ALL VISIBLE
-        if (selectAllMode) {
-            // In Bulk Mode, SELECT is removing from exclusions
-            setExcludedGcIds(prev => prev.filter(gcId => !visibleGcNos.includes(gcId)));
-        } else {
-            // In Standard Mode, SELECT is adding to selected
-            setSelectedGcIds(prev => Array.from(new Set([...prev, ...visibleGcNos])));
-        }
+    // 3. Clear all filters after successful deselection
+    if (hasFiltersToDeselect || totalDeselected > 0) {
+      clearAllFilters();
+      toast.success(`Deselected ${totalDeselected} items and cleared all filters.`);
+    } else if (totalDeselected === 0) {
+        toast.error(`No items were deselected.`);
     }
   };
 
-
-  /**
-   * REVISED: Individual Row Checkbox Handler
-   * Determines current state via isRowSelected and toggles.
-   */
-  const handleSelectRow = (id: string) => {
-    const isCurrentlySelected = isRowSelected(id); 
-
-    if (selectAllMode) {
-      // Bulk Mode: Exclusion list is key.
-      if (isCurrentlySelected) {
-        // Current state is SELECTED (Action is DESELECT): Add to exclusion list
-        setExcludedGcIds(prev => Array.from(new Set([...prev, id])));
-      } else {
-        // Current state is DESELECTED (Action is SELECT): Remove from exclusion list
-        setExcludedGcIds(prev => prev.filter(gcId => gcId !== id));
-      }
-    } else {
-      // Standard Selection Mode
-      if (isCurrentlySelected) {
-        // Current state is SELECTED (Action is DESELECT): Remove from selected list
-        setSelectedGcIds(prev => prev.filter(gcId => gcId !== id));
-      } else {
-        // Current state is DESELECTED (Action is SELECT): Add to selected list
-        setSelectedGcIds(prev => Array.from(new Set([...prev, id])));
-      }
-    }
-  };
-  
-  // Combined Bulk DESELECT Handler (The action when the button says "Deselect All")
-  const handleCombinedBulkDeselect = () => {
-    // Reset all selection states completely:
-    setSelectAllMode(false);
-    setExcludedGcIds([]);
-    setSelectedGcIds([]);
-    toast.success(`Deselected all items.`);
-  };
-
-  // ⭐️ REVISED: Combined Bulk SELECT Handler (To ensure selectedGcIds holds the full list when filtered)
+  // COMBINED BULK SELECT HANDLER
   const handleCombinedBulkSelect = async () => {
     // Determine if filters are active
     const hasFiltersToSelect = !!filters.consignor || 
@@ -268,11 +288,10 @@ export const LoadingSheetEntry = () => {
             // Case 1: No filters active. Select ALL items (True Bulk Mode).
             setSelectAllMode(true);
             setExcludedGcIds([]);
-            // When unfiltered, we rely on totalItems from the hook and clear all selected IDs
             setSelectedGcIds([]); 
             totalSelected = totalItems; 
         } else {
-            // Case 2: Filters ARE active. Fetch all matching IDs to get the *exact* total count.
+            // Case 2: Filters ARE active. Fetch all matching IDs.
             const allMatchingItems = await fetchLoadingSheetPrintData([], true, filters); 
 
             if (!allMatchingItems || allMatchingItems.length === 0) {
@@ -285,11 +304,7 @@ export const LoadingSheetEntry = () => {
 
             // Enter Bulk Mode for the filtered set
             setSelectAllMode(true);
-            setExcludedGcIds([]); // Start with zero exclusions
-            
-            // ⭐️ FIX: Set selectedGcIds to the full list of filtered IDs. 
-            // This list's length will be used in finalCount to get the true total size 
-            // of the filtered selection set, overcoming the visual totalItems issue.
+            setExcludedGcIds([]); 
             setSelectedGcIds(allMatchingIds); 
         }
 
@@ -302,15 +317,44 @@ export const LoadingSheetEntry = () => {
     }
   };
 
-
-  // CRITICAL FIX: The useEffect hook must NOT update selectedGcIds from paginatedData.
+  // Keep visual selection in sync if Select All is active
   useEffect(() => {
-    // When switching OUT of selectAllMode, ensure excluded items are cleared.
-    if (!selectAllMode) {
-      setExcludedGcIds([]);
-    }
-  }, [selectAllMode]); 
+    if (selectAllMode) {
+      const currentVisibleIds = paginatedData
+        .map(gc => gc.gcNo)
+        .filter(gcId => !excludedGcIds.includes(gcId));
 
+      const currentSelectedSet = new Set(selectedGcIds);
+      const newVisibleSet = new Set(currentVisibleIds);
+
+      if (currentSelectedSet.size !== newVisibleSet.size ||
+        !currentVisibleIds.every(id => currentSelectedSet.has(id))) {
+        setSelectedGcIds(currentVisibleIds);
+      }
+    }
+  }, [paginatedData, selectAllMode, excludedGcIds, selectedGcIds]);
+
+  // Handle deselect visible logic
+  const isAllVisibleSelected = paginatedData.length > 0 && paginatedData.every(gc => isRowSelected(gc.gcNo));
+
+  const handleDeselectAllVisible = () => { 
+    const visibleGcNos = paginatedData.map(gc => gc.gcNo);
+    const currentlyAllSelected = isAllVisibleSelected; 
+    
+    if (currentlyAllSelected) {
+        if (selectAllMode) {
+            setExcludedGcIds(prev => Array.from(new Set([...prev, ...visibleGcNos])));
+        } else {
+            setSelectedGcIds(prev => prev.filter(id => !visibleGcNos.includes(id)));
+        }
+    } else {
+        if (selectAllMode) {
+            setExcludedGcIds(prev => prev.filter(gcId => !visibleGcNos.includes(gcId)));
+        } else {
+            setSelectedGcIds(prev => Array.from(new Set([...prev, ...visibleGcNos])));
+        }
+    }
+  };
 
   // --- ACTIONS (Unchanged) ---
 
@@ -406,6 +450,7 @@ export const LoadingSheetEntry = () => {
     }
   };
 
+  // 🟢 UPDATED: Extract contentItems from full GC details and pass to state
   const handleOpenQtySelect = async (gc: GcEntry) => {
     const fullGc = await fetchGcById(gc.gcNo);
 
@@ -414,12 +459,16 @@ export const LoadingSheetEntry = () => {
       const maxQty = parseInt(qtyStr) || 1;
       const startNo = parseInt(fullGc.fromNo?.toString() || '1') || 1;
       const currentLoaded = fullGc.loadedPackages || [];
+      
+      // Extract contentItems
+      const contentItems = fullGc.contentItems || [];
 
       setCurrentQtySelection({
         gcId: fullGc.gcNo,
         maxQty: maxQty,
         startNo: startNo,
-        loadedPackages: currentLoaded
+        loadedPackages: currentLoaded,
+        contentItems: contentItems // Pass to state
       });
       setIsQtySelectOpen(true);
     } else {
@@ -444,28 +493,26 @@ export const LoadingSheetEntry = () => {
   const hasActiveFilters = !!filters.destination || !!filters.consignor || (filters.consignee && filters.consignee.length > 0) || !!filters.godown || filters.filterType !== 'all' || !!filters.search;
   const responsiveBtnClass = "flex-1 md:flex-none text-[10px] xs:text-xs sm:text-sm h-8 sm:h-10 px-1 sm:px-4 whitespace-nowrap";
 
-  // ⭐️ FIX: Determine the source of the total count based on bulk mode and active filters.
+  // Determine source of total items
   const totalItemsInFilter = hasActiveFilters && selectAllMode 
-      ? selectedGcIds.length // Use the full filtered list we manually fetched in bulk select
-      : totalItems; // Use the value provided by the pagination hook (accurate when unfiltered)
+      ? selectedGcIds.length 
+      : totalItems;
 
   const finalCount = selectAllMode 
       ? Math.max(0, totalItemsInFilter - excludedGcIds.length) 
       : selectedGcIds.length;
 
+
   const printButtonText = selectAllMode
     ? `Print All (${finalCount})`
     : `Print (${finalCount})`;
   
-  // ⭐️ DYNAMIC BUTTON LOGIC (Correct)
+  // DYNAMIC BUTTON LOGIC
   const bulkButtonText = selectAllMode ? "Deselect All" : "Select All";
   const bulkButtonIcon = selectAllMode ? XCircle : PackageCheck;
   const handleBulkAction = selectAllMode ? handleCombinedBulkDeselect : handleCombinedBulkSelect;
   const bulkButtonVariant = selectAllMode ? "destructive" : "primary";
-
-  // Get the Icon component dynamically
   const BulkIconComponent = bulkButtonIcon;
-
 
   return (
     <div className="space-y-6">
@@ -500,7 +547,6 @@ export const LoadingSheetEntry = () => {
         {/* RIGHT: Actions */}
         <div className="flex gap-2 w-full md:w-auto justify-between md:justify-end">
           
-          {/* ⭐️ DYNAMIC BULK ACTION BUTTON */}
           <Button
             variant={bulkButtonVariant}
             onClick={handleBulkAction}
@@ -525,7 +571,7 @@ export const LoadingSheetEntry = () => {
         </div>
       </div>
 
-      {/* 2. Collapsible Filters (Unchanged) */}
+      {/* 2. Collapsible Filters */}
       {showFilters && (
         <div className="p-4 bg-muted/20 rounded-lg border border-muted animate-in fade-in slide-in-from-top-2">
           <div className="flex justify-between items-center mb-4">
@@ -544,8 +590,6 @@ export const LoadingSheetEntry = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-
-            {/* Godown Filter */}
             <AsyncAutocomplete
               label="Filter by Godown"
               loadOptions={loadGodownOptions}
@@ -557,7 +601,6 @@ export const LoadingSheetEntry = () => {
               placeholder="Type to search godown..."
               defaultOptions
             />
-            {/* Destination Filter */}
             <AsyncAutocomplete
               label="Filter by Destination"
               loadOptions={loadDestinationOptions}
@@ -569,8 +612,6 @@ export const LoadingSheetEntry = () => {
               placeholder="Type to search destination..."
               defaultOptions
             />
-
-            {/* Consignor Filter */}
             <AsyncAutocomplete
               label="Filter by Consignor"
               loadOptions={loadConsignorOptions}
@@ -582,8 +623,6 @@ export const LoadingSheetEntry = () => {
               placeholder="Type to search consignor..."
               defaultOptions
             />
-
-            {/* Consignee Filter (Multi-select) */}
             <div>
               <AsyncAutocomplete
                 label="Filter by Consignee (Multi-select)"
@@ -600,7 +639,6 @@ export const LoadingSheetEntry = () => {
                 defaultOptions
               />
             </div>
-
           </div>
 
           <DateFilterButtons
@@ -614,27 +652,24 @@ export const LoadingSheetEntry = () => {
         </div>
       )}
       
-      {/* 3. Responsive Data Display (TABLE/CARDS - Unchanged) */}
+      {/* 3. Responsive Data Display */}
       <div className="bg-background rounded-lg shadow border border-muted overflow-hidden">
         {/* --- DESKTOP TABLE --- */}
         <div className="hidden md:block overflow-x-auto">
           <table className="min-w-full divide-y divide-muted">
             <thead className="bg-muted/50">
               <tr>
-                <th className="px-4 py-3 text-left" title="Click to Deselect/Select all visible items">
-                  {/* INVERTED: Master checkbox now executes DESELECT/SELECT logic */}
+                <th className="px-4 py-3 text-left">
                   <input
                     type="checkbox"
                     className="h-4 w-4 accent-primary border-muted-foreground/30 rounded focus:ring-primary"
-                    // Checked state means 'All visible are selected'
                     checked={isAllVisibleSelected} 
-                    onChange={handleDeselectAllVisible} // Function that performs deselect/select on current page
+                    onChange={handleDeselectAllVisible}
                   />
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">GC No</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Consignor</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Consignee</th>
-
                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">QTY (Total)</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">QTY (Pending)</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Actions</th>
@@ -661,22 +696,20 @@ export const LoadingSheetEntry = () => {
                   return (
                     <tr key={gc.gcNo}>
                       <td className="px-4 py-4 whitespace-nowrap">
-                        {/* INVERTED: Checkbox is checked if SELECTED, but click performs DESELECT/SELECT */}
                         <input
                           type="checkbox"
                           className="h-4 w-4 accent-primary border-muted-foreground/30 rounded focus:ring-primary"
                           checked={isSelected}
-                          // ⭐️ FIX: Call with only the GC ID
-                          onChange={() => handleSelectRow(gc.gcNo)} 
+                          onChange={() => handleSelectRow({ target: { checked: !isSelected } } as any, gc.gcNo)} 
                           title={isSelected ? "Click to Deselect" : "Click to Select"}
                         />
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-primary">{gc.gcNo}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-foreground">{consignorName}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">{consigneeName}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-primary">{gc.gcNo}</td>
+                      <td className="px-6 py-4 text-sm">{consignorName}</td>
+                      <td className="px-6 py-4 text-sm">{consigneeName}</td>
                       
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">{totalCount}</td>
-                      <td className={`px-6 py-4 whitespace-nowrap text-sm font-bold ${isFullyPending ? 'text-foreground' : isPartiallyPending ? 'text-orange-500' : 'text-green-600'}`}>
+                      <td className="px-6 py-4 text-sm font-semibold">{totalCount}</td>
+                      <td className={`px-6 py-4 whitespace-nowrap text-sm font-semibold ${isFullyPending ? 'text-foreground' : isPartiallyPending ? 'text-orange-500' : 'text-green-600'}`}>
                         {pendingCount}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm space-x-3 flex items-center">
@@ -704,7 +737,7 @@ export const LoadingSheetEntry = () => {
           </table>
         </div>
 
-        {/* --- MOBILE CARD LIST (Updated for consistency) --- */}
+        {/* --- MOBILE CARD LIST --- */}
         <div className="block md:hidden divide-y divide-muted">
           {paginatedData.length > 0 ? (
             paginatedData.map((gc) => {
@@ -712,7 +745,7 @@ export const LoadingSheetEntry = () => {
               const consigneeName = (gc as any).consigneeName || 'N/A';
 
               const loadedCount = gc.loadedCount || 0;
-              const qtyVal = gc.totalQty ?? 0; // Fixed: using totalQty for consistency
+              const qtyVal = gc.totalQty ?? 0;
               const totalCount = parseInt(qtyVal.toString()) || 0;
               const pendingCount = totalCount - loadedCount;
               const isPartiallyPending = pendingCount > 0 && pendingCount < totalCount;
@@ -724,20 +757,17 @@ export const LoadingSheetEntry = () => {
                 <div key={gc.gcNo} className="p-4">
                   <div className="flex justify-between items-start">
                     <div className="flex items-start gap-3">
-                      {/* INVERTED: Checkbox is checked if SELECTED, but click performs DESELECT/SELECT */}
                       <input
                         type="checkbox"
                         className="h-4 w-4 accent-primary border-muted-foreground/30 rounded focus:ring-primary mt-1.5"
                         checked={isSelected}
-                        // ⭐️ FIX: Call with only the GC ID
-                        onChange={() => handleSelectRow(gc.gcNo)}
+                        onChange={() => handleSelectRow({ target: { checked: !isSelected } } as any, gc.gcNo)}
                         title={isSelected ? "Click to Deselect" : "Click to Select"}
                       />
                       <div>
                         <div className="text-lg font-semibold text-primary">GC #{gc.gcNo}</div>
                         <div className="text-md font-medium text-foreground">From: {consignorName}</div>
                         <div className="text-sm text-muted-foreground">To: {consigneeName}</div>
-                    
                       </div>
                     </div>
                     <div className="flex flex-col space-y-3 pt-1">
@@ -790,7 +820,7 @@ export const LoadingSheetEntry = () => {
 
       {reportPrintingJobs && (
         <StockReportPrint
-          data={reportPrintingJobs} // 🟢 FIX: Passing 'data' prop correctly
+          data={reportPrintingJobs}
           onClose={() => setReportPrintingJobs(null)}
         />
       )}
@@ -818,6 +848,7 @@ export const LoadingSheetEntry = () => {
           maxQty={currentQtySelection.maxQty}
           startNo={currentQtySelection.startNo}
           currentSelected={currentQtySelection.loadedPackages}
+          contentItems={currentQtySelection.contentItems} // 🟢 Pass new prop
         />
       )}
     </div>
