@@ -5,7 +5,7 @@ import { DateFilterButtons, getTodayDate, getYesterdayDate } from '../../compone
 import { ConfirmationDialog } from '../../components/shared/ConfirmationDialog';
 import { useData } from '../../hooks/useData';
 import { Button } from '../../components/shared/Button';
-import { AsyncAutocomplete } from '../../components/shared/AsyncAutocomplete'; // 🟢 Updated Import
+import { AsyncAutocomplete } from '../../components/shared/AsyncAutocomplete'; 
 import { StockReportPrint } from './StockReportView';
 import { GcPrintManager, type GcPrintJob } from '../gc-entry/GcPrintManager';
 import type { GcEntry, Consignor, Consignee } from '../../types';
@@ -13,19 +13,12 @@ import { useServerPagination } from '../../hooks/useServerPagination';
 import { Pagination } from '../../components/shared/Pagination';
 import { useToast } from '../../contexts/ToastContext';
 
-type ReportJob = {
-  gc: GcEntry;
-  consignor?: Consignor;
-  consignee?: Consignee;
-};
-
 export const PendingStockHistory = () => {
   const navigate = useNavigate();
   const { 
     deleteGcEntry, 
     fetchGcPrintData, 
     fetchPendingStockReport,
-    // 🟢 NEW: Destructure search functions
     searchConsignors,
     searchConsignees,
     searchToPlaces
@@ -51,8 +44,6 @@ export const PendingStockHistory = () => {
   });
 
   const [showFilters, setShowFilters] = useState(false);
-  
-  // 🟢 NEW: Local state for dropdown option objects
   const [destinationOption, setDestinationOption] = useState<any>(null);
   const [consignorOption, setConsignorOption] = useState<any>(null);
   const [consigneeOptions, setConsigneeOptions] = useState<any[]>([]);
@@ -62,10 +53,11 @@ export const PendingStockHistory = () => {
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deleteMessage, setDeleteMessage] = useState(""); 
-  const [reportPrintingJobs, setReportPrintingJobs] = useState<ReportJob[] | null>(null);
+  
+  // 🟢 State to hold the raw backend report data
+  const [reportPrintingData, setReportPrintingData] = useState<any[] | null>(null);
   const [gcPrintingJobs, setGcPrintingJobs] = useState<GcPrintJob[] | null>(null);
   
-  // 🟢 NEW: Async Options Loaders
   const loadDestinationOptions = async (search: string, _prevOptions: any, { page }: any) => {
     const result = await searchToPlaces(search, page);
     return {
@@ -134,12 +126,9 @@ export const PendingStockHistory = () => {
   };
 
   const clearAllFilters = () => {
-    // Reset local dropdown states
     setDestinationOption(null);
     setConsignorOption(null);
     setConsigneeOptions([]);
-
-    // Reset API filters
     setFilters({ 
         search: '', 
         filterType: 'all', 
@@ -168,15 +157,12 @@ export const PendingStockHistory = () => {
     setDeletingId(null); 
   };
   
-  // --- OPTIMIZED PRINT HANDLERS ---
   const handlePrintSingle = async (gcNo: string) => {
     try {
         const printData = await fetchGcPrintData([gcNo]);
-        
         if (printData && printData.length > 0) {
             const item = printData[0];
             const { consignor, consignee, ...gcData } = item;
-            
             setGcPrintingJobs([{ 
                 gc: gcData as GcEntry, 
                 consignor: consignor as Consignor, 
@@ -193,10 +179,8 @@ export const PendingStockHistory = () => {
   
   const handlePrintSelected = async () => {
     if (selectedGcIds.length === 0 && !selectAllMode) return;
-    
     try {
         let printData = [];
-        
         if (selectAllMode) {
             const printFilters = { ...filters, pendingStockView: true };
             printData = await fetchGcPrintData([], true, printFilters);
@@ -211,12 +195,9 @@ export const PendingStockHistory = () => {
 
         const jobs = printData.map((item: any): GcPrintJob | null => {
             const { consignor, consignee, ...gcData } = item;
-            
             if (!consignor || !consignee) {
-                console.warn(`Incomplete data for GC ${gcData.gcNo}`);
                 return null;
             }
-
             return {
                 gc: gcData as GcEntry,
                 consignor: consignor as Consignor,
@@ -229,7 +210,7 @@ export const PendingStockHistory = () => {
           if (!selectAllMode) setSelectedGcIds([]); 
           setSelectAllMode(false); 
         } else {
-          toast.error("Could not prepare print jobs. Check data integrity.");
+          toast.error("Could not prepare print jobs.");
         }
     } catch (error) {
         console.error("Bulk print error:", error);
@@ -241,57 +222,14 @@ export const PendingStockHistory = () => {
     try {
         const reportData = await fetchPendingStockReport(filters);
         
-        if (reportData.length === 0) {
+        if (!reportData || reportData.length === 0) {
             toast.error("No pending stock found for current filters.");
             return;
         }
 
-        const jobs: ReportJob[] = reportData.map((item: any) => ({
-            gc: {
-                id: item.id,
-                gcNo: item.gcNo,
-                gcDate: item.gcDate,
-                quantity: item.quantity,
-                packing: item.packing,
-                contents: item.contents,
-                from: '', 
-                destination: '',
-                consignorId: '',
-                consigneeId: '',
-                consigneeProofType: 'gst',
-                consigneeProofValue: '',
-                billDate: '',
-                deliveryAt: '',
-                freightUptoAt: '',
-                godown: '',
-                billNo: '',
-                billValue: '',
-                tollFee: '',
-                freight: '',
-                godownCharge: '',
-                statisticCharge: '',
-                advanceNone: '',
-                balanceToPay: '',
-                prefix: '',
-                fromNo: '',
-                netQty: '',
-                paymentType: 'To Pay'
-            } as GcEntry,
-            
-            consignor: { 
-                id: 'report-only', 
-                name: item.consignor.name, 
-                from: '', filingDate: '', gst: '', address: '' 
-            } as Consignor,
-            
-            consignee: { 
-                id: 'report-only', 
-                name: item.consignee.name, 
-                destination: '', address: '', phone: '', filingDate: '' 
-            } as Consignee
-        }));
-
-        setReportPrintingJobs(jobs);
+        // 🟢 FIX: Pass raw reportData directly to View.
+        // We do NOT map it here anymore to avoid losing contentItems.
+        setReportPrintingData(reportData);
 
     } catch (error) {
         console.error("Error fetching report data", error);
@@ -329,12 +267,8 @@ export const PendingStockHistory = () => {
   const isAllSelected = selectAllMode || (paginatedData.length > 0 && selectedGcIds.length === paginatedData.length);
   const hasActiveFilters = !!filters.destination || !!filters.consignor || (filters.consignee && filters.consignee.length > 0) || filters.filterType !== 'all' || !!filters.search;
   
-  // --- RESPONSIVE BUTTON STYLE HELPER ---
   const responsiveBtnClass = "flex-1 md:flex-none text-[10px] xs:text-xs sm:text-sm h-8 sm:h-10 px-1 sm:px-4 whitespace-nowrap";
-  
-  const printButtonText = selectAllMode 
-    ? `Print All (${totalItems})` 
-    : `Print (${selectedGcIds.length})`;
+  const printButtonText = selectAllMode ? `Print All (${totalItems})` : `Print (${selectedGcIds.length})`;
 
   return (
     <div className="space-y-6">
@@ -363,43 +297,27 @@ export const PendingStockHistory = () => {
           </div>
           
         <div className="flex gap-2 w-full md:w-auto justify-between md:justify-end">
-          <Button 
-            variant="secondary" 
-            onClick={handleShowReport} 
-            className={responsiveBtnClass}
-          >
+          <Button variant="secondary" onClick={handleShowReport} className={responsiveBtnClass}>
             <FileText size={14} className="mr-1 sm:mr-2" /> Report
           </Button>
           
-          <Button 
-            variant="secondary" 
-            onClick={handlePrintSelected} 
-            disabled={selectedGcIds.length === 0 && !selectAllMode}
-            className={responsiveBtnClass}
-          >
+          <Button variant="secondary" onClick={handlePrintSelected} disabled={selectedGcIds.length === 0 && !selectAllMode} className={responsiveBtnClass}>
             <Printer size={14} className="mr-1 sm:mr-2" /> {printButtonText}
           </Button>
           
-          <Button 
-            variant="primary" 
-            onClick={() => navigate('/gc-entry/new')}
-            className={responsiveBtnClass}
-          >
+          <Button variant="primary" onClick={() => navigate('/gc-entry/new')} className={responsiveBtnClass}>
             + Add New GC
           </Button>
         </div>
       </div>
 
-      {/* Advanced Filters Panel */}
+      {/* Advanced Filters */}
       {showFilters && (
         <div className="p-4 bg-muted/20 rounded-lg border border-muted animate-in fade-in slide-in-from-top-2">
            <div className="flex justify-between items-center mb-4">
              <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">Advanced Filters</h3>
              <div className="flex gap-2">
-              <button 
-                onClick={clearAllFilters} 
-                className="text-xs flex items-center text-primary hover:text-primary/80 font-medium"
-              >
+              <button onClick={clearAllFilters} className="text-xs flex items-center text-primary hover:text-primary/80 font-medium">
                 <RotateCcw size={14} className="mr-1" /> Clear All
               </button>
               <button onClick={() => setShowFilters(false)} className="text-muted-foreground hover:text-foreground ml-2"><XCircle size={18} /></button>
@@ -407,34 +325,22 @@ export const PendingStockHistory = () => {
            </div>
            
            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-             
-             {/* 🟢 Async Destination Filter */}
              <AsyncAutocomplete 
                label="Destination" 
                loadOptions={loadDestinationOptions}
                value={destinationOption} 
-               onChange={(val) => {
-                 setDestinationOption(val);
-                 setFilters({ destination: (val as any)?.value || '' });
-               }} 
+               onChange={(val) => { setDestinationOption(val); setFilters({ destination: (val as any)?.value || '' }); }} 
                placeholder="Search..." 
                defaultOptions
              />
-
-             {/* 🟢 Async Consignor Filter */}
              <AsyncAutocomplete 
                label="Consignor" 
                loadOptions={loadConsignorOptions}
                value={consignorOption} 
-               onChange={(val) => {
-                 setConsignorOption(val);
-                 setFilters({ consignor: (val as any)?.value || '' });
-               }} 
+               onChange={(val) => { setConsignorOption(val); setFilters({ consignor: (val as any)?.value || '' }); }} 
                placeholder="Search..." 
                defaultOptions
              />
-             
-             {/* 🟢 Async Consignee Filter (Multi-Select) */}
              <div>
                <AsyncAutocomplete 
                   label="Consignee (Multi-select)" 
@@ -464,14 +370,13 @@ export const PendingStockHistory = () => {
         </div>
       )}
 
+      {/* Main Table */}
       <div className="bg-background rounded-lg shadow border border-muted overflow-hidden">
          <div className="hidden md:block overflow-x-auto">
           <table className="min-w-full divide-y divide-muted">
             <thead className="bg-muted/50">
               <tr>
-                <th className="px-4 py-3 text-left">
-                  <input type="checkbox" className="h-4 w-4 accent-primary" checked={isAllSelected} onChange={handleSelectAll} />
-                </th>
+                <th className="px-4 py-3 text-left"><input type="checkbox" className="h-4 w-4 accent-primary" checked={isAllSelected} onChange={handleSelectAll} /></th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">GC No</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Consignor</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Consignee</th>
@@ -486,19 +391,18 @@ export const PendingStockHistory = () => {
                  <tr><td colSpan={8} className="px-6 py-12 text-center">Loading data...</td></tr>
               ) : paginatedData.length > 0 ? (
                 paginatedData.map((gc) => {
-                  // 🟢 FIX: Use names from backend directly
-                  const consignorName = (gc as any).consignorName || 'N/A';
-                  const consigneeName = (gc as any).consigneeName || 'N/A';
+                  const consignorName = (gc as any).consignorName || (gc as any).consignor?.name || 'N/A';
+                  const consigneeName = (gc as any).consigneeName || (gc as any).consignee?.name || 'N/A';
                   
                   return (
                   <tr key={gc.id}>
                      <td className="px-4 py-4"><input type="checkbox" className="h-4 w-4 accent-primary" checked={selectedGcIds.includes(gc.gcNo)} onChange={(e) => handleSelectRow(e, gc.gcNo)} /></td>
-                     <td className="px-6 py-4 text-primary font-semibold">{gc.gcNo}</td>
+                     <td className="px-6 py-4 text-primary font-bold">{gc.gcNo}</td>
                      <td className="px-6 py-4 text-sm">{consignorName}</td>
                      <td className="px-6 py-4 text-sm">{consigneeName}</td>
                      <td className="px-6 py-4 text-sm">{gc.from}</td>
                      <td className="px-6 py-4 text-sm">{gc.destination}</td>
-                     <td className="px-6 py-4 text-sm">{gc.quantity}</td>
+                     <td className="px-6 py-4 text-sm">{gc.totalQty}</td>
                      <td className="px-6 py-4 space-x-3">
                         <button onClick={() => handleEdit(gc.gcNo)} className="text-blue-600"><FilePenLine size={18} /></button>
                         <button onClick={() => handlePrintSingle(gc.gcNo)} className="text-green-600"><Printer size={18} /></button>
@@ -518,17 +422,14 @@ export const PendingStockHistory = () => {
          <div className="block md:hidden divide-y divide-muted">
            {paginatedData.length > 0 ? (
              paginatedData.map((gc) => {
-               // 🟢 FIX: Use names from backend directly
-               const consignorName = (gc as any).consignorName || 'N/A';
-               const consigneeName = (gc as any).consigneeName || 'N/A';
+               const consignorName = (gc as any).consignorName || (gc as any).consignor?.name || 'N/A';
+               const consigneeName = (gc as any).consigneeName || (gc as any).consignee?.name || 'N/A';
                
                return (
                <div key={gc.id} className="p-4 hover:bg-muted/30 transition-colors">
                   <div className="flex justify-between items-start">
                      <div className="flex gap-3 flex-1">
-                        <div className="pt-1">
-                           <input type="checkbox" className="h-5 w-5 accent-primary" checked={selectedGcIds.includes(gc.gcNo)} onChange={(e) => handleSelectRow(e, gc.gcNo)} />
-                        </div>
+                        <div className="pt-1"><input type="checkbox" className="h-5 w-5 accent-primary" checked={selectedGcIds.includes(gc.gcNo)} onChange={(e) => handleSelectRow(e, gc.gcNo)} /></div>
                         <div className="space-y-1 w-full">
                            <div className="font-bold text-blue-600 text-lg">GC #{gc.gcNo}</div>
                            <div className="font-semibold text-foreground">{consignorName}</div>
@@ -537,16 +438,14 @@ export const PendingStockHistory = () => {
                            <div className="text-sm text-muted-foreground">At: {gc.destination}</div>
                         </div>
                      </div>
-
                      <div className="flex flex-col gap-3 pl-2">
                         <button onClick={() => handleEdit(gc.gcNo)} className="text-blue-600 p-1 hover:bg-blue-50 rounded"><FilePenLine size={20}/></button>
                         <button onClick={() => handlePrintSingle(gc.gcNo)} className="text-green-600 p-1 hover:bg-green-50 rounded"><Printer size={20}/></button>
                         <button onClick={() => handleDelete(gc.gcNo)} className="text-destructive p-1 hover:bg-red-50 rounded"><Trash2 size={20}/></button>
                      </div>
                   </div>
-
                   <div className="flex justify-between items-center mt-3 pt-3 border-t border-dashed border-muted">
-                     <div className="text-sm font-medium">Qty: {gc.quantity}</div>
+                     <div className="text-sm font-medium">Qty: {gc.totalQty}</div>
                      <div className="text-sm font-bold text-muted-foreground">Status: Pending</div>
                   </div>
                </div>
@@ -568,7 +467,7 @@ export const PendingStockHistory = () => {
         title="Delete GC" 
         description={deleteMessage} 
       />
-      {reportPrintingJobs && <StockReportPrint jobs={reportPrintingJobs} onClose={() => setReportPrintingJobs(null)} />}
+      {reportPrintingData && <StockReportPrint data={reportPrintingData} onClose={() => setReportPrintingData(null)} />}
       {gcPrintingJobs && <GcPrintManager jobs={gcPrintingJobs} onClose={() => setGcPrintingJobs(null)} />}
     </div>
   );

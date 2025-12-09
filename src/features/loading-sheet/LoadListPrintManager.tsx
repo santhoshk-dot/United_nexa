@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom';
 import type { GcEntry, Consignor, Consignee } from '../../types';
 import { useAuth } from '../../hooks/useAuth';
 import { X, Printer } from 'lucide-react';
-import { useDataContext } from '../../contexts/DataContext'; // 🟢 Import DataContext
+import { useDataContext } from '../../contexts/DataContext'; 
 
 export type LoadListJob = {
     gc: GcEntry;
@@ -26,57 +26,103 @@ const getCurrentDate = () => {
 
 export const LoadListPrintManager: React.FC<LoadListPrintManagerProps> = ({ jobs, onClose }) => {
     const { user } = useAuth(); 
-    const { printSettings } = useDataContext(); // 🟢 Get Settings
-    const label = printSettings.loadingSheet; // 🟢 Alias
+    const { printSettings } = useDataContext(); 
+    const label = printSettings.loadingSheet; 
 
     const userName = user?.name
     const printTriggered = useRef(false);
 
     const { printData, grandTotalQuantity } = useMemo(() => {
-        const groupedLoads = jobs.reduce((acc, job) => {
-            const key = `${job.gc.godown || 'N/A'}::${job.consignor.id}::${job.consignee.id}`;
+        // 🟢 STEP 1: Flatten all jobs into individual printable items
+        // If a GC has 2 content items, it becomes 2 entries here.
+        const allItems = jobs.flatMap(job => {
+            const baseInfo = {
+                godown: job.gc.godown || 'N/A',
+                consignorId: job.consignor.id,
+                consigneeId: job.consignee.id,
+                consignorName: job.consignor.name,
+                consigneeName: job.consignee.name,
+                gcNo: job.gc.gcNo,
+            };
+
+            // Check if backend provided multi-content array
+            const hasContentItems = job.gc.contentItems && Array.isArray(job.gc.contentItems) && job.gc.contentItems.length > 0;
+
+            if (hasContentItems) {
+                return job.gc.contentItems!.map((item: any) => ({
+                    ...baseInfo,
+                    packing: item.packing || '',
+                    contents: item.contents || '',
+                    qty: parseInt(item.qty?.toString() || '0') || 0,
+                    fromNo: parseInt(item.fromNo?.toString() || '1') || 1
+                }));
+            } else {
+                // Fallback for legacy single-item GCs
+                return [{
+                    ...baseInfo,
+                    packing: job.gc.packing || 'CASE',
+                    contents: job.gc.contents || 'FW',
+                    qty: parseInt(job.gc.quantity?.toString() || job.gc.totalQty?.toString() || '0') || 0,
+                    fromNo: parseInt(job.gc.fromNo?.toString() || '1') || 1
+                }];
+            }
+        });
+
+        // 🟢 STEP 2: Group by Godown + Consignor + Consignee + Packing + Content
+        const groupedLoads = allItems.reduce((acc, item) => {
+            // Unique key for grouping
+            const key = `${item.godown}::${item.consignorId}::${item.consigneeId}::${item.packing}::${item.contents}`;
             
             if (!acc[key]) {
                 acc[key] = {
-                    godown: job.gc.godown || 'N/A',
-                    consignorName: job.consignor.name,
-                    consigneeName: job.consignee.name,
+                    godown: item.godown,
+                    consignorName: item.consignorName,
+                    consigneeName: item.consigneeName,
+                    packingDetails: item.packing,
+                    contentDetails: item.contents,
                     totalQuantity: 0,
-                    firstGcFromNo: Number(job.gc.fromNo || 0),
-                    packingDetails: job.gc.packing || 'CASE',
-                    contentDetails: job.gc.contents || 'FW',
-                    gcList: [],
+                    gcNos: new Set<string>(), // Track GC numbers involved
+                    allNumbers: [] as number[], // Collect specific package numbers
                 };
             }
 
-            acc[key].gcList.push(job.gc);
-            acc[key].totalQuantity += Number(job.gc.quantity || 0);
+            acc[key].totalQuantity += item.qty;
+            acc[key].gcNos.add(item.gcNo);
+
+            // Generate specific numbers for this batch (e.g. 1 to 20)
+            for (let i = 0; i < item.qty; i++) {
+                acc[key].allNumbers.push(item.fromNo + i);
+            }
+
             return acc;
         }, {} as Record<string, {
             godown: string;
             consignorName: string;
             consigneeName: string;
+            packingDetails: string;
+            contentDetails: string;
             totalQuantity: number;
-            firstGcFromNo: number;
-            packingDetails: string | undefined;
-            contentDetails: string | undefined;
-            gcList: GcEntry[];
+            gcNos: Set<string>;
+            allNumbers: number[];
         }>);
 
+        // 🟢 STEP 3: Format for display
         const calculatedPrintData = Object.values(groupedLoads).map(group => {
-            const sortedGcIds = group.gcList
-                .map(g => Number(g.gcNo))
-                .sort((a, b) => a - b);
+            // Sort GC IDs for display (e.g., GC 22, 23)
+            // Use numeric sort if possible, string fallback
+            const sortedGcIds = Array.from(group.gcNos).sort((a, b) => {
+                const numA = parseInt(a);
+                const numB = parseInt(b);
+                return !isNaN(numA) && !isNaN(numB) ? numA - numB : a.localeCompare(b);
+            });
 
-            const fromNo = group.firstGcFromNo;
-            const toNo = fromNo > 0 ? fromNo + group.totalQuantity - 1 : null;
+            // Sort the actual package numbers to be printed (1, 2, 3...)
+            group.allNumbers.sort((a, b) => a - b);
 
             return {
                 ...group,
-                sortedGcIds,
-                primaryGcId: sortedGcIds.length > 0 ? sortedGcIds[0] : 'N/A',
-                fromNo,
-                toNo,
+                primaryGcId: sortedGcIds[0] || 'N/A', // Display first GC No
+                numbersToDisplay: group.allNumbers
             };
         });
 
@@ -360,9 +406,9 @@ export const LoadListPrintManager: React.FC<LoadListPrintManagerProps> = ({ jobs
                     {/* CONTENT SECTION (Grows to fill space) */}
                     <div className="flex-1">
                         <div className="text-center mb-6">
-                            {/* 🟢 Dynamic Company Name */}
+                            {/* 泙 Dynamic Company Name */}
                             <h2 className="text-xl font-extrabold mb-1 uppercase">{label.companyName}</h2>
-                            {/* 🟢 Dynamic Main Header with Date */}
+                            {/* 泙 Dynamic Main Header with Date */}
                             <h3 className="text-lg font-extrabold uppercase">{label.mainHeader} AS ON {getCurrentDate()}</h3>
                         </div>
 
@@ -376,16 +422,12 @@ export const LoadListPrintManager: React.FC<LoadListPrintManagerProps> = ({ jobs
                                     &nbsp;-&nbsp; {data.consigneeName}
                                 </p>
 
-                                {data.fromNo !== null && data.toNo !== null && data.fromNo > 0 && data.toNo > 0 && (
+                                {/* 🟢 Updated Number Rendering */}
+                                {data.numbersToDisplay && data.numbersToDisplay.length > 0 && (
                                     <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1 pl-5 text-left">
-                                        {
-                                            Array.from(
-                                                { length: data.toNo - data.fromNo + 1 },
-                                                (_, i) => data.fromNo + i
-                                            ).map((num) => (
+                                        {data.numbersToDisplay.map((num) => (
                                                 <span key={num} className="font-normal">{num}</span>
-                                            ))
-                                        }
+                                        ))}
                                     </div>
                                 )}
                             </div>
@@ -397,12 +439,12 @@ export const LoadListPrintManager: React.FC<LoadListPrintManagerProps> = ({ jobs
                         <div className="border-t-2 border-black w-full my-2"></div>
                         <div className="py-1 print-split-footer">
                             <div className="font-bold text-lg">
-                                {/* 🟢 Dynamic Total Label */}
+                                {/* 泙 Dynamic Total Label */}
                                 {label.totalLabel} {grandTotalQuantity}
                             </div>
                             <div className="text-xs text-center">
                                 <p className="italic font-bold mr-1 mb-1">{userName}</p>
-                                {/* 🟢 Dynamic Signature Line */}
+                                {/* 泙 Dynamic Signature Line */}
                                 <p className="italic font-bold mr-1">{label.companySignatureLine}</p>
                             </div>
                         </div>

@@ -408,7 +408,7 @@ export const TripSheetList = () => {
                   paginatedData.map((ts) => (
                     <tr key={ts.id} className="hover:bg-muted/30">
                       <td className="px-6 py-4"><input type="checkbox" className="h-4 w-4 accent-primary" checked={selected.includes(ts.mfNo)} onChange={() => handleSelectRow(ts.mfNo)} /></td>
-                      <td className="px-6 py-4 font-semibold text-primary">{ts.mfNo}</td>
+                      <td className="px-6 py-4 font-bold text-primary">{ts.mfNo}</td>
                       <td className="px-6 py-4 text-sm">{ts.fromPlace}</td>
                       <td className="px-6 py-4 text-sm">{ts.toPlace}</td>
                       <td className="px-6 py-4 text-sm">{ts.tsDate}</td>

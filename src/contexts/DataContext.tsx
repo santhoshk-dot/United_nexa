@@ -438,8 +438,17 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const fetchGcDetailsForTripSheet = async (gcNo: string) => {
-    try { const { data } = await api.get(`/operations/gc/details/${gcNo}`); return data; }
-    catch (e: any) { toast.error(e.response?.data?.message || "Error fetching GC details"); return null; }
+    try { 
+      // 🟢 Update: Added { skipLoader: true } to the config object
+      const { data } = await api.get(`/operations/gc/details/${gcNo}`, { 
+        skipLoader: true 
+      } as any); 
+      return data; 
+    }
+    catch (e: any) { 
+      toast.error(e.response?.data?.message || "Error fetching GC details"); 
+      return null; 
+    }
   };
 
   const fetchGcPrintData = async (gcNos: string[], selectAll?: boolean, filters?: any) => {

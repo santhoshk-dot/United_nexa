@@ -1,11 +1,20 @@
 import { useEffect, useMemo, useRef } from 'react';
 import ReactDOM from 'react-dom';
-import type { GcEntry, Consignor, Consignee, StockLabels } from '../../types';
+import type { StockLabels } from '../../types';
 import { X, Printer } from 'lucide-react';
-import { useDataContext } from '../../contexts/DataContext'; // 🟢 Import DataContext
+import { useDataContext } from '../../contexts/DataContext';
 
-// --- Report Header (Fixed for Even Alignment) ---
-// 🟢 Update: Accept labels as props
+// --- Date Formatter ---
+const formatDate = (dateString?: string) => {
+  if (!dateString) return "";
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return dateString;
+  return `${String(date.getDate()).padStart(2, "0")}/${String(
+    date.getMonth() + 1
+  ).padStart(2, "0")}/${date.getFullYear()}`;
+};
+
+// --- Report Header ---
 const ReportHeader = ({ label }: { label: StockLabels }) => (
   <div className="w-full font-serif mb-0 text-black" style={{ fontFamily: '"Times New Roman", Times, serif' }}>
     {/* Top Title */}
@@ -44,40 +53,48 @@ const ReportHeader = ({ label }: { label: StockLabels }) => (
   </div>
 );
 
+// --- Helper Type for Flattened Rows ---
+interface StockReportRow {
+  uniqueId: string;
+  gcNo: string;
+  date: string;
+  consignorName: string;
+  consigneeName: string;
+  packing: string;
+  content: string;
+  quantity: number;
+}
+
 // --- Report Page Component ---
 interface ReportPageProps {
-  jobs: {
-    gc: GcEntry;
-    consignor?: Consignor;
-    consignee?: Consignee;
-  }[];
+  rows: StockReportRow[];
   pageNumber: number;
   totalPages: number;
   isLastPage: boolean;
   grandTotal: number;
-  labels: StockLabels; // 🟢 Pass labels down
+  labels: StockLabels;
 }
 
 const ReportPage = ({ 
-  jobs, 
+  rows, 
   pageNumber, 
   totalPages, 
   isLastPage, 
   grandTotal,
-  labels // 🟢 Destructure
+  labels 
 }: ReportPageProps) => {
   return (
     <div 
       className="report-page bg-white text-black relative"
       style={{ 
         width: "210mm", 
-        height: "297mm",  // Changed to fixed height for consistent footer positioning
+        height: "297mm", 
         padding: "10mm 10mm",
         boxSizing: "border-box",
         fontFamily: '"Times New Roman", Times, serif' 
       }}
     >
-      <ReportHeader label={labels} /> {/* 🟢 Pass labels */}
+      <ReportHeader label={labels} />
 
       {/* Table */}
       <table className="w-full table-fixed border-collapse border-x border-b border-black text-[11px] leading-tight mt-0">
@@ -92,24 +109,58 @@ const ReportPage = ({
           </tr>
         </thead>
         <tbody>
-          {jobs.map(({ gc, consignor, consignee }) => (
-            <tr key={gc.id} className="h-6">
-              <td className="border border-black p-1 px-2 text-left">{gc.gcNo}</td>
-              <td className="border border-black p-1 px-2 text-left">{gc.quantity}</td>
-              <td className="border border-black p-1 px-2 text-left">
-                {`${gc.packing} - ${gc.contents}`}
-              </td>
-              <td className="border border-black p-1 px-2 text-left uppercase whitespace-nowrap overflow-hidden text-ellipsis">
-                {consignor?.name || ''}
-              </td>
-              <td className="border border-black p-1 px-2 text-left uppercase whitespace-nowrap overflow-hidden text-ellipsis">
-                {consignee?.name || ''}
-              </td>
-              <td className="border border-black p-1 px-2 text-center">
-                {gc.gcDate}
-              </td>
-            </tr>
-          ))}
+          {rows.map((row, idx) => {
+            // Check Previous (for hiding text and top border)
+            const isSameAsPrevious = idx > 0 && rows[idx - 1].gcNo === row.gcNo;
+            
+            // Check Next (for hiding bottom border)
+            // We check if we are NOT the last item, and if the next item is the same GC
+            const isSameAsNext = idx < rows.length - 1 && rows[idx + 1].gcNo === row.gcNo;
+
+            // Common Merge Style Logic
+            // If same as previous: Remove Top Border
+            // If same as next: Remove Bottom Border
+            // Always: Keep Side Borders (border-l, border-r)
+            const getMergedCellClass = (align: 'left' | 'center' | 'right' = 'left', isBold = false) => {
+                const base = `p-1 px-2 text-${align} border-l border-r border-black`; // Always sides
+                const top = isSameAsPrevious ? 'border-t-0' : 'border-t border-black';
+                const bottom = isSameAsNext ? 'border-b-0' : 'border-b border-black'; // Important for visual merge
+                const font = isBold ? 'font-bold' : '';
+                return `${base} ${top} ${bottom} ${font}`;
+            };
+
+            return (
+              <tr key={row.uniqueId} className="h-6">
+                {/* 1. GC NO (Merged) */}
+                <td className={getMergedCellClass('left', true)}>
+                  {isSameAsPrevious ? "" : row.gcNo}
+                </td>
+
+                {/* 2. QTY (Always Individual Borders) */}
+                <td className="border border-black p-1 px-2 text-left">{row.quantity}</td>
+
+                {/* 3. CONTENT (Always Individual Borders) */}
+                <td className="border border-black p-1 px-2 text-left">
+                  {`${row.packing} - ${row.content}`}
+                </td>
+
+                {/* 4. CONSIGNOR (Merged) */}
+                <td className={`${getMergedCellClass('left')} uppercase whitespace-nowrap overflow-hidden text-ellipsis`}>
+                  {isSameAsPrevious ? "" : row.consignorName}
+                </td>
+
+                {/* 5. CONSIGNEE (Merged) */}
+                <td className={`${getMergedCellClass('left')} uppercase whitespace-nowrap overflow-hidden text-ellipsis`}>
+                  {isSameAsPrevious ? "" : row.consigneeName}
+                </td>
+
+                {/* 6. DATE (Merged) */}
+                <td className={getMergedCellClass('center')}>
+                  {isSameAsPrevious ? "" : formatDate(row.date)}
+                </td>
+              </tr>
+            );
+          })}
 
           {/* TOTAL ROW - Only show on the last page */}
           {isLastPage && (
@@ -137,44 +188,81 @@ const ReportPage = ({
 
 // --- Main Print Component ---
 interface StockReportPrintProps {
-  jobs: {
-    gc: GcEntry;
-    consignor?: Consignor;
-    consignee?: Consignee;
-  }[];
+  data: any[]; 
   onClose: () => void;
 }
 
-export const StockReportPrint = ({ jobs, onClose }: StockReportPrintProps) => {
-  const { printSettings } = useDataContext(); // 🟢 Get Settings
-  const labels = printSettings.stockReport; // 🟢 Alias
+export const StockReportPrint = ({ data, onClose }: StockReportPrintProps) => {
+  const { printSettings } = useDataContext(); 
+  const labels = printSettings.stockReport; 
   
   const printTriggered = useRef(false);
   
-  // 1. Calculate Grand Total of Quantity
-  const grandTotal = useMemo(() => {
-    return jobs.reduce((sum, job) => {
-      const qty = parseFloat(job.gc.quantity?.toString() || '0');
-      return sum + (isNaN(qty) ? 0 : qty);
-    }, 0);
-  }, [jobs]);
+  // 1. Flatten Data
+  const flattenedRows = useMemo(() => {
+    const rows: StockReportRow[] = [];
+    
+    if (!data || !Array.isArray(data)) return [];
 
-  // 2. Pagination Logic
+    data.forEach((entry) => {
+      const consignorName = entry.consignor?.name || '';
+      const consigneeName = entry.consignee?.name || '';
+      const date = entry.gcDate || '';
+      const gcNo = entry.gcNo || '';
+
+      const hasContentItems = entry.contentItems && Array.isArray(entry.contentItems) && entry.contentItems.length > 0;
+
+      if (hasContentItems) {
+        entry.contentItems.forEach((item: any, itemIdx: number) => {
+           rows.push({
+             uniqueId: `${entry.id || gcNo}-${itemIdx}`,
+             gcNo: gcNo,
+             date: date,
+             consignorName: consignorName,
+             consigneeName: consigneeName,
+             packing: item.packing || '',
+             content: item.contents || '', 
+             quantity: Number(item.qty || item.quantity || 0)
+           });
+        });
+      } else {
+        const rootQty = Number(entry.quantity || entry.totalQty || 0);
+        rows.push({
+           uniqueId: `${entry.id || gcNo}-root`,
+           gcNo: gcNo,
+           date: date,
+           consignorName: consignorName,
+           consigneeName: consigneeName,
+           packing: entry.packing || '',
+           content: entry.contents || '',
+           quantity: rootQty
+        });
+      }
+    });
+    
+    return rows;
+  }, [data]);
+
+  // 2. Calculate Grand Total
+  const grandTotal = useMemo(() => {
+    return flattenedRows.reduce((sum, row) => sum + row.quantity, 0);
+  }, [flattenedRows]);
+
+  // 3. Pagination Logic
   const ENTRIES_PER_PAGE = 35;
   const pages = useMemo(() => {
     const chunks = [];
-    for (let i = 0; i < jobs.length; i += ENTRIES_PER_PAGE) {
-      chunks.push(jobs.slice(i, i + ENTRIES_PER_PAGE));
+    for (let i = 0; i < flattenedRows.length; i += ENTRIES_PER_PAGE) {
+      chunks.push(flattenedRows.slice(i, i + ENTRIES_PER_PAGE));
     }
     return chunks;
-  }, [jobs]);
+  }, [flattenedRows]);
 
-  // 3. Auto Print Trigger
+  // 4. Auto Print Trigger
   useEffect(() => {
-    if (jobs.length === 0) return;
+    if (flattenedRows.length === 0) return;
     if (printTriggered.current) return;
 
-    // Small delay ensures content renders into the portal before printing
     const timer = setTimeout(() => {
         printTriggered.current = true;
         window.print();
@@ -183,7 +271,7 @@ export const StockReportPrint = ({ jobs, onClose }: StockReportPrintProps) => {
     return () => {
         clearTimeout(timer);
     };
-  }, [jobs]);
+  }, [flattenedRows]);
 
   const handleManualPrint = () => {
     window.print();
@@ -192,236 +280,54 @@ export const StockReportPrint = ({ jobs, onClose }: StockReportPrintProps) => {
   const printContent = (
     <div className="stock-report-print-wrapper">
       <style>{`
-        /* =========================================
-           1. PRINT STYLES (The Output Paper)
-           ========================================= */
+        /* PRINT STYLES */
         @media print {
-          /* Remove browser default margins */
-          @page {
-            size: A4;
-            margin: 0; 
-          }
-
-          /* Hide main app UI */
-          body > *:not(.stock-report-print-wrapper) {
-            display: none !important;
-          }
-          #root {
-            display: none !important;
-          }
-
-          /* Reset HTML/Body */
-          html, body {
-            height: 100%;
-            margin: 0 !important;
-            padding: 0 !important;
-            overflow: visible !important;
-            background: white !important;
-          }
-
-          /* Wrapper takes over */
-          .stock-report-print-wrapper {
-            display: block !important;
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            margin: 0;
-            padding: 0;
-            background: white;
-            z-index: 9999;
-          }
-
-          /* Force black text */
-          .stock-report-print-wrapper * {
-            color: black !important;
-            print-color-adjust: exact !important;
-            -webkit-print-color-adjust: exact !important;
-          }
-
-          /* Hide Toolbar */
+          @page { size: A4; margin: 0; }
+          body > *:not(.stock-report-print-wrapper) { display: none !important; }
+          #root { display: none !important; }
+          html, body { height: 100%; margin: 0 !important; padding: 0 !important; overflow: visible !important; background: white !important; }
+          .stock-report-print-wrapper { display: block !important; position: absolute; top: 0; left: 0; width: 100%; margin: 0; padding: 0; background: white; z-index: 9999; }
+          .stock-report-print-wrapper * { color: black !important; print-color-adjust: exact !important; -webkit-print-color-adjust: exact !important; }
           .print-actions { display: none !important; }
-
-          /* Page Breaks */
-          .report-page {
-            break-after: page;
-            page-break-after: always;
-            width: 210mm;
-            height: 297mm; /* Force exact height */
-            overflow: hidden;
-            position: relative;
-          }
+          .report-page { break-after: page; page-break-after: always; width: 210mm; height: 297mm; overflow: hidden; position: relative; }
         }
-
-        /* =========================================
-           2. SCREEN STYLES (The Preview Overlay)
-           ========================================= */
+        /* SCREEN STYLES */
         @media screen {
-          .stock-report-print-wrapper {
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            width: 100vw;
-            height: 100dvh; /* Mobile-friendly viewport height */
-            
-            /* Theme-aware background color */
-            background-color: hsl(var(--muted)); 
-            
-            z-index: 2147483647; /* Max Z-Index */
-            overflow-y: auto;
-            overflow-x: hidden;
-            
-            /* Layout for centering pages */
-            padding-top: 80px; /* Space for fixed header */
-            padding-bottom: 40px;
-            box-sizing: border-box;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            
-            -webkit-overflow-scrolling: touch;
-          }
-
-          /* Desktop Page Preview Style */
-          .report-page {
-            background: white;
-            color: black; /* Preview text always black */
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-            margin-bottom: 24px;
-            transform-origin: top center;
-            transition: transform 0.2s ease;
-            width: 210mm; /* Fixed A4 width */
-            height: 297mm; /* Fixed height for preview */
-            position: relative;
-          }
+          .stock-report-print-wrapper { position: fixed; top: 0; left: 0; right: 0; bottom: 0; width: 100vw; height: 100dvh; background-color: hsl(var(--muted)); z-index: 2147483647; overflow-y: auto; overflow-x: hidden; padding-top: 80px; padding-bottom: 40px; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; }
+          .report-page { background: white; color: black; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); margin-bottom: 24px; width: 210mm; height: 297mm; position: relative; }
         }
-
-        /* =========================================
-           3. MOBILE RESPONSIVENESS (Scaling)
-           ========================================= */
+        /* MOBILE SCALING */
         @media screen and (max-width: 800px) {
-          .stock-report-print-wrapper {
-            padding-top: 70px;
-            padding-left: 0;
-            padding-right: 0;
-            background-color: #1f2937; /* Darker background on mobile */
-          }
-
-          .report-page {
-            /* Scale A4 (794px) down to fit ~375px screens */
-            transform: scale(0.46); 
-            /* Pull up the whitespace caused by scaling */
-            margin-bottom: -135mm; 
-            margin-top: 10px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-          }
+          .stock-report-print-wrapper { padding-top: 70px; background-color: #1f2937; }
+          .report-page { transform: scale(0.46); margin-bottom: -135mm; margin-top: 10px; }
         }
-
-        @media screen and (min-width: 450px) and (max-width: 800px) {
-           /* Tablets */
-           .report-page {
-             transform: scale(0.65);
-             margin-bottom: -90mm;
-           }
-        }
-
-        /* =========================================
-           4. TOOLBAR STYLES (Themed)
-           ========================================= */
-        .print-actions {
-          position: fixed;
-          top: 0; left: 0;
-          width: 100%;
-          height: 64px;
-          
-          /* Theme variables for colors */
-          background-color: hsl(var(--card));
-          color: hsl(var(--foreground));
-          border-bottom: 1px solid hsl(var(--border));
-          
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding: 0 16px;
-          box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-          z-index: 2147483648;
-        }
-
-        .preview-title {
-          font-weight: 700;
-          font-size: 16px;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-        }
-
-        .action-group {
-          display: flex;
-          gap: 10px;
-        }
-
-        .btn-base {
-          display: flex; align-items: center; gap: 8px;
-          padding: 8px 16px;
-          border-radius: 6px;
-          font-weight: 600;
-          font-size: 14px;
-          border: none;
-          cursor: pointer;
-          transition: all 0.2s;
-        }
-        
-        /* Themed Primary Button */
-        .print-btn {
-          background-color: hsl(var(--primary));
-          color: hsl(var(--primary-foreground));
-        }
-        .print-btn:active { transform: scale(0.96); }
-        .print-btn:hover { opacity: 0.9; }
-
-        /* Themed Destructive Button */
-        .close-btn {
-          background-color: hsl(var(--destructive));
-          color: hsl(var(--destructive-foreground));
-        }
-        .close-btn:active { transform: scale(0.96); }
-        .close-btn:hover { opacity: 0.9; }
-
-        /* Small screen adjustments for toolbar */
-        @media screen and (max-width: 480px) {
-          .preview-title { font-size: 14px; max-width: 120px; }
-          .btn-base { padding: 6px 12px; font-size: 13px; }
-          .action-group { gap: 8px; }
-        }
+        /* TOOLBAR */
+        .print-actions { position: fixed; top: 0; left: 0; width: 100%; height: 64px; background-color: hsl(var(--card)); color: hsl(var(--foreground)); border-bottom: 1px solid hsl(var(--border)); display: flex; align-items: center; justify-content: space-between; padding: 0 16px; z-index: 2147483648; }
+        .preview-title { font-weight: 700; font-size: 16px; }
+        .action-group { display: flex; gap: 10px; }
+        .btn-base { display: flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 6px; font-weight: 600; font-size: 14px; border: none; cursor: pointer; }
+        .print-btn { background-color: hsl(var(--primary)); color: hsl(var(--primary-foreground)); }
+        .close-btn { background-color: hsl(var(--destructive)); color: hsl(var(--destructive-foreground)); }
       `}</style>
 
-      {/* HEADER TOOLBAR */}
       <div className="print-actions">
-        <span className="preview-title">
-          Stock Report Preview
-        </span>
+        <span className="preview-title">Stock Report Preview</span>
         <div className="action-group">
-          <button onClick={handleManualPrint} className="btn-base print-btn">
-            <Printer size={18} />
-            <span>Print</span>
-          </button>
-          <button onClick={onClose} className="btn-base close-btn">
-            <X size={18} />
-            <span>Close</span>
-          </button>
+          <button onClick={handleManualPrint} className="btn-base print-btn"><Printer size={18} /><span>Print</span></button>
+          <button onClick={onClose} className="btn-base close-btn"><X size={18} /><span>Close</span></button>
         </div>
       </div>
 
-      {/* DOCUMENT PAGES */}
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-        {pages.map((pageJobs, index) => (
+        {pages.map((pageRows, index) => (
           <ReportPage
             key={index}
-            jobs={pageJobs}
+            rows={pageRows}
             pageNumber={index + 1}
             totalPages={pages.length}
             isLastPage={index === pages.length - 1}
             grandTotal={grandTotal}
-            labels={labels} // 🟢 Pass labels
+            labels={labels}
           />
         ))}
       </div>
