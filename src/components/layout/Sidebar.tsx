@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { 
-  Truck, 
+  Truck,Store,
   Users, 
   X, 
   FileText, 
@@ -58,7 +58,7 @@ export const Sidebar = ({ isSidebarOpen, setIsSidebarOpen }: SidebarProps) => {
   // 2. Sub-Menu Links (Data Management)
   // 🟢 CHANGE: Removed 'Print Settings' from here. It is now added conditionally below.
   const dataManagementLinks = [
-    { name: 'Consignors', href: '/master/consignors', icon: Truck },
+    { name: 'Consignors', href: '/master/consignors', icon: Store },
     { name: 'Consignees', href: '/master/consignees', icon: Users },
     { name: 'Vehicles', href: '/master/vehicles', icon: Car },
     { name: 'Drivers', href: '/master/drivers', icon: UserCircle },

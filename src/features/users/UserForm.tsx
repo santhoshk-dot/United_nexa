@@ -198,6 +198,7 @@ export const UserForm = ({ initialData, onClose, onSave }: UserFormProps) => {
               value={formData.email} 
               onChange={handleChange} 
               required
+              autoComplete={!initialData ? "new-email" : "off"}
               { ...getValidationProp(formData.email)} 
               className={emailError ? "border-red-500 focus:border-red-500 focus:ring-red-500" : ""}
             />
@@ -219,6 +220,7 @@ export const UserForm = ({ initialData, onClose, onSave }: UserFormProps) => {
                    value={formData.password}
                    onChange={handleChange}
                    required={!initialData}
+                   autoComplete={!initialData ? "new-password" : "off"}
                    className="w-full px-3 py-2 bg-background text-foreground border border-muted-foreground/30 rounded-md shadow-sm placeholder-muted-foreground focus:outline-none focus:ring-primary focus:border-primary pr-10"
                  />
                  <button

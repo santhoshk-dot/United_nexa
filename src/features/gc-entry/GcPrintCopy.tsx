@@ -48,8 +48,6 @@ export const GcPrintCopy: React.FC<Props> = ({
 
   // Calculate totals from contentItems
   const quantityNum = gc.contentItems?.reduce((sum, item) => sum + (parseFloat(String(item.qty)) || 0), 0) || gc.netQty || 0;
-  const firstItem = gc.contentItems?.[0];
-  const fromNoNum = parseFloat(String(firstItem?.fromNo)) || 0;
   const billValueNum = parseFloat(String(gc.billValue)) || 0;
 
   const balanceToPayNum = (gc as any).tripSheetAmount !== undefined
@@ -66,9 +64,18 @@ export const GcPrintCopy: React.FC<Props> = ({
   const isPaid = gc.paymentType?.toLowerCase() === 'paid';
   const paymentStatusLabel = isPaid ? "PAID" : (label as any).paymentTypeToPay || "TO PAY";
 
-  // Calculate marks from first content item
-  const prefix = firstItem?.prefix || '';
-  const marks = prefix ? `${prefix} ${fromNoNum} to ${(fromNoNum > 0 && quantityNum > 0) ? (fromNoNum + quantityNum - 1) : ''}` : '';
+  // Calculate marks from all content items
+  const marks = gc.contentItems
+    ?.map(item => {
+      const itemFromNo = parseFloat(String(item.fromNo)) || 0;
+      const itemQty = parseFloat(String(item.qty)) || 0;
+      const toNo = (itemFromNo > 0 && itemQty > 0) ? (itemFromNo + itemQty - 1) : '';
+      // Show "prefix fromNo to toNo" or just "fromNo to toNo" if no prefix
+      return item.prefix
+        ? `${item.prefix} ${itemFromNo} to ${toNo}`
+        : `${itemFromNo} to ${toNo}`;
+    })
+    .join(', ') || '';
 
   // Build description lines from contentItems array (each item on new line)
   const descriptionLines: string[] = [];

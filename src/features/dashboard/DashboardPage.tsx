@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
-  Truck, FilePlus, FileSymlink, Navigation, Archive, TrendingUp, Calendar, ArrowRight, Sparkles
+  TruckElectric, FilePlus, FileSymlink, Navigation, Archive, TrendingUp, Calendar, ArrowRight, Sparkles
 } from 'lucide-react';
 import api from '../../utils/api';
 
@@ -112,7 +112,7 @@ export const DashboardPage = () => {
             <StatCard 
               title="Active Trips" 
               value={stats.activeTrips} 
-              icon={Truck} 
+              icon={TruckElectric} 
               gradient="bg-gradient-to-br from-emerald-600 via-emerald-500 to-teal-500" 
               delay="duration-500 delay-100" 
               onClick={() => navigate('/trip-sheet')} 

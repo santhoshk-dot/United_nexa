@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FilePenLine, Trash2, Search, Printer, Filter, XCircle, RotateCcw } from 'lucide-react';
+import { FilePenLine, Trash2, Search, Printer, Filter, FilterX, ChevronUp } from 'lucide-react';
 import { DateFilterButtons, getTodayDate, getYesterdayDate } from '../../components/shared/DateFilterButtons';
 import { ConfirmationDialog } from '../../components/shared/ConfirmationDialog';
 import { useData } from '../../hooks/useData';
@@ -323,9 +323,9 @@ export const GcEntryList = () => {
             <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">Advanced Filters</h3>
             <div className="flex gap-2">
               <button onClick={clearAllFilters} className="text-xs flex items-center text-primary hover:text-primary/80 font-medium">
-                <RotateCcw size={14} className="mr-1" /> Clear All
+                <FilterX size={14} className="mr-1" /> Clear All
               </button>
-              <button onClick={() => setShowFilters(false)} className="text-muted-foreground hover:text-foreground ml-2"><XCircle size={18} /></button>
+              <button onClick={() => setShowFilters(false)} className="text-muted-foreground hover:text-foreground ml-2"><ChevronUp size={20} /></button>
             </div>
           </div>
 
@@ -362,7 +362,7 @@ export const GcEntryList = () => {
             <div>
               <AsyncAutocomplete
                 label="Filter by Consignee"
-                placeholder="Select consignees..."
+                placeholder="Search consignees..."
                 value={consigneeOptions}
                 onChange={(val) => {
                   // 'val' is MultiValue<OptionType> (Array) or SingleValue.

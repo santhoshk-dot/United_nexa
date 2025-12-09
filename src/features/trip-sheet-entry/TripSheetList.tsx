@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { FilePenLine, Trash2, Search, Printer, FileText, Filter, XCircle, RotateCcw } from "lucide-react";
+import { FilePenLine, Trash2, Search, Printer, FileText, Filter, FilterX, ChevronUp } from "lucide-react";
 import { DateFilterButtons, getTodayDate, getYesterdayDate } from "../../components/shared/DateFilterButtons";
 import { ConfirmationDialog } from "../../components/shared/ConfirmationDialog";
 import { Button } from "../../components/shared/Button";
@@ -266,7 +266,7 @@ export const TripSheetList = () => {
            <div className="relative flex-1">
             <input
               type="text"
-              placeholder="Search TS No, Place, Driver..."
+              placeholder="Search all data..."
               value={filters.search || ''} 
               onChange={handleSearchChange}
               className="w-full pl-10 pr-4 py-2 bg-background text-foreground border border-muted-foreground/30 rounded-md focus:outline-none focus:ring-primary focus:border-primary"
@@ -322,9 +322,9 @@ export const TripSheetList = () => {
                 onClick={clearAllFilters} 
                 className="text-xs flex items-center text-primary hover:text-primary/80 font-medium"
               >
-                <RotateCcw size={14} className="mr-1" /> Clear All
+                <FilterX size={14} className="mr-1" /> Clear All
               </button>
-              <button onClick={() => setShowFilters(false)} className="text-muted-foreground hover:text-foreground ml-2"><XCircle size={18} /></button>
+              <button onClick={() => setShowFilters(false)} className="text-muted-foreground hover:text-foreground ml-2"><ChevronUp size={20} /></button>
             </div>
           </div>
           
