@@ -58,6 +58,12 @@ export interface GcEntry {
   pkgDesc?: string;
   marks?: any;
 
+  // Added to fix LoadingSheetEntry errors
+  quantity?: number | string;
+  packing?: string;
+  contents?: string;
+  fromNo?: number | string;
+
   gcNo: string;
   id: string;
   gcDate: string;

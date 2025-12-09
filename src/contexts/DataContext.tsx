@@ -198,6 +198,7 @@ interface DataContextType {
   getUniqueDests: () => { value: string, label: string }[];
   getPackingTypes: () => { value: string, label: string }[];
   getContentsTypes: () => { value: string, label: string }[];
+  searchGodowns: (search: string, page: number) => Promise<any>;
 
   // --- Individual Fetchers ---
   fetchConsignors: () => Promise<void>;
@@ -249,6 +250,7 @@ export const useStockContext = () => {
   }
   return context;
 };
+
 
 export const useReportContext = () => {
   const context = React.useContext(DataContext);
@@ -315,7 +317,12 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
   const fetchDriverEntries = useCallback(async () => {
     try { const { data } = await api.get('/master/drivers'); setDriverEntries(data); } catch (e) { console.error(e); }
   }, []);
-
+  const searchGodowns = async (search: string, page: number) => {
+    try {
+      const { data } = await api.get('/master/godowns', { params: { search, page }, skipLoader: true } as any);
+      return data;
+    } catch (e) { return { data: [], hasMore: false }; }
+  };
   // NEW: Fetch Print Settings
   const fetchPrintSettings = useCallback(async () => {
     try {
@@ -578,7 +585,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
     addPackingEntry, updatePackingEntry, deletePackingEntry, addContentEntry, updateContentEntry, deleteContentEntry,
     addTripSheet, updateTripSheet, deleteTripSheet, addVehicleEntry, updateVehicleEntry, deleteVehicleEntry,
     addDriverEntry, updateDriverEntry, deleteDriverEntry, getUniqueDests, getPackingTypes, getContentsTypes,
-    refreshData: fetchAllData,
+    refreshData: fetchAllData,searchGodowns,
     fetchConsignors, fetchConsignees, fetchFromPlaces, fetchToPlaces, fetchPackingEntries, fetchContentEntries, fetchVehicleEntries, fetchDriverEntries,
     searchConsignors, searchConsignees, searchVehicles, searchDrivers, searchFromPlaces, searchToPlaces, searchPackings, searchContents,
     importConsignors, importConsignees, importFromPlaces, importToPlaces, importPackings, importContents, importVehicles, importDrivers
