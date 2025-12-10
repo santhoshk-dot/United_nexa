@@ -735,13 +735,11 @@ export const GcEntryForm = () => {
                         </div>
                     </div>
 
-                    <section className="bg-white rounded-md p-4 border border-muted">
-                        <h3 className="text-base font-bold text-primary border-b border-border pb-2 mb-4">
+                    <section className="bg-card text-foreground rounded-md p-4 border border-border">
+                        <h3 className="text-lg font-bold text-primary border-b border-border pb-2 mb-4">
                             Contents <span className="text-muted-foreground font-normal text-sm ml-4">Net Qty: <span className="text-primary font-bold">{form.netQty}</span></span>
                         </h3>
-
-                        {/* Static Add Form */}
-                        <div className="mb-4">
+                        <div className="mb-6">
                             <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-4 items-end">
                                 <div className="col-span-1">
                                     <Input
@@ -751,6 +749,7 @@ export const GcEntryForm = () => {
                                         onChange={(e) => setCurrentQty(e.target.value)}
                                         placeholder="Qty"
                                         min="1"
+                                        className="bg-background text-foreground border-border"
                                     />
                                 </div>
                                 <div className="col-span-1 sm:col-span-1 lg:col-span-2">
@@ -764,9 +763,10 @@ export const GcEntryForm = () => {
                                         }}
                                         placeholder="Search packing..."
                                         defaultOptions={false}
+                                        className="text-foreground" // Ensure text is visible in dark mode
                                     />
                                 </div>
-                                <div className="col-span-1 sm:col-span-1 lg:col-span-2">
+                                <div className="col-span-2 sm:col-span-2 lg:col-span-2">
                                     <label className="block text-sm font-medium text-muted-foreground mb-1">Contents *</label>
                                     <AsyncAutocomplete
                                         loadOptions={loadContentOptions}
@@ -777,6 +777,7 @@ export const GcEntryForm = () => {
                                         }}
                                         placeholder="Search contents..."
                                         defaultOptions={false}
+                                        className="text-foreground"
                                     />
                                 </div>
                                 <div className="col-span-1">
@@ -785,6 +786,7 @@ export const GcEntryForm = () => {
                                         value={currentPrefix}
                                         onChange={(e) => setCurrentPrefix(e.target.value)}
                                         placeholder="Prefix"
+                                        className="bg-background text-foreground border-border"
                                     />
                                 </div>
                                 <div className="col-span-1">
@@ -795,11 +797,17 @@ export const GcEntryForm = () => {
                                         onChange={(e) => setCurrentFromNo(e.target.value)}
                                         placeholder="From"
                                         min="1"
+                                        className="bg-background text-foreground border-border"
                                     />
                                 </div>
-                                <div className="col-span-1">
-                                    <label className="block text-sm font-medium text-transparent mb-1">&nbsp;</label>
-                                    <Button type="button" variant="primary" className="w-full" onClick={handleAddContent}>
+                                <div className="col-span-2 sm:col-span-1 lg:col-span-1">
+                                    <label className="block text-sm font-medium text-transparent mb-1 hidden sm:block">&nbsp;</label>
+                                    <Button
+                                        type="button"
+                                        variant="primary"
+                                        className="w-full text-white bg-primary hover:bg-primary/90"
+                                        onClick={handleAddContent}
+                                    >
                                         <Plus size={16} className="mr-1" /> Add
                                     </Button>
                                 </div>
@@ -807,22 +815,22 @@ export const GcEntryForm = () => {
                         </div>
 
                         {/* Added Items Table */}
-                        <div className="overflow-x-auto">
-                            <table className="min-w-full border border-muted text-sm">
+                        <div className="overflow-x-auto border border-border rounded-md">
+                            <table className="min-w-full text-sm">
                                 <thead>
                                     <tr className="bg-muted/20">
-                                        <th className="border border-muted p-2">QTY</th>
-                                        <th className="border border-muted p-2">PACKING</th>
-                                        <th className="border border-muted p-2">CONTENTS</th>
-                                        <th className="border border-muted p-2">PREFIX</th>
-                                        <th className="border border-muted p-2">FROM NO</th>
-                                        <th className="border border-muted p-2">TO NO</th>
-                                        <th className="border border-muted p-2">DEL</th>
+                                        <th className="border border-muted p-2 min-w-[50px]">QTY</th>
+                                        <th className="border border-muted p-2 min-w-[120px]">PACKING</th>
+                                        <th className="border border-muted p-2 min-w-[150px]">CONTENTS</th>
+                                        <th className="border border-muted p-2 min-w-[80px]">PREFIX</th>
+                                        <th className="border border-muted p-2 min-w-[80px]">FROM NO</th>
+                                        <th className="border border-muted p-2 min-w-[80px]">TO NO</th>
+                                        <th className="border border-muted p-2 min-w-[40px]">DEL</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {contentItems.map((item) => (
-                                        <tr key={item.id}>
+                                        <tr key={item.id} className="even:bg-muted/20">
                                             <td className="border border-muted p-2 text-center">{item.qty}</td>
                                             <td className="border border-muted p-2">{item.packing}</td>
                                             <td className="border border-muted p-2">{item.contents}</td>
@@ -830,7 +838,7 @@ export const GcEntryForm = () => {
                                             <td className="border border-muted p-2 text-center">{item.fromNo}</td>
                                             <td className="border border-muted p-2 text-center">{getToNo(item) > 0 ? getToNo(item) : '-'}</td>
                                             <td className="border border-muted p-2 text-center">
-                                                <button type="button" className="text-red-600 hover:text-red-800" onClick={() => handleDeleteContent(item.id)}>
+                                                <button type="button" className="text-destructive hover:text-red-700" onClick={() => handleDeleteContent(item.id)}>
                                                     <Trash2 size={16} />
                                                 </button>
                                             </td>
@@ -839,7 +847,7 @@ export const GcEntryForm = () => {
 
                                     {contentItems.length === 0 && (
                                         <tr>
-                                            <td colSpan={7} className="text-center p-3 text-muted-foreground">
+                                            <td colSpan={7} className="text-center p-3 text-muted-foreground bg-background">
                                                 No content items added. Use the form above to add items.
                                             </td>
                                         </tr>
@@ -848,9 +856,10 @@ export const GcEntryForm = () => {
                             </table>
                         </div>
 
-                        {formErrors.quantity && <p className="text-xs text-red-500 mt-2">{formErrors.quantity}</p>}
-                        {formErrors.packing && <p className="text-xs text-red-500 mt-1">{formErrors.packing}</p>}
-                        {formErrors.contents && <p className="text-xs text-red-500 mt-1">{formErrors.contents}</p>}
+                        {/* Error Messages */}
+                        {formErrors.quantity && <p className="text-xs text-destructive mt-2">{formErrors.quantity}</p>}
+                        {formErrors.packing && <p className="text-xs text-destructive mt-1">{formErrors.packing}</p>}
+                        {formErrors.contents && <p className="text-xs text-destructive mt-1">{formErrors.contents}</p>}
                     </section>
 
                     <div>
