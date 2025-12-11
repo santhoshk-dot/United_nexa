@@ -1,3 +1,4 @@
+// PendingStockHistory.tsx
 import { useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -23,10 +24,28 @@ import { useServerPagination } from '../../hooks/useServerPagination';
 import { Pagination } from '../../components/shared/Pagination';
 import { useToast } from '../../contexts/ToastContext';
 
-// Exclusion banner state (same style as TripSheetList)
+// Filter type definition
+type PendingStockFilter = {
+  search?: string;
+  filterType?: string;
+  startDate?: string;
+  endDate?: string;
+  customStart?: string;
+  customEnd?: string;
+  destination?: string;
+  consignor?: string;
+  consignee?: string[];
+};
+
 type ExclusionFilterState = {
   isActive: boolean;
   filterKey?: string;
+};
+
+type SelectAllSnapshot = {
+  active: boolean;
+  total: number;
+  filters: PendingStockFilter;
 };
 
 export const PendingStockHistory = () => {
@@ -56,7 +75,17 @@ export const PendingStockHistory = () => {
     refresh,
   } = useServerPagination<GcEntry>({
     endpoint: '/operations/pending-stock',
-    initialFilters: { search: '', filterType: 'all' },
+    initialFilters: {
+      search: '',
+      filterType: 'all',
+      startDate: '',
+      endDate: '',
+      customStart: '',
+      customEnd: '',
+      destination: '',
+      consignor: '',
+      consignee: []
+    } as PendingStockFilter,
   });
 
   const [showFilters, setShowFilters] = useState(false);
@@ -64,13 +93,25 @@ export const PendingStockHistory = () => {
   const [consignorOption, setConsignorOption] = useState<any>(null);
   const [consigneeOptions, setConsigneeOptions] = useState<any[]>([]);
 
-  // --- INVERTED SELECTION MODEL (aligned with TripSheetList) ---
-  // selectedGcIds: individually selected IDs when NOT in selectAllMode
-  const [selectedGcIds, setSelectedGcIds] = useState<string[]>([]);
-  // selectAllMode: user clicked bulk "Select All" (entire filtered dataset)
+  const [selectedGcNos, setSelectedGcNos] = useState<string[]>([]);
   const [selectAllMode, setSelectAllMode] = useState(false);
-  // excludedGcIds: IDs excluded from bulk selection when selectAllMode is true
-  const [excludedGcIds, setExcludedGcIds] = useState<string[]>([]);
+  const [excludedGcNos, setExcludedGcNos] = useState<string[]>([]);
+
+  const [selectAllSnapshot, setSelectAllSnapshot] = useState<SelectAllSnapshot>({
+    active: false,
+    total: 0,
+    filters: {
+      search: '',
+      filterType: 'all',
+      startDate: '',
+      endDate: '',
+      customStart: '',
+      customEnd: '',
+      destination: '',
+      consignor: '',
+      consignee: []
+    },
+  });
 
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -79,13 +120,25 @@ export const PendingStockHistory = () => {
   const [reportPrintingData, setReportPrintingData] = useState<any[] | null>(null);
   const [gcPrintingJobs, setGcPrintingJobs] = useState<GcPrintJob[] | null>(null);
 
-  // Exclusion banner state
-  const [exclusionFilter, setExclusionFilter] = useState<ExclusionFilterState>({
+  const [, setExclusionFilter] = useState<ExclusionFilterState>({
     isActive: false,
     filterKey: '',
   });
 
-  // --- Async option loaders (memoized) ---
+  const createCompleteFilters = (sourceFilters: PendingStockFilter): PendingStockFilter => {
+    return {
+      search: sourceFilters.search || '',
+      filterType: sourceFilters.filterType || 'all',
+      startDate: sourceFilters.startDate || '',
+      endDate: sourceFilters.endDate || '',
+      customStart: sourceFilters.customStart || '',
+      customEnd: sourceFilters.customEnd || '',
+      destination: sourceFilters.destination || '',
+      consignor: sourceFilters.consignor || '',
+      consignee: sourceFilters.consignee || [],
+    };
+  };
+
   const loadDestinationOptions = useCallback(
     async (search: string, _prevOptions: any, { page }: any) => {
       const result = await searchToPlaces(search, page);
@@ -122,7 +175,6 @@ export const PendingStockHistory = () => {
     [searchConsignees],
   );
 
-  // --- Filters ---
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFilters({ search: e.target.value });
   };
@@ -178,11 +230,15 @@ export const PendingStockHistory = () => {
       consignee: [],
     });
 
-    // clear selection + exclusion state
     setSelectAllMode(false);
-    setSelectedGcIds([]);
-    setExcludedGcIds([]);
+    setExcludedGcNos([]);
+    setSelectedGcNos([]);
     setExclusionFilter({ isActive: false, filterKey: '' });
+    setSelectAllSnapshot({
+      active: false,
+      total: 0,
+      filters: createCompleteFilters({})
+    });
   };
 
   const hasActiveFilters =
@@ -192,14 +248,11 @@ export const PendingStockHistory = () => {
     filters.filterType !== 'all' ||
     !!filters.search;
 
-  // --- Selection helpers (same pattern as TripSheetList) ---
   const isRowSelected = (gcNo: string): boolean => {
-    if (selectAllMode) {
-      // Bulk mode: selected unless explicitly excluded
-      return !excludedGcIds.includes(gcNo);
+    if (selectAllMode && selectAllSnapshot.active) {
+      return !excludedGcNos.includes(gcNo);
     }
-    // Standard mode: selected if present in selectedGcIds
-    return selectedGcIds.includes(gcNo);
+    return selectedGcNos.includes(gcNo);
   };
 
   const isAllVisibleSelected =
@@ -209,120 +262,134 @@ export const PendingStockHistory = () => {
     if (paginatedData.length === 0) return false;
     const selectedCount = paginatedData.filter((gc) => isRowSelected(gc.gcNo)).length;
     return selectedCount > 0 && selectedCount < paginatedData.length;
-  }, [paginatedData, selectAllMode, excludedGcIds, selectedGcIds]);
+  }, [paginatedData, selectAllMode, excludedGcNos, selectedGcNos, selectAllSnapshot]);
 
-  // total selected count
-  const finalCount = selectAllMode
-    ? Math.max(0, totalItems - excludedGcIds.length)
-    : selectedGcIds.length;
+  const finalCount = selectAllMode && selectAllSnapshot.active
+    ? Math.max(0, (selectAllSnapshot.total || totalItems) - excludedGcNos.length)
+    : selectedGcNos.length;
 
-  // All selected across dataset?
-  const isAllSelected =
-    selectAllMode || (totalItems > 0 && !selectAllMode && selectedGcIds.length === totalItems);
+  const isAllSelected = selectAllMode && selectAllSnapshot.active
+    ? excludedGcNos.length === 0
+    : (totalItems > 0 && selectedGcNos.length === totalItems);
 
-  // multiple selection flag (for showing "Exclude" button)
-  const multipleSelected = finalCount > 1;
+  const multipleSelected = finalCount > 0;
 
-  // --- Header checkbox (page-only select/deselect) ---
   const handleSelectAllVisible = (e: React.ChangeEvent<HTMLInputElement>) => {
     const visibleGcNos = paginatedData.map((gc) => gc.gcNo);
     const checked = e.target.checked;
 
     if (checked) {
-      // select all visible
-      if (selectAllMode) {
-        // bulk mode: remove visible from exclusions
-        setExcludedGcIds((prev) => prev.filter((id) => !visibleGcNos.includes(id)));
+      if (selectAllMode && selectAllSnapshot.active) {
+        setExcludedGcNos((prev) => prev.filter((id) => !visibleGcNos.includes(id)));
       } else {
-        // standard mode: add visible to selected
-        setSelectedGcIds((prev) => Array.from(new Set([...prev, ...visibleGcNos])));
+        setSelectedGcNos((prev) => Array.from(new Set([...prev, ...visibleGcNos])));
       }
     } else {
-      // deselect visible
-      if (selectAllMode) {
-        // bulk mode: add visible to exclusions
-        setExcludedGcIds((prev) => Array.from(new Set([...prev, ...visibleGcNos])));
+      if (selectAllMode && selectAllSnapshot.active) {
+        setExcludedGcNos((prev) => Array.from(new Set([...prev, ...visibleGcNos])));
       } else {
-        // standard mode: remove visible from selected
-        setSelectedGcIds((prev) => prev.filter((id) => !visibleGcNos.includes(id)));
+        setSelectedGcNos((prev) => prev.filter((id) => !visibleGcNos.includes(id)));
       }
     }
   };
 
-  // --- Row checkbox ---
-  const handleSelectRow = (e: React.ChangeEvent<HTMLInputElement>, id: string) => {
+  const handleSelectRow = (e: React.ChangeEvent<HTMLInputElement>, gcNo: string) => {
     const checked = e.target.checked;
 
-    if (selectAllMode) {
+    if (selectAllMode && selectAllSnapshot.active) {
       if (checked) {
-        // SELECT: remove from exclusion list
-        setExcludedGcIds((prev) => prev.filter((gcId) => gcId !== id));
+        setExcludedGcNos((prev) => prev.filter((id) => id !== gcNo));
       } else {
-        // DESELECT: add to exclusion list
-        setExcludedGcIds((prev) => Array.from(new Set([...prev, id])));
+        setExcludedGcNos((prev) => Array.from(new Set([...prev, gcNo])));
       }
     } else {
       if (checked) {
-        // add to selection
-        setSelectedGcIds((prev) => Array.from(new Set([...prev, id])));
+        setSelectedGcNos((prev) => Array.from(new Set([...prev, gcNo])));
       } else {
-        // remove from selection
-        setSelectedGcIds((prev) => prev.filter((gcId) => gcId !== id));
+        setSelectedGcNos((prev) => prev.filter((id) => id !== gcNo));
       }
     }
   };
 
-  // --- Bulk Select / Clear (dataset-wide) ---
   const handleCombinedBulkSelect = () => {
     if (totalItems === 0) {
       toast.error('No items found to select based on current filters.');
       return;
     }
 
+    const completeFilters = createCompleteFilters(filters);
+
     setSelectAllMode(true);
-    setExcludedGcIds([]);
-    setSelectedGcIds([]);
+    setExcludedGcNos([]);
+    setSelectedGcNos([]);
     setExclusionFilter({ isActive: false, filterKey: '' });
+    setSelectAllSnapshot({
+      active: true,
+      total: totalItems,
+      filters: completeFilters,
+    });
   };
 
   const handleCombinedBulkDeselect = () => {
     setSelectAllMode(false);
-    setExcludedGcIds([]);
-    setSelectedGcIds([]);
+    setExcludedGcNos([]);
+    setSelectedGcNos([]);
     setExclusionFilter({ isActive: false, filterKey: '' });
+    setSelectAllSnapshot({
+      active: false,
+      total: 0,
+      filters: createCompleteFilters({})
+    });
   };
 
-  // bulk button logic
+  const handleExcludeFilteredData = async () => {
+    if (!selectAllMode || !selectAllSnapshot.active) {
+      const selectedVisible = paginatedData
+        .map(gc => gc.gcNo)
+        .filter(id => selectedGcNos.includes(id));
+
+      if (selectedVisible.length === 0) {
+        return;
+      }
+
+      setExcludedGcNos(prev =>
+        Array.from(new Set([...prev, ...selectedVisible]))
+      );
+      setSelectedGcNos(prev => prev.filter(id => !selectedVisible.includes(id)));
+      setExclusionFilter({ isActive: true, filterKey: "Manual Selection" });
+      return;
+    }
+
+    try {
+      const allMatching = await fetchGcPrintData([], true, {
+        ...createCompleteFilters(filters),
+        page: 1,
+        perPage: 0,
+        pendingStockView: true,
+      });
+
+      if (!allMatching || allMatching.length === 0) {
+        return;
+      }
+
+      const idsToExclude = allMatching.map((gc: any) => gc.gcNo);
+
+      setExcludedGcNos(prev =>
+        Array.from(new Set([...prev, ...idsToExclude]))
+      );
+
+      setExclusionFilter({ isActive: true, filterKey: "Filter" });
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   const bulkButtonText = isAllSelected ? 'Clear Selection' : 'Select All';
   const bulkButtonIcon = isAllSelected ? XCircle : PackageCheck;
   const bulkButtonVariant = isAllSelected ? 'destructive' : 'primary';
   const handleBulkAction = isAllSelected ? handleCombinedBulkDeselect : handleCombinedBulkSelect;
   const BulkIconComponent = bulkButtonIcon;
 
-  // --- Exclude filtered data (visible page) ---
-  const handleExcludeFilteredData = () => {
-    if (!selectAllMode) {
-      toast.error("You must first click 'Select All' to use the exclusion feature.");
-      return;
-    }
-
-    const visibleGcNos = paginatedData.map((gc) => gc.gcNo);
-    setExcludedGcIds((prev) => Array.from(new Set([...prev, ...visibleGcNos])));
-
-    // pick a filter key to show on banner
-    let filterKey: string | undefined;
-    if (filters.consignor) filterKey = 'Consignor';
-    else if (filters.destination) filterKey = 'Destination';
-    else if (filters.consignee && filters.consignee.length > 0) filterKey = 'Consignee';
-
-    setExclusionFilter({
-      isActive: true,
-      filterKey,
-    });
-
-  };
-
-  // --- CRUD / print handlers ---
   const handleEdit = (gcNo: string) => navigate(`/gc-entry/edit/${gcNo}`);
 
   const handleDelete = (gcNo: string) => {
@@ -335,9 +402,8 @@ export const PendingStockHistory = () => {
     if (deletingId) {
       await deleteGcEntry(deletingId);
       refresh();
-      // also clean from any selection lists
-      setSelectedGcIds((prev) => prev.filter((id) => id !== deletingId));
-      setExcludedGcIds((prev) => prev.filter((id) => id !== deletingId));
+      setSelectedGcNos((prev) => prev.filter((id) => id !== deletingId));
+      setExcludedGcNos((prev) => prev.filter((id) => id !== deletingId));
     }
     setIsConfirmOpen(false);
     setDeletingId(null);
@@ -365,19 +431,26 @@ export const PendingStockHistory = () => {
     }
   };
 
+  // FIXED: Keep selection after print
   const handlePrintSelected = async () => {
-    if (finalCount === 0) return;
+    if (finalCount === 0) {
+      toast.error('No GCs selected for printing.');
+      return;
+    }
 
     try {
       let printData: any[] = [];
 
-      if (selectAllMode) {
-        // print all filtered pending stock, excluding explicit exclusions
-        const printFilters = { ...filters, pendingStockView: true, excludeIds: excludedGcIds };
-        printData = await fetchGcPrintData([], true, printFilters);
+      if (selectAllMode && selectAllSnapshot.active) {
+        const filtersForPrint: PendingStockFilter = {
+          ...selectAllSnapshot.filters,
+          excludeIds: excludedGcNos.length > 0 ? excludedGcNos : undefined,
+          pendingStockView: true,
+        } as any;
+
+        printData = await fetchGcPrintData([], true, filtersForPrint);
       } else {
-        // print only explicitly selected IDs
-        printData = await fetchGcPrintData(selectedGcIds);
+        printData = await fetchGcPrintData(selectedGcNos);
       }
 
       if (!printData || printData.length === 0) {
@@ -399,11 +472,8 @@ export const PendingStockHistory = () => {
 
       if (jobs.length > 0) {
         setGcPrintingJobs(jobs);
-        // clear selection after print
-        setSelectAllMode(false);
-        setSelectedGcIds([]);
-        setExcludedGcIds([]);
-        setExclusionFilter({ isActive: false, filterKey: '' });
+        toast.success(`Prepared ${jobs.length} print jobs.`);
+        // FIXED: Selection is NOT reset after print - keeping it visible
       } else {
         toast.error('Could not prepare print jobs.');
       }
@@ -429,19 +499,14 @@ export const PendingStockHistory = () => {
     }
   };
 
-  // --- UI helpers ---
   const responsiveBtnClass =
     'w-full md:w-auto text-[10px] xs:text-xs sm:text-sm h-8 mb-1 sm:h-10 px-1 sm:px-4 whitespace-nowrap';
 
-  const printButtonText = selectAllMode
-    ? `Print All (${finalCount})`
-    : `Print (${finalCount})`;
+  const printButtonText = `Print (${finalCount})`;
 
   return (
     <div className="space-y-6">
-      {/* Top Bar */}
       <div className="flex flex-col md:flex-row gap-2 sm:gap-4 items-center justify-between bg-background p-4 rounded-lg shadow border border-muted">
-        {/* LEFT: search + filter toggle */}
         <div className="flex items-center gap-2 w-full md:w-1/2">
           <div className="relative flex-1">
             <input
@@ -467,14 +532,11 @@ export const PendingStockHistory = () => {
           </Button>
         </div>
 
-        {/* RIGHT: actions - 2-column grid on mobile, row on desktop */}
         <div className="w-full md:w-auto mt-2 md:mt-0 grid grid-cols-2 gap-2 md:flex md:flex-row md:gap-2 md:justify-stretch">
-          {/* REPORT */}
           <Button variant="secondary" onClick={handleShowReport} className={responsiveBtnClass}>
             <FileText size={14} className="mr-1 sm:mr-2" /> Report
           </Button>
 
-          {/* PRINT */}
           <Button
             variant="secondary"
             onClick={handlePrintSelected}
@@ -485,12 +547,11 @@ export const PendingStockHistory = () => {
             {printButtonText}
           </Button>
 
-          {/* BULK SELECT / CLEAR */}
           <Button
             variant={bulkButtonVariant}
             onClick={handleBulkAction}
             className={responsiveBtnClass}
-            disabled={!selectAllMode && selectedGcIds.length === 0 && totalItems === 0}
+            disabled={!selectAllMode && selectedGcNos.length === 0 && totalItems === 0}
             title={
               bulkButtonText === 'Clear Selection'
                 ? 'Click to remove all items from selection'
@@ -501,7 +562,6 @@ export const PendingStockHistory = () => {
             {bulkButtonText}
           </Button>
 
-          {/* ADD NEW */}
           <Button
             variant="primary"
             onClick={() => navigate('/gc-entry/new')}
@@ -512,7 +572,6 @@ export const PendingStockHistory = () => {
         </div>
       </div>
 
-      {/* Advanced Filters */}
       {showFilters && (
         <div className="p-4 bg-muted/20 rounded-lg border border-muted animate-in fade-in slide-in-from-top-2">
           <div className="flex justify-between items-center mb-4">
@@ -520,13 +579,12 @@ export const PendingStockHistory = () => {
               Advanced Filters
             </h3>
             <div className="flex gap-4">
-              {/* Exclude button – visible when multiple items selected */}
               {multipleSelected && (
                 <button
                   onClick={handleExcludeFilteredData}
                   className="text-xs flex items-center text-destructive hover:text-destructive/80 font-medium"
                   disabled={paginatedData.length === 0}
-                  title="Exclude all visible items from the current bulk selection"
+                  title="Exclude all visible items from the current selection"
                 >
                   <XCircle size={14} className="mr-1" />
                   Exclude
@@ -538,28 +596,13 @@ export const PendingStockHistory = () => {
               >
                 <RotateCcw size={14} className="mr-1" /> Clear All
               </button>
-              
             </div>
           </div>
 
-          {/* Exclusion banner (same style as TripSheetList) */}
-          {exclusionFilter.isActive && selectAllMode && (
+          {excludedGcNos.length > 0 && (
             <div className="mb-4 p-3 bg-yellow-100 text-yellow-800 border border-yellow-300 rounded text-sm">
-              <strong>Exclusion Active:</strong> {excludedGcIds.length} Pending GCs are currently
-              excluded from the bulk selection{' '}
-              {exclusionFilter.filterKey && (
-                <>
-                  (e.g., those matching{' '}
-                  <strong>
-                    {exclusionFilter.filterKey}:{' '}
-                    {consignorOption?.label ||
-                      destinationOption?.label ||
-                      (consigneeOptions[0]?.label as string) ||
-                      'Filter Value'}
-                  </strong>
-                  ).
-                </>
-              )}
+              <strong>Exclusion Active:</strong> {excludedGcNos.length} Pending GCs are currently
+              excluded from the selection.
             </div>
           )}
 
@@ -572,9 +615,6 @@ export const PendingStockHistory = () => {
                 setDestinationOption(val);
                 const destinationValue = (val as any)?.value || '';
                 setFilters({ destination: destinationValue });
-                if (!destinationValue) {
-                  setExclusionFilter({ isActive: false, filterKey: '' });
-                }
               }}
               placeholder="Search..."
               defaultOptions
@@ -588,9 +628,6 @@ export const PendingStockHistory = () => {
                 setConsignorOption(val);
                 const consignorValue = (val as any)?.value || '';
                 setFilters({ consignor: consignorValue });
-                if (!consignorValue) {
-                  setExclusionFilter({ isActive: false, filterKey: '' });
-                }
               }}
               placeholder="Search..."
               defaultOptions
@@ -625,17 +662,12 @@ export const PendingStockHistory = () => {
         </div>
       )}
 
-      {/* Main Table */}
       <div className="bg-background rounded-lg shadow border border-muted overflow-hidden">
-        {/* Desktop table */}
         <div className="hidden md:block overflow-x-auto">
           <table className="min-w-full divide-y divide-muted">
             <thead className="bg-muted/50">
               <tr>
-                <th
-                  className="px-4 py-3 text-left w-12"
-                  title="Select/Deselect all visible items"
-                >
+                <th className="px-4 py-3 text-left w-12" title="Select/Deselect all visible items">
                   <input
                     type="checkbox"
                     className="h-4 w-4 accent-primary border-muted-foreground/30 rounded focus:ring-primary"
@@ -646,42 +678,24 @@ export const PendingStockHistory = () => {
                     onChange={handleSelectAllVisible}
                   />
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
-                  GC No
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
-                  Consignor
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
-                  Consignee
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
-                  From
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
-                  To
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
-                  Qty
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
-                  Actions
-                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">GC No</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Consignor</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Consignee</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">From</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">To</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Qty</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-muted">
               {loading ? (
                 <tr>
-                  <td colSpan={8} className="px-6 py-12 text-center">
-                    Loading data...
-                  </td>
+                  <td colSpan={8} className="px-6 py-12 text-center">Loading data...</td>
                 </tr>
               ) : paginatedData.length > 0 ? (
                 paginatedData.map((gc) => {
-                  const consignorName =
-                    (gc as any).consignorName || (gc as any).consignor?.name || 'N/A';
-                  const consigneeName =
-                    (gc as any).consigneeName || (gc as any).consignee?.name || 'N/A';
+                  const consignorName = (gc as any).consignorName || (gc as any).consignor?.name || 'N/A';
+                  const consigneeName = (gc as any).consigneeName || (gc as any).consignee?.name || 'N/A';
                   const isSelected = isRowSelected(gc.gcNo);
 
                   return (
@@ -697,63 +711,35 @@ export const PendingStockHistory = () => {
                       <td className="px-6 py-4 text-primary font-bold">{gc.gcNo}</td>
                       <td className="px-6 py-4 text-sm">{consignorName}</td>
                       <td className="px-6 py-4 text-sm">{consigneeName}</td>
-                      <td className="px-6 py-4 text-sm">{gc.from}</td>
+                      <td className="px-6 py-4 text-sm">{(gc as any).from || ''}</td>
                       <td className="px-6 py-4 text-sm">{gc.destination}</td>
                       <td className="px-6 py-4 text-sm">{gc.totalQty}</td>
                       <td className="px-6 py-4 space-x-3">
-                        <button
-                          onClick={() => handleEdit(gc.gcNo)}
-                          className="text-blue-600 hover:text-blue-800"
-                        >
-                          <FilePenLine size={18} />
-                        </button>
-                        <button
-                          onClick={() => handlePrintSingle(gc.gcNo)}
-                          className="text-green-600 hover:text-green-800"
-                        >
-                          <Printer size={18} />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(gc.gcNo)}
-                          className="text-destructive hover:text-destructive/80"
-                        >
-                          <Trash2 size={18} />
-                        </button>
+                        <button onClick={() => handleEdit(gc.gcNo)} className="text-blue-600 hover:text-blue-800"><FilePenLine size={18} /></button>
+                        <button onClick={() => handlePrintSingle(gc.gcNo)} className="text-green-600 hover:text-green-800"><Printer size={18} /></button>
+                        <button onClick={() => handleDelete(gc.gcNo)} className="text-destructive hover:text-destructive/80"><Trash2 size={18} /></button>
                       </td>
                     </tr>
                   );
                 })
               ) : (
                 <tr>
-                  <td
-                    colSpan={8}
-                    className="px-6 py-12 text-center text-muted-foreground"
-                  >
-                    No Pending Stock entries found.
-                  </td>
+                  <td colSpan={8} className="px-6 py-12 text-center text-muted-foreground">No Pending Stock entries found.</td>
                 </tr>
               )}
             </tbody>
           </table>
         </div>
 
-        {/* Mobile list */}
         <div className="block md:hidden divide-y divide-muted">
           {paginatedData.length > 0 ? (
             paginatedData.map((gc) => {
-              const consignorName =
-                (gc as any).consignorName || (gc as any).consignor?.name || 'N/A';
-              const consigneeName =
-                (gc as any).consigneeName || (gc as any).consignee?.name || 'N/A';
+              const consignorName = (gc as any).consignorName || (gc as any).consignor?.name || 'N/A';
+              const consigneeName = (gc as any).consigneeName || (gc as any).consignee?.name || 'N/A';
               const isSelected = isRowSelected(gc.gcNo);
 
               return (
-                <div
-                  key={gc.id}
-                  className={`p-4 hover:bg-muted/30 transition-colors ${
-                    isSelected ? '' : ''
-                  }`}
-                >
+                <div key={gc.id} className={`p-4 hover:bg-muted/30 transition-colors`}>
                   <div className="flex justify-between items-start">
                     <div className="flex gap-3 flex-1">
                       <div className="pt-1">
@@ -768,29 +754,14 @@ export const PendingStockHistory = () => {
                         <div className="font-bold text-blue-600 text-lg">GC #{gc.gcNo}</div>
                         <div className="font-semibold text-foreground">{consignorName}</div>
                         <div className="text-sm text-muted-foreground">To: {consigneeName}</div>
-                        <div className="text-sm text-muted-foreground">From: {gc.from}</div>
+                        <div className="text-sm text-muted-foreground">From: {(gc as any).from || ''}</div>
                         <div className="text-sm text-muted-foreground">At: {gc.destination}</div>
                       </div>
                     </div>
                     <div className="flex flex-col gap-3 pl-2">
-                      <button
-                        onClick={() => handleEdit(gc.gcNo)}
-                        className="text-blue-600 p-1 hover:bg-blue-50 rounded"
-                      >
-                        <FilePenLine size={20} />
-                      </button>
-                      <button
-                        onClick={() => handlePrintSingle(gc.gcNo)}
-                        className="text-green-600 p-1 hover:bg-green-50 rounded"
-                      >
-                        <Printer size={20} />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(gc.gcNo)}
-                        className="text-destructive p-1 hover:bg-red-50 rounded"
-                      >
-                        <Trash2 size={20} />
-                      </button>
+                      <button onClick={() => handleEdit(gc.gcNo)} className="text-blue-600 p-1 hover:bg-blue-50 rounded"><FilePenLine size={20} /></button>
+                      <button onClick={() => handlePrintSingle(gc.gcNo)} className="text-green-600 p-1 hover:bg-green-50 rounded"><Printer size={20} /></button>
+                      <button onClick={() => handleDelete(gc.gcNo)} className="text-destructive p-1 hover:bg-red-50 rounded"><Trash2 size={20} /></button>
                     </div>
                   </div>
                   <div className="flex justify-between items-center mt-3 pt-3 border-t border-dashed border-muted">
@@ -801,9 +772,7 @@ export const PendingStockHistory = () => {
               );
             })
           ) : (
-            <div className="p-8 text-center text-muted-foreground">
-              No Pending Stock entries found.
-            </div>
+            <div className="p-8 text-center text-muted-foreground">No Pending Stock entries found.</div>
           )}
         </div>
 
@@ -828,10 +797,7 @@ export const PendingStockHistory = () => {
       />
 
       {reportPrintingData && (
-        <StockReportPrint
-          data={reportPrintingData}
-          onClose={() => setReportPrintingData(null)}
-        />
+        <StockReportPrint data={reportPrintingData} onClose={() => setReportPrintingData(null)} />
       )}
       {gcPrintingJobs && (
         <GcPrintManager jobs={gcPrintingJobs} onClose={() => setGcPrintingJobs(null)} />
@@ -839,4 +805,3 @@ export const PendingStockHistory = () => {
     </div>
   );
 };
-
