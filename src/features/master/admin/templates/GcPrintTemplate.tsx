@@ -401,7 +401,7 @@ const GcCoreTemplate: React.FC<GcPrintTemplateProps> = ({ initialData, onSave, o
                                 <div className="font-normal mb-1">
                                     <EditableText value={localLabels.labelValueGoods} onChange={handleLabelChange("labelValueGoods")} className="font-normal" />
                                 </div>
-                                <div className="font-bold flex items-center">Rs.</div>
+                                {/* <div className="font-bold flex items-center">Rs.</div> */}
                             </td>
                         </tr>
 
@@ -430,7 +430,7 @@ const GcCoreTemplate: React.FC<GcPrintTemplateProps> = ({ initialData, onSave, o
             <div className="border-x border-b border-black p-1 flex flex-row h-[6rem] relative text-[9px] md:text-xs">
                 
                 {/* LEFT COLUMN: QR & Freight */}
-                <div className="w-1/3 flex flex-col justify-between items-start h-full pl-1 pb-1">
+                <div className="w-1/3 flex justify-between items-start h-full pl-1 pb-1">
                      {/* QR Placeholder - Fixed Size */}
                     <div className="flex flex-col items-center">
                         <div className="w-12 h-12 border border-black flex items-center justify-center text-[7px] mb-1">QR</div>
@@ -446,7 +446,7 @@ const GcCoreTemplate: React.FC<GcPrintTemplateProps> = ({ initialData, onSave, o
                          <EditableText 
                             value={localLabels.freightFixedUptoLabel} 
                             onChange={handleLabelChange("freightFixedUptoLabel")} 
-                            className="w-full font-normal text-left text-[8px]" 
+                            className="w-full font-normal text-center text-[8px]" 
                             placeholder="Freight fixed upto..."
                         />
                     </div>

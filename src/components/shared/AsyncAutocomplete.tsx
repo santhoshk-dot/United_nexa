@@ -34,6 +34,7 @@ interface AsyncAutocompleteProps {
   hideRequiredIndicator?: boolean;
   className?: string;
   menuPortalTarget?: HTMLElement | null;
+  maxMenuHeight?: number;
 }
 
 // --- CUSTOM COMPONENTS ---
@@ -128,6 +129,7 @@ export const AsyncAutocomplete = ({
   className,
   isMulti = false,
   menuPortalTarget,
+  maxMenuHeight = 220,
 }: AsyncAutocompleteProps) => {
 
   const showAsterisk = required && !hideRequiredIndicator;
@@ -219,7 +221,7 @@ export const AsyncAutocomplete = ({
     menuList: (provided) => ({
       ...provided,
       padding: '6px',
-      maxHeight: '220px',
+      maxHeight: `${maxMenuHeight}px`,
     }),
     option: (provided, state) => ({
       ...provided,
@@ -341,6 +343,7 @@ export const AsyncAutocomplete = ({
         classNamePrefix="react-select"
         menuPortalTarget={menuPortalTarget}
         menuPosition={menuPortalTarget ? 'fixed' : undefined}
+        maxMenuHeight={maxMenuHeight}
       />
     </div>
   );

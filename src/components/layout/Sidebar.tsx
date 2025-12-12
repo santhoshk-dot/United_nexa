@@ -13,7 +13,6 @@ import {
   ClipboardList, 
   ShieldCheck,
   ChevronDown,
-  Database,
   Car, 
   UserCircle, 
   Settings,
@@ -31,11 +30,11 @@ export const Sidebar = ({ isSidebarOpen, setIsSidebarOpen }: SidebarProps) => {
   const location = useLocation();
   const { user, logout } = useAuth(); 
   
-  const [isDataMgmtOpen, setIsDataMgmtOpen] = useState(false);
+  const [isMasterOpen, setIsMasterOpen] = useState(false);
 
   useEffect(() => {
     if (location.pathname.startsWith('/master') || location.pathname === '/users' || location.pathname === '/settings' || location.pathname === '/audit-logs') {
-      setIsDataMgmtOpen(true);
+      setIsMasterOpen(true);
     }
   }, [location.pathname]);
 
@@ -45,11 +44,11 @@ export const Sidebar = ({ isSidebarOpen, setIsSidebarOpen }: SidebarProps) => {
     { name: 'Dashboard', href: '/', icon: LayoutDashboard },
     { name: 'GC Entry', href: '/gc-entry', icon: FileText },
     { name: 'Loading Sheet', href: '/loading-sheet', icon: ClipboardList },
-    { name: 'Trip Sheet', href: '/trip-sheet', icon: Truck },
+    { name: 'Trip Sheet', href: '/tripsheet', icon: Truck },
     { name: 'Pending Stock', href: '/pending-stock', icon: Archive },
   ];
 
-  const dataManagementLinks = [
+  const masterLinks = [
     { name: 'Consignors', href: '/master/consignors', icon: Store },
     { name: 'Consignees', href: '/master/consignees', icon: Users },
     { name: 'Vehicles', href: '/master/vehicles', icon: Car },
@@ -61,26 +60,62 @@ export const Sidebar = ({ isSidebarOpen, setIsSidebarOpen }: SidebarProps) => {
   ];
 
   if (user?.role === 'admin') {
-    dataManagementLinks.unshift({ 
-      name: 'Print Settings', 
+    masterLinks.unshift({ 
+      name: 'Print Template Editor', 
       href: '/settings', 
       icon: Settings 
     });
 
-    dataManagementLinks.push({ 
+    masterLinks.push({ 
       name: 'Audit Logs', 
       href: '/audit-logs', 
       icon: History 
     });
 
-    dataManagementLinks.push({ 
+    masterLinks.push({ 
       name: 'User Management', 
       href: '/users', 
       icon: ShieldCheck 
     });
   }
 
-  const isDataMgmtActive = location.pathname.startsWith('/master') || location.pathname === '/users' || location.pathname === '/settings' || location.pathname === '/audit-logs';
+  const isMasterActive = location.pathname.startsWith('/master') || location.pathname === '/users' || location.pathname === '/settings' || location.pathname === '/audit-logs';
+
+  // Helper to check if a route is active (including nested routes like /trip-sheet/new)
+  const isRouteActive = (href: string, pathname: string): boolean => {
+    if (href === '/') {
+      return pathname === '/';
+    }
+    return pathname === href || pathname.startsWith(`${href}/`);
+  };
+
+  // Reusable NavItem component
+  const NavItem = ({ item }: { item: typeof operationLinks[0] }) => {
+    const active = isRouteActive(item.href, location.pathname);
+    
+    return (
+      <NavLink 
+        to={item.href}
+        end={item.href === '/'}
+        className={`group flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+          active
+            ? 'bg-primary text-primary-foreground shadow-sm'
+            : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+        }`}
+        onClick={() => setIsSidebarOpen(false)}
+        title={item.name}
+      >
+        <div className={`w-7 h-7 shrink-0 rounded flex items-center justify-center transition-colors ${
+          active 
+            ? 'bg-primary-foreground/20' 
+            : 'bg-muted group-hover:bg-secondary'
+        }`}>
+          <item.icon className="w-4 h-4" />
+        </div>
+        <span className="truncate">{item.name}</span>
+      </NavLink>
+    );
+  };
 
   return (
     <>
@@ -94,7 +129,6 @@ export const Sidebar = ({ isSidebarOpen, setIsSidebarOpen }: SidebarProps) => {
 
       {/* Sidebar Content */}
       <aside 
-        // CHANGED: Reduced width from w-72 to w-64
         className={`fixed md:relative inset-y-0 left-0 z-40 w-64 bg-card border-r border-border transform transition-transform duration-300 ease-out md:translate-x-0 ${
           isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
@@ -102,7 +136,6 @@ export const Sidebar = ({ isSidebarOpen, setIsSidebarOpen }: SidebarProps) => {
         <div className="flex flex-col h-full">
           
           {/* Header */}
-          {/* CHANGED: Reduced padding from px-5 to px-4 to fit narrower width */}
           <div className="flex items-center justify-between h-16 px-4 border-b border-border">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -132,86 +165,37 @@ export const Sidebar = ({ isSidebarOpen, setIsSidebarOpen }: SidebarProps) => {
             </div>
             
             {operationLinks.map((item) => (
-              <NavLink 
-                key={item.name} 
-                to={item.href} 
-                end={item.href === '/'} 
-                className={({ isActive }) =>
-                  `group flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                    isActive
-                      ? 'bg-primary text-primary-foreground shadow-sm'
-                      : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-                  }`
-                }
-                onClick={() => setIsSidebarOpen(false)}
-              >
-                {({ isActive }) => (
-                  <>
-                    <div className={`w-7 h-7 rounded flex items-center justify-center transition-colors ${
-                      isActive 
-                        ? 'bg-primary-foreground/20' 
-                        : 'bg-muted group-hover:bg-secondary'
-                    }`}>
-                      <item.icon className="w-4 h-4" />
-                    </div>
-                    <span className="truncate">{item.name}</span>
-                  </>
-                )}
-              </NavLink>
+              <NavItem key={item.name} item={item} />
             ))}
 
-            {/* --- SETTINGS SECTION --- */}
-            <div className="pt-4 pb-2 px-3">
-              <span className="text-[10px] font-semibold text-muted-foreground/70 uppercase tracking-widest">
-                Settings
-              </span>
-            </div>
-
-            {/* Collapsible Data Management */}
+            {/* --- MASTER SECTION (Collapsible) --- */}
             <button
-              onClick={() => setIsDataMgmtOpen(!isDataMgmtOpen)}
-              className={`w-full group flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                isDataMgmtActive && !isDataMgmtOpen
-                  ? 'bg-primary/10 text-primary' 
-                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-              }`}
+              onClick={() => setIsMasterOpen(!isMasterOpen)}
+              className="w-full flex items-center justify-between px-3 pt-5 pb-2 group"
             >
-              <div className="flex items-center gap-3 overflow-hidden">
-                <div className={`w-7 h-7 shrink-0 rounded flex items-center justify-center transition-colors ${
-                  isDataMgmtActive 
-                    ? 'bg-primary/10' 
-                    : 'bg-muted group-hover:bg-secondary'
-                }`}>
-                  <Database className="w-4 h-4" />
-                </div>
-                <span className="truncate">Data Management</span>
-              </div>
-              <ChevronDown className={`w-4 h-4 shrink-0 transition-transform duration-200 ${isDataMgmtOpen ? 'rotate-0' : '-rotate-90'}`} />
+              <span className={`text-[10px] font-semibold uppercase tracking-widest transition-colors ${
+                isMasterActive 
+                  ? 'text-primary' 
+                  : 'text-muted-foreground/70 group-hover:text-muted-foreground'
+              }`}>
+                Master
+              </span>
+              <ChevronDown 
+                className={`w-3.5 h-3.5 transition-all duration-200 ${
+                  isMasterActive 
+                    ? 'text-primary' 
+                    : 'text-muted-foreground/50 group-hover:text-muted-foreground'
+                } ${isMasterOpen ? 'rotate-0' : '-rotate-90'}`} 
+              />
             </button>
 
-            {/* Sub-menu items */}
+            {/* Master Sub-menu items */}
             <div className={`overflow-hidden transition-all duration-300 ease-out ${
-              isDataMgmtOpen ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'
+              isMasterOpen ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'
             }`}>
-              {/* CHANGED: Adjusted left margin/padding for the sub-menu to save space */}
-              <div className="ml-3.5 pl-3 border-l-2 border-border space-y-1 py-1">
-                {dataManagementLinks.map((item) => (
-                  <NavLink 
-                    key={item.name} 
-                    to={item.href}
-                    end={item.href === '/master'} 
-                    className={({ isActive }) => 
-                      `flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-200 ${
-                        isActive
-                          ? 'text-primary font-medium bg-primary/5'
-                          : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
-                      }`
-                    }
-                    onClick={() => setIsSidebarOpen(false)}
-                  >
-                    <item.icon className="w-4 h-4 opacity-70 shrink-0" />
-                    <span className="truncate">{item.name}</span>
-                  </NavLink>
+              <div className="space-y-1">
+                {masterLinks.map((item) => (
+                  <NavItem key={item.name} item={item} />
                 ))}
               </div>
             </div>

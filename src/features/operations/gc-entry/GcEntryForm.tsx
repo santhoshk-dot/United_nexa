@@ -785,7 +785,18 @@ export const GcEntryForm = () => {
                                         className="bg-background text-foreground border-border"
                                     />
                                 </div>
-                                <div className="col-span-1 sm:col-span-1 lg:col-span-2">
+                                <div className="col-span-1">
+                                    <Input
+                                        label="From No"
+                                        type="number"
+                                        value={currentFromNo}
+                                        onChange={(e) => setCurrentFromNo(e.target.value)}
+                                        placeholder="From"
+                                        min="1"
+                                        className="bg-background text-foreground border-border"
+                                    />
+                                </div>
+                                <div className="col-span-2 sm:col-span-2 lg:col-span-2">
                                     <label className="block text-sm font-medium text-muted-foreground mb-1">Packing *</label>
                                     <AsyncAutocomplete
                                         loadOptions={loadPackingOptions}
@@ -813,23 +824,12 @@ export const GcEntryForm = () => {
                                         className="text-foreground"
                                     />
                                 </div>
-                                <div className="col-span-1">
+                                <div className="col-span-2 sm:col-span-1">
                                     <Input
                                         label="Prefix"
                                         value={currentPrefix}
                                         onChange={(e) => setCurrentPrefix(e.target.value)}
                                         placeholder="Prefix"
-                                        className="bg-background text-foreground border-border"
-                                    />
-                                </div>
-                                <div className="col-span-1">
-                                    <Input
-                                        label="From No"
-                                        type="number"
-                                        value={currentFromNo}
-                                        onChange={(e) => setCurrentFromNo(e.target.value)}
-                                        placeholder="From"
-                                        min="1"
                                         className="bg-background text-foreground border-border"
                                     />
                                 </div>
@@ -853,23 +853,23 @@ export const GcEntryForm = () => {
                                 <thead>
                                     <tr className="bg-muted/20">
                                         <th className="border border-muted p-2 min-w-[50px]">QTY</th>
+                                        <th className="border border-muted p-2 min-w-[80px]">FROM NO</th>
+                                        <th className="border border-muted p-2 min-w-[80px]">TO NO</th>
                                         <th className="border border-muted p-2 min-w-[120px]">PACKING</th>
                                         <th className="border border-muted p-2 min-w-[150px]">CONTENTS</th>
                                         <th className="border border-muted p-2 min-w-[80px]">PREFIX</th>
-                                        <th className="border border-muted p-2 min-w-[80px]">FROM NO</th>
-                                        <th className="border border-muted p-2 min-w-[80px]">TO NO</th>
                                         <th className="border border-muted p-2 min-w-[40px]">DEL</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {contentItems.map((item) => (
                                         <tr key={item.id} className="even:bg-muted/20">
-                                            <td className="border border-muted p-2 text-center">{item.qty}</td>
+                                            <td className="border border-muted p-2 text-center">{item.qty}</td>                                            
+                                            <td className="border border-muted p-2 text-center">{item.fromNo}</td>
+                                            <td className="border border-muted p-2 text-center">{getToNo(item) > 0 ? getToNo(item) : '-'}</td>
                                             <td className="border border-muted p-2">{item.packing}</td>
                                             <td className="border border-muted p-2">{item.contents}</td>
                                             <td className="border border-muted p-2 text-center">{item.prefix}</td>
-                                            <td className="border border-muted p-2 text-center">{item.fromNo}</td>
-                                            <td className="border border-muted p-2 text-center">{getToNo(item) > 0 ? getToNo(item) : '-'}</td>
                                             <td className="border border-muted p-2 text-center">
                                                 <button type="button" className="text-destructive hover:text-red-700" onClick={() => handleDeleteContent(item.id)}>
                                                     <Trash2 size={16} />
@@ -930,9 +930,9 @@ export const GcEntryForm = () => {
             </div>
 
             <div className="p-4 border-t border-muted bg-background flex flex-col sm:flex-row justify-end gap-3 mt-auto shadow-md z-10">
-                <Button type="button" variant="secondary" onClick={() => navigate('/gc-entry')}><X size={16} className="mr-2" />Cancel</Button>
-                <Button type="button" variant="secondary" onClick={() => handleSave(true)}><Printer size={16} className="mr-2" />Save & Print</Button>
-                <Button type="button" variant="primary" onClick={() => handleSave(false)}><Save size={16} className="mr-2" />{isEditMode ? 'Update' : 'Save'}</Button>
+                <Button type="button" variant="secondary" onClick={() => navigate('/gc-entry')}><X size={16} />Cancel</Button>
+                <Button type="button" variant="secondary" onClick={() => handleSave(true)}><Printer size={16} />Save & Print</Button>
+                <Button type="button" variant="primary" onClick={() => handleSave(false)}><Save size={16} />{isEditMode ? 'Update' : 'Save'}</Button>
             </div>
 
             {printingJobs && (

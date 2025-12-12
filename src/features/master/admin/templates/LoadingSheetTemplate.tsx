@@ -6,13 +6,14 @@ const EditableText: React.FC<{
     onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
     className?: string;
     placeholder?: string;
-}> = ({ value, onChange, placeholder = "" }) => (
+    centered?: boolean;
+}> = ({ value, onChange, placeholder = "", className = "", centered = false }) => (
     <input
         type="text"
         value={value || ""}
         onChange={onChange}
         placeholder={placeholder}
-        className={`border border-dashed border-gray-400 p-0.5 w-full appearance-none focus:border-solid focus:bg-white bg-transparent ${"className"}`}
+        className={`border border-dashed border-gray-400 p-0.5 w-full appearance-none focus:border-solid focus:bg-white bg-transparent ${centered ? 'text-center' : ''} ${className}`}
         style={{ minWidth: '30px' }}
     />
 );
@@ -105,7 +106,7 @@ export const LoadingSheetTemplate: React.FC<LoadingSheetTemplateProps> = (props)
         <div
             className="load-list-print-wrapper bg-white shadow-2xl mx-auto border border-gray-300 w-full lg:max-w-[210mm]"
             style={{
-                minHeight: "100mm",
+                minHeight: "230mm",
                 boxSizing: "border-box",
             }}
         >
@@ -132,21 +133,24 @@ export const LoadingSheetTemplate: React.FC<LoadingSheetTemplateProps> = (props)
 
             <div className="p-2 md:p-8 print:p-5 print:text-[11pt] font-sans relative dark:text-black">
 
+                {/* Header Section - Centered */}
                 <div className="text-center mb-4">
                     <h2 className="text-base md:text-xl font-extrabold mb-1">
                         <EditableText
                             value={localLabels.companyName}
-                            className="text-base md:text-xl font-extrabold text-center"
+                            className="text-base md:text-xl font-extrabold"
                             onChange={handleTextChange("companyName")}
                             placeholder="Company Name"
+                            centered
                         />
                     </h2>
-                    <h3 className="text-sm md:text-lg font-extrabold flex justify-center items-center gap-2">
+                    <h3 className="text-sm md:text-lg font-extrabold">
                         <EditableText
                             value={localLabels.mainHeader}
-                            className="text-sm md:text-lg font-extrabold text-center w-auto"
+                            className="text-sm md:text-lg font-extrabold"
                             onChange={handleTextChange("mainHeader")}
                             placeholder="Header Title"
+                            centered
                         />
                     </h3>
                 </div>
@@ -155,7 +159,7 @@ export const LoadingSheetTemplate: React.FC<LoadingSheetTemplateProps> = (props)
                     <DynamicContent />
                 </div>
 
-                <div className="mt-4 pt-2 print:mt-4 print:pt-2">
+                <div className="mt-80 pt-2 print:mt-4 print:pt-2">
                     <div className="w-full mx-auto">
                         <div className="border-t-2 border-black w-full my-2"></div>
 
@@ -164,20 +168,19 @@ export const LoadingSheetTemplate: React.FC<LoadingSheetTemplateProps> = (props)
                                 <EditableText
                                     value={localLabels.totalLabel}
                                     onChange={handleTextChange("totalLabel")}
-                                    className="font-bold w-auto text-left flex-shrink-0"
+                                    className="font-bold"
                                     placeholder="Total Label"
                                 />
                             </div>
 
-                            <div className="text-[10px] md:text-xs mb-1 text-center w-1/2">
-                                <p className="italic font-bold mr-1">
-                                    <EditableText
-                                        value={localLabels.companySignatureLine}
-                                        onChange={handleTextChange("companySignatureLine")}
-                                        className="italic font-bold text-center"
-                                        placeholder="Signature Line"
-                                    />
-                                </p>
+                            <div className="text-[10px] md:text-xs mb-1 w-1/2">
+                                <EditableText
+                                    value={localLabels.companySignatureLine}
+                                    onChange={handleTextChange("companySignatureLine")}
+                                    className="italic font-bold"
+                                    placeholder="Signature Line"
+                                    centered
+                                />
                             </div>
                         </div>
 

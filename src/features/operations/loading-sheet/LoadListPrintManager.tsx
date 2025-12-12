@@ -409,7 +409,7 @@ export const LoadListPrintManager: React.FC<LoadListPrintManagerProps> = ({ jobs
                             {/* 泙 Dynamic Company Name */}
                             <h2 className="text-xl font-extrabold mb-1 uppercase">{label.companyName}</h2>
                             {/* 泙 Dynamic Main Header with Date */}
-                            <h3 className="text-lg font-extrabold uppercase">{label.mainHeader} AS ON {getCurrentDate()}</h3>
+                            <h3 className="text-lg font-extrabold uppercase">{label.mainHeader} {getCurrentDate()}</h3>
                         </div>
 
                         {printData.map((data, index) => (

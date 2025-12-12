@@ -90,7 +90,7 @@ const AppRouter = () => {
         <Route path="/gc-entry/edit/:gcNo" element={<GcEntryForm />} />
         <Route path="/pending-stock" element={<PendingStockHistory />} />
         <Route path="/loading-sheet" element={<LoadingSheetEntry />} />
-        <Route path="/trip-sheet" element={<TripSheetList />} />
+        <Route path="/tripsheet" element={<TripSheetList />} />
         <Route path="/tripsheet/new" element={<TripSheetForm />} />
         <Route path="/tripsheet/edit/:id" element={<TripSheetForm />} />
         

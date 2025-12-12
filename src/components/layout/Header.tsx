@@ -30,11 +30,11 @@ export const Header = ({ setIsSidebarOpen }: HeaderProps) => {
       const id = segments[segments.length - 1];
       return { title: `Edit #${id}`, breadcrumb: 'Trip Sheet' };
     }
-    if (pathname.startsWith('/trip-sheet')) return { title: 'Trip Sheet' };
+    if (pathname.startsWith('/tripsheet')) return { title: 'Trip Sheet' };
     if (pathname.startsWith('/pending-stock')) return { title: 'Pending Stock' };
 
     // Settings
-    if (pathname === '/settings') return { title: 'Print Settings', breadcrumb: 'Settings' };
+    if (pathname === '/settings') return { title: 'Print Template Editor', breadcrumb: 'Settings' };
     if (pathname === '/audit-logs') return { title: 'Audit Logs', breadcrumb: 'Settings' };
 
     // Masters

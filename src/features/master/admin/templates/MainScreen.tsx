@@ -8,7 +8,7 @@ import { TripSheetReportTemplate } from "./TripSheetReportTemplate";
 import TripSheetPrintTemplate from "./TripSheetPrintTemplate";
 import { ConfirmationDialog } from "../../../../components/shared/ConfirmationDialog";
 
-// --- Button Component ---
+// --- Button Component (Theme-aware) ---
 type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: 'primary' | 'secondary' | 'destructive' | 'outline' | 'ghost';
   size?: 'default' | 'sm' | 'lg';
@@ -16,20 +16,25 @@ type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant = 'primary', size = 'default', children, ...props }, ref) => {
-    const baseStyle = "flex justify-center items-center rounded-md text-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-black disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap transition-colors duration-200";
+    const baseStyle = `
+      flex justify-center items-center rounded-[var(--radius)] text-sm font-medium 
+      focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background
+      disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap 
+      transition-all duration-200 ease-out
+    `;
     
     const variantStyles = {
-      primary: 'bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500',
-      secondary: 'bg-gray-400 text-gray-800 hover:bg-gray-500 focus:ring-gray-400 dark:bg-gray-600 dark:text-gray-100 dark:hover:bg-gray-700 dark:focus:ring-gray-500',
-      destructive: 'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500',
-      outline: 'border border-gray-300 bg-white hover:bg-gray-100 text-gray-700 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700 dark:text-gray-300 dark:focus:ring-blue-400',
-      ghost: 'hover:bg-gray-200 text-gray-700 focus:ring-blue-500 dark:hover:bg-gray-700 dark:text-gray-300 dark:focus:ring-blue-400',
+      primary: 'bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm hover:shadow-md',
+      secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/80',
+      destructive: 'bg-destructive text-destructive-foreground hover:bg-destructive/90',
+      outline: 'border border-border bg-card text-foreground hover:bg-accent hover:text-accent-foreground',
+      ghost: 'text-foreground hover:bg-accent hover:text-accent-foreground',
     };
 
     const sizeStyles = {
       default: "h-10 py-2 px-4",
-      sm: "h-9 rounded-md px-3",
-      lg: "h-11 rounded-md px-8",
+      sm: "h-9 px-3",
+      lg: "h-11 px-8",
     };
 
     return (
@@ -44,6 +49,8 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     );
   }
 );
+
+Button.displayName = 'Button';
 
 type View = 'GC_ENTRY' | 'LOADING_SHEET' | 'PENDING_STOCK' | 'TRIPSHEET_REPORT' | 'TRIPSHEET_PRINT';
 
@@ -166,7 +173,7 @@ const MainScreen: React.FC = () => {
             />
         );
       default:
-        return <div className="dark:text-gray-300">Select a module.</div>;
+        return <div className="text-muted-foreground">Select a module.</div>;
     }
   };
 
@@ -182,28 +189,36 @@ const MainScreen: React.FC = () => {
   };
 
   const TabButton: React.FC<{ view: View; label: string; shortLabel: string }> = ({ view, label, shortLabel }) => {
-    const buttonVariant = activeView === view ? 'primary' : 'outline';
+    const isActive = activeView === view;
     const Icon = getIcon(view);
 
     return (
-      <Button
-        variant={buttonVariant}
+      <button
+        type="button"
         onClick={() => setActiveView(view)}
-        className="shadow-sm flex gap-1 px-2 lg:px-3 xl:px-4 text-xs lg:text-sm"
-        size="sm"
+        className={`
+          flex items-center gap-1.5 px-2.5 lg:px-3 xl:px-4 h-9
+          rounded-[var(--radius)] text-xs lg:text-sm font-medium
+          transition-all duration-200 ease-out
+          focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background
+          ${isActive 
+            ? 'bg-primary text-primary-foreground shadow-sm glow-primary' 
+            : 'bg-secondary/50 text-secondary-foreground hover:bg-secondary hover:text-foreground border border-border/50'
+          }
+        `}
       >
         <Icon className="w-3.5 h-3.5 lg:w-4 lg:h-4 shrink-0" />
         {/* Show short label on lg, full label on xl+ */}
         <span className="hidden lg:inline xl:hidden">{shortLabel}</span>
         <span className="hidden xl:inline">{label}</span>
-      </Button>
+      </button>
     );
   };
 
   return (
-    <div className="p-2 sm:p-3 md:p-4 bg-gray-100 min-h-screen dark:bg-black dark:text-white">
+    <div className="p-2 sm:p-3 md:p-4 bg-background min-h-screen text-foreground transition-colors duration-300">
       {/* Header */}
-      <header className="mb-3 sm:mb-4 rounded-lg p-2 sm:p-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-sm">
+      <header className="mb-3 sm:mb-4 rounded-[var(--radius)] p-2 sm:p-3 bg-card border border-border shadow-sm premium-shadow">
         
         {/* Row 1: Navigation (Dropdown on mobile/tablet, Tabs on desktop) */}
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-2 sm:gap-3">
@@ -214,15 +229,23 @@ const MainScreen: React.FC = () => {
               <select
                 value={activeView}
                 onChange={(e) => setActiveView(e.target.value as View)}
-                className="w-full appearance-none bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 py-2 sm:py-2.5 px-3 sm:px-4 pr-10 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm"
+                className="
+                  w-full appearance-none 
+                  bg-secondary text-foreground
+                  border border-border
+                  py-2 sm:py-2.5 px-3 sm:px-4 pr-10 
+                  rounded-[var(--radius)] text-sm font-medium 
+                  focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background
+                  shadow-sm transition-colors duration-200
+                "
               >
                 {VIEW_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
+                  <option key={opt.value} value={opt.value} className="bg-card text-foreground">
                     {opt.label}
                   </option>
                 ))}
               </select>
-              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 sm:px-3 text-gray-500 dark:text-gray-400">
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 sm:px-3 text-muted-foreground">
                 <ChevronDown size={16} />
               </div>
             </div>
@@ -249,11 +272,13 @@ const MainScreen: React.FC = () => {
                 size="sm"
                 onClick={handleSave} 
                 disabled={!hasChanges} 
-                className="flex-1 lg:flex-none transition-opacity px-2 sm:px-3 text-xs sm:text-sm"
+                className={`
+                  flex-1 lg:flex-none px-2 sm:px-3 text-xs sm:text-sm
+                  ${hasChanges ? 'glow-primary' : ''}
+                `}
               >
                 <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-0.5 sm:mr-1 shrink-0" />
-                <span className="hidden xs:inline">Save</span>
-                <span className="xs:hidden">Save</span>
+                <span>Save</span>
               </Button>
 
               {/* Undo Button */}
@@ -262,7 +287,10 @@ const MainScreen: React.FC = () => {
                 size="sm"
                 onClick={handleUndo} 
                 disabled={!hasChanges} 
-                className="flex-1 lg:flex-none transition-opacity px-2 sm:px-3 text-xs sm:text-sm text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20 dark:hover:border-red-400"
+                className="
+                  flex-1 lg:flex-none px-2 sm:px-3 text-xs sm:text-sm
+                  text-red-600 hover:bg-red-500/50 dark:text-red-400 dark:hover:bg-red-900/20 dark:hover:border-red-400
+                "
               >
                 <RotateCcw className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-0.5 sm:mr-1 shrink-0" />
                 Undo
@@ -274,7 +302,10 @@ const MainScreen: React.FC = () => {
                 size="sm"
                 onClick={handleReset} 
                 disabled={!hasChanges} 
-                className="flex-1 lg:flex-none transition-opacity px-2 sm:px-3 text-xs sm:text-sm text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20 dark:hover:border-red-400"
+                className="
+                  flex-1 lg:flex-none px-2 sm:px-3 text-xs sm:text-sm
+                  text-red-600 hover:bg-red-500/50 dark:text-red-400 dark:hover:bg-red-900/20 dark:hover:border-red-400
+                "
               >
                 <X className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-0.5 sm:mr-1 shrink-0" />
                 <span className="hidden sm:inline">Discard</span>
