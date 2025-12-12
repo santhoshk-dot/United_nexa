@@ -1,11 +1,11 @@
 import { useState, useRef } from 'react';
-import { Input } from '../../components/shared/Input';
-import { Button } from '../../components/shared/Button';
+import { Input } from '../../../../components/shared/Input';
+import { Button } from '../../../../components/shared/Button';
 import { X, Eye, EyeOff } from 'lucide-react'; 
-import type { AppUser } from '../../types';
-import { useAuth } from '../../hooks/useAuth';
-import { registerUserSchema } from '../../schemas';
-import { useToast } from '../../contexts/ToastContext';
+import type { AppUser } from '../../../../types';
+import { useAuth } from '../../../../hooks/useAuth';
+import { registerUserSchema } from '../../../../schemas';
+import { useToast } from '../../../../contexts/ToastContext';
 
 interface UserFormProps {
   initialData?: AppUser;

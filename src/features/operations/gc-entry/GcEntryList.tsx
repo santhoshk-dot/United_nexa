@@ -63,6 +63,7 @@ export const GcEntryList = () => {
     refresh,
   } = useServerPagination<GcEntry>({
     endpoint: "/operations/gc",
+    skipLoader: true, // <--- NEW: Skip loader on initial load
     initialItemsPerPage: 10,
     initialFilters: {
       search: "",

@@ -14,13 +14,15 @@ interface UseServerPaginationProps {
   initialItemsPerPage?: number;
   initialFilters?: Record<string, any>;
   debounceDelay?: number; // New prop for custom delay
+  skipLoader?: boolean;   // <--- NEW PROP
 }
 
 export const useServerPagination = <T>({ 
   endpoint, 
   initialItemsPerPage = 10, 
   initialFilters = {},
-  debounceDelay = 500 // Default 500ms delay
+  debounceDelay = 500, // Default 500ms delay
+  skipLoader = false   // <--- DEFAULT TO FALSE
 }: UseServerPaginationProps) => {
   const [state, setState] = useState<PaginationState<T>>({
     data: [],
@@ -74,8 +76,9 @@ export const useServerPagination = <T>({
 
       const { data } = await api.get(endpoint, {
         params,
-        signal: abortControllerRef.current.signal
-      });
+        signal: abortControllerRef.current.signal,
+        skipLoader // <--- PASSING THE FLAG
+      } as any); // Cast to any if Typescript complains about skipLoader
       
       setState(prev => ({
         ...prev,
@@ -91,7 +94,7 @@ export const useServerPagination = <T>({
       console.error(`Error fetching data from ${endpoint}`, error);
       setState(prev => ({ ...prev, loading: false, data: [] }));
     }
-  }, [endpoint, state.currentPage, itemsPerPage, debouncedFilters, refreshTrigger]);
+  }, [endpoint, state.currentPage, itemsPerPage, debouncedFilters, refreshTrigger, skipLoader]);
 
   // 3. Trigger Fetch when Debounced Filters Change
   useEffect(() => {

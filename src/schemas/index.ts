@@ -68,10 +68,8 @@ export const consigneeSchema = z.object({
 export const vehicleSchema = z.object({
   vehicleNo: z.string().regex(VEHICLE_REGEX, "Invalid Vehicle Number (e.g., TN01AB1234)"),
   vehicleName: z.string().min(1, "Vehicle Name is required"),
-  ownerName: z.string().optional(),
-  ownerMobile: z.string().optional().refine(val => !val || MOBILE_REGEX.test(val), {
-    message: "Invalid Owner Mobile Number"
-  }),
+  ownerName: z.string().min(1, "Owner Name is required"), // Changed to required
+  ownerMobile: z.string().regex(MOBILE_REGEX, "Invalid Owner Mobile Number"), // Changed to required and directly using regex
 });
 
 export const driverSchema = z.object({

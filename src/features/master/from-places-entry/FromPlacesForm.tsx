@@ -1,11 +1,11 @@
 import { useState, useRef } from 'react';
-import type { FromPlace } from '../../types';
-import { Input } from '../../components/shared/Input';
-import { Button } from '../../components/shared/Button';
+import type { FromPlace } from '../../../types';
+import { Input } from '../../../components/shared/Input';
+import { Button } from '../../../components/shared/Button';
 import { X } from 'lucide-react';
 import type { DuplicateCheckFn } from './FromPlacesList';
 // 泙 NEW: Imports
-import { placeSchema } from '../../schemas';
+import { placeSchema } from '../../../schemas';
 
 interface FromPlacesFormProps {
     initialData?: FromPlace;

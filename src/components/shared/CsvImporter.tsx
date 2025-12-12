@@ -21,6 +21,8 @@ interface CsvImporterProps<T> {
   checkDuplicate: (newItem: T, existingItem: T) => boolean;
   label?: string;
   className?: string;
+  // 泙 NEW: Added size prop
+  size?: 'default' | 'sm' | 'lg';
 }
 
 interface FailedRecord {
@@ -34,7 +36,9 @@ export const CsvImporter = <T,>({
   mapRow, 
   checkDuplicate, 
   label = "Import CSV",
-  className
+  className,
+  // 泙 NEW: Default to 'default' (h-10)
+  size = 'default'
 }: CsvImporterProps<T>) => {
   const [isOpen, setIsOpen] = useState(false);
   const [file, setFile] = useState<File | null>(null);
@@ -222,7 +226,8 @@ export const CsvImporter = <T,>({
 
   return (
     <>
-      <Button variant="outline" onClick={() => setIsOpen(true)} size="sm" className={className}>
+      {/* 泙 NEW: Pass the size prop here */}
+      <Button variant="outline" onClick={() => setIsOpen(true)} size={size} className={className}>
         <Upload size={16} className="mr-1.5 sm:mr-2" />
         <span className="hidden xs:inline">{label}</span>
         <span className="xs:hidden">Import</span>

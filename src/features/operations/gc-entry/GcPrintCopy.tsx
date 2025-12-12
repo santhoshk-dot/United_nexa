@@ -4,6 +4,7 @@ import { numberToWords, numberToWordsInRupees } from "../../../utils/toWords";
 import { useAuth } from "../../../hooks/useAuth";
 import { API_URL } from "../../../utils/api";
 import { useDataContext } from "../../../contexts/DataContext";
+import { QRCodeSVG } from 'qrcode.react';
 
 const formatCurrency = (amount: number | string | undefined) => {
   const num = parseFloat(amount?.toString() || "0");
@@ -44,7 +45,7 @@ export const GcPrintCopy: React.FC<Props> = ({
   const directApiUrl = `${API_URL}/public/view-terms?gcNo=${gc.gcNo}&role=${roleSlug}`;
 
   // 3. Generate QR Code Image URL
-  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&margin=0&data=${encodeURIComponent(directApiUrl)}`;
+  //const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&margin=0&data=${encodeURIComponent(directApiUrl)}`;
 
   // Calculate totals from contentItems
   const quantityNum = gc.contentItems?.reduce((sum, item) => sum + (parseFloat(String(item.qty)) || 0), 0) || gc.netQty || 0;
@@ -324,11 +325,10 @@ export const GcPrintCopy: React.FC<Props> = ({
 
         <div className="flex items-end gap-3 w-1/3">
           <div className="flex flex-col items-center flex-shrink-0">
-            <img
-              src={qrCodeUrl}
-              alt="T&C QR"
-              className="w-20 h-20"
-              style={{ imageRendering: "pixelated" }}
+           <QRCodeSVG
+              value={directApiUrl}
+              size={80} // Approx 20mm
+              level="M" // Medium error correction
             />
             <span className="text-[9px] font-bold mt-0.5 uppercase tracking-wide">
               {label.scanLabel}

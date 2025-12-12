@@ -65,6 +65,7 @@ export const PendingStockHistory = () => {
     refresh,
   } = useServerPagination<GcEntry>({
     endpoint: '/operations/pending-stock',
+    skipLoader: true, // <--- NEW: Skip loader on initial load
     initialFilters: {
       search: '',
       filterType: 'all',

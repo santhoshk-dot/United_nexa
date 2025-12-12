@@ -10,6 +10,7 @@ import { Printer, Save, X, Plus, Trash2 } from 'lucide-react';
 import { GcPrintManager, type GcPrintJob } from './GcPrintManager';
 import { useToast } from '../../../contexts/ToastContext';
 import { gcEntrySchema } from '../../../schemas';
+import { RadioGroup } from '../../../components/shared/RadioGroup';
 
 type ProofType = 'gst' | 'pan' | 'aadhar';
 
@@ -482,7 +483,28 @@ export const GcEntryForm = () => {
 
     const handleProofTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const newProofType = e.target.value as ProofType;
-        setForm(prev => ({ ...prev, consigneeProofType: newProofType, consigneeProofValue: '' }));
+        
+        // 1. Get the correct value based on the selected type from the stored consignee option
+        let newProofValue = '';
+        if (consigneeOption) {
+             if (newProofType === 'gst') {
+                 newProofValue = consigneeOption.gst || '';
+             } else if (newProofType === 'pan') {
+                 newProofValue = consigneeOption.pan || '';
+             } else if (newProofType === 'aadhar') {
+                 newProofValue = consigneeOption.aadhar || '';
+             }
+        }
+
+        // 2. Update the form with the new type AND the new value
+        setForm(prev => ({ 
+            ...prev, 
+            consigneeProofType: newProofType, 
+            consigneeProofValue: newProofValue 
+        }));
+        
+        // 3. Trigger validation for the value field immediately so errors clear/appear
+        validateField('consigneeProofValue', newProofValue);
     };
 
     // --- Content Items Handlers (Static Form Pattern) ---
@@ -695,8 +717,19 @@ export const GcEntryForm = () => {
                             </div>
                             <div className="col-span-1 lg:col-span-3"><Input label="Consignee Dest" value={consigneeDestDisplay} disabled required {...getValidationProp(consigneeDestDisplay)} /></div>
                             <div className="col-span-1 lg:col-span-2">
-                                <label className="block text-xs font-medium text-muted-foreground mb-1">Proof Type *</label>
-                                <select name="consigneeProofType" value={form.consigneeProofType} onChange={handleProofTypeChange} className="w-full px-2 py-2 border border-muted-foreground/30 rounded-md bg-background text-xs focus:outline-none focus:ring-primary focus:border-primary"><option value="gst">GST</option><option value="pan">PAN</option><option value="aadhar">Aadhar</option></select>
+                                <label className="block text-sm font-medium text-foreground mb-1.5">
+                                    Proof Type <span className="text-destructive ml-1">*</span>
+                                </label>
+                                <select 
+                                    name="consigneeProofType" 
+                                    value={form.consigneeProofType} 
+                                    onChange={handleProofTypeChange} 
+                                    className="w-full h-11 px-4 bg-background text-foreground border border-border rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200 hover:border-primary/50"
+                                >
+                                    <option value="gst">GST</option>
+                                    <option value="pan">PAN</option>
+                                    <option value="aadhar">Aadhar</option>
+                                </select>
                             </div>
                             <div className="col-span-1 lg:col-span-2"><Input label="Proof Value" name="consigneeProofValue" value={form.consigneeProofValue} onChange={handleChange} required {...getValidationProp(form.consigneeProofValue)} /></div>
                         </div>
@@ -882,32 +915,17 @@ export const GcEntryForm = () => {
                         </div>
                     </div>
 
-                    <div className="pt-2">
-                        <div className="flex gap-6">
-                            <label className="flex items-center gap-2 cursor-pointer">
-                                <input
-                                    type="radio"
-                                    name="paymentType"
-                                    value="To Pay"
-                                    checked={form.paymentType === 'To Pay'}
-                                    onChange={() => handleFormValueChange('paymentType', 'To Pay')}
-                                    className="w-4 h-4 text-primary"
-                                />
-                                <span className="text-sm font-medium">To Pay</span>
-                            </label>
-                            <label className="flex items-center gap-2 cursor-pointer">
-                                <input
-                                    type="radio"
-                                    name="paymentType"
-                                    value="Paid"
-                                    checked={form.paymentType === 'Paid'}
-                                    onChange={() => handleFormValueChange('paymentType', 'Paid')}
-                                    className="w-4 h-4 text-primary"
-                                />
-                                <span className="text-sm font-medium">Paid</span>
-                            </label>
-                        </div>
-                    </div>
+                   <div className="pt-2">
+                    <RadioGroup
+                        label="Payment Type"
+                        options={[
+                            { value: 'To Pay', label: 'To Pay' },
+                            { value: 'Paid', label: 'Paid' }
+                        ]}
+                        value={form.paymentType}
+                        onChange={(value) => handleFormValueChange('paymentType', value)}
+                    />
+                </div>
                 </form>
             </div>
 

@@ -71,6 +71,7 @@ export const LoadingSheetEntry = () => {
     GcEntry & { loadedCount?: number; consignorId?: string; destination?: string; totalQty?: number }
   >({
     endpoint: '/operations/loading-sheet',
+    skipLoader: true, // <--- NEW: Skip loader on initial load
     initialFilters: {
       search: '',
       filterType: 'all',

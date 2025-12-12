@@ -1,12 +1,11 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
-import type { FromPlace } from '../../types';
+import type { FromPlace } from '../../../types';
 import {
   FilePenLine,
   Trash2,
   Search,
   Download,
   Plus,
-  Filter,
   FilterX,
   MapPin,
   Hash,
@@ -14,13 +13,13 @@ import {
   ChevronUp,
 } from 'lucide-react';
 import { FromPlacesForm } from './FromPlacesForm';
-import { ConfirmationDialog } from '../../components/shared/ConfirmationDialog';
-import { useData } from '../../hooks/useData';
-import { Button } from '../../components/shared/Button';
-import { usePagination } from '../../utils/usePagination';
-import { Pagination } from '../../components/shared/Pagination';
-import { CsvImporter } from '../../components/shared/CsvImporter';
-import { useToast } from '../../contexts/ToastContext';
+import { ConfirmationDialog } from '../../../components/shared/ConfirmationDialog';
+import { useData } from '../../../hooks/useData';
+import { Button } from '../../../components/shared/Button';
+import { usePagination } from '../../../utils/usePagination';
+import { Pagination } from '../../../components/shared/Pagination';
+import { CsvImporter } from '../../../components/shared/CsvImporter';
+import { useToast } from '../../../contexts/ToastContext';
 
 interface FormErrorState { general: string | null; }
 export type DuplicateCheckFn = (currentPlaceName: string, currentShortName: string, editingId: string | undefined) => { place: string | null; short: string | null; };
@@ -65,7 +64,6 @@ export const FromPlaceList = () => {
     totalPages
   } = usePagination({ data: filteredFromPlaces, initialItemsPerPage: 10 });
 
-  const hasActiveFilters = !!search || !!shortNameFilter;
 
   const clearAllFilters = () => {
     setSearch('');
@@ -193,7 +191,7 @@ export const FromPlaceList = () => {
           </div>
 
           {/* Filter Button */}
-          <Button
+          {/* <Button
             variant={hasActiveFilters ? 'primary' : 'outline'}
             onClick={() => setShowFilters(!showFilters)}
             className="h-10 px-4 shrink-0"
@@ -203,7 +201,7 @@ export const FromPlaceList = () => {
             {hasActiveFilters && (
               <span className="ml-1.5 w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
             )}
-          </Button>
+          </Button> */}
 
           {/* Action Buttons */}
           <Button variant="outline" onClick={handleExport} className="h-10">
@@ -240,7 +238,7 @@ export const FromPlaceList = () => {
                 className="w-full h-10 pl-10 pr-4 bg-secondary/50 text-foreground rounded-lg border-0 focus:outline-none focus:ring-2 focus:ring-primary/20 placeholder:text-muted-foreground/60 text-sm"
               />
             </div>
-            <Button
+            {/* <Button
               variant={hasActiveFilters ? 'primary' : 'outline'}
               onClick={() => setShowFilters(!showFilters)}
               className="h-10 px-3 shrink-0"
@@ -250,7 +248,7 @@ export const FromPlaceList = () => {
               {hasActiveFilters && (
                 <span className="ml-1.5 w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
               )}
-            </Button>
+            </Button> */}
           </div>
 
           {/* Row 2: Action Buttons */}

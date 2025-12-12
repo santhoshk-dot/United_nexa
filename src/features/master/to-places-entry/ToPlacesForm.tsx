@@ -1,11 +1,11 @@
 import { useState, useRef } from 'react';
-import type { ToPlace } from '../../types'; 
-import { Input } from '../../components/shared/Input'; 
-import { Button } from '../../components/shared/Button'; 
+import type { ToPlace } from '../../../types';
+import { Input } from '../../../components/shared/Input'; 
+import { Button } from '../admin/templates/MainScreen';
 import { X } from 'lucide-react';
 import type { DuplicateCheckFn } from './ToPlacesList';
 // 泙 NEW: Imports
-import { placeSchema } from '../../schemas';
+import { placeSchema } from '../../../schemas';
 
 interface ToPlacesFormProps {
     initialData?: ToPlace;

@@ -6,12 +6,9 @@ import {
   Search,
   Download,
   Plus,
-  Filter,
-  FilterX,
   Package,
   Hash,
   Tag,
-  ChevronUp,
 } from 'lucide-react';
 import { PackingUnitForm } from './PackingUnitForm';
 import { ConfirmationDialog } from '../../../components/shared/ConfirmationDialog';
@@ -27,8 +24,8 @@ export const PackingEntryList = () => {
   const toast = useToast();
 
   const [search, setSearch] = useState('');
-  const [showFilters, setShowFilters] = useState(false);
-  const [shortNameFilter, setShortNameFilter] = useState('');
+  const [] = useState(false);
+  const [shortNameFilter] = useState('');
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingEntry, setEditingEntry] = useState<PackingEntry | undefined>(undefined);
@@ -61,12 +58,7 @@ export const PackingEntryList = () => {
     totalItems
   } = usePagination({ data: filteredEntries, initialItemsPerPage: 10 });
 
-  const hasActiveFilters = !!search || !!shortNameFilter;
 
-  const clearAllFilters = () => {
-    setSearch('');
-    setShortNameFilter('');
-  };
 
   const handleEdit = (entry: PackingEntry) => {
     setEditingEntry(entry);
@@ -160,7 +152,7 @@ export const PackingEntryList = () => {
           </div>
 
           {/* Filter Button */}
-          <Button
+          {/* <Button
             variant={hasActiveFilters ? 'primary' : 'outline'}
             onClick={() => setShowFilters(!showFilters)}
             className="h-10 px-4 shrink-0"
@@ -170,7 +162,7 @@ export const PackingEntryList = () => {
             {hasActiveFilters && (
               <span className="ml-1.5 w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
             )}
-          </Button>
+          </Button> */}
 
           {/* Action Buttons */}
           <Button variant="outline" onClick={handleExport} className="h-10">
@@ -207,7 +199,7 @@ export const PackingEntryList = () => {
                 className="w-full h-10 pl-10 pr-4 bg-secondary/50 text-foreground rounded-lg border-0 focus:outline-none focus:ring-2 focus:ring-primary/20 placeholder:text-muted-foreground/60 text-sm"
               />
             </div>
-            <Button
+            {/* <Button
               variant={hasActiveFilters ? 'primary' : 'outline'}
               onClick={() => setShowFilters(!showFilters)}
               className="h-10 px-3 shrink-0"
@@ -217,7 +209,7 @@ export const PackingEntryList = () => {
               {hasActiveFilters && (
                 <span className="ml-1.5 w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
               )}
-            </Button>
+            </Button> */}
           </div>
 
           {/* Row 2: Action Buttons */}
@@ -246,41 +238,7 @@ export const PackingEntryList = () => {
         </div>
       </div>
 
-      {/* Filters Panel */}
-      {showFilters && (
-        <div className="bg-card border border-border rounded-xl p-4 shadow-sm animate-in slide-in-from-top-2 duration-200">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-sm font-semibold text-foreground">Filters</h3>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={clearAllFilters}
-                className="inline-flex items-center gap-1 text-xs text-primary hover:text-primary/80 font-medium"
-              >
-                <FilterX className="w-3.5 h-3.5" />
-                Clear All
-              </button>
-              <button
-                onClick={() => setShowFilters(false)}
-                className="p-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-              >
-                <ChevronUp className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-medium text-muted-foreground mb-1.5">Short Name</label>
-              <input
-                type="text"
-                placeholder="Filter by short name..."
-                value={shortNameFilter}
-                onChange={(e) => setShortNameFilter(e.target.value)}
-                className="w-full h-10 px-3 bg-secondary/50 text-foreground rounded-lg border-0 focus:outline-none focus:ring-2 focus:ring-primary/20 placeholder:text-muted-foreground/60 text-sm"
-              />
-            </div>
-          </div>
-        </div>
-      )}
+    
 
       {/* Data Table */}
       <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">

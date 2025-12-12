@@ -1,26 +1,23 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
-import type { ToPlace } from '../../types';
+import type { ToPlace } from '../../../types';
 import {
   FilePenLine,
   Trash2,
   Search,
   Download,
   Plus,
-  Filter,
-  FilterX,
   MapPinned,
   Hash,
   Tag,
-  ChevronUp,
 } from 'lucide-react';
 import { ToPlacesForm } from './ToPlacesForm';
-import { ConfirmationDialog } from '../../components/shared/ConfirmationDialog';
-import { useData } from '../../hooks/useData';
-import { Button } from '../../components/shared/Button';
-import { usePagination } from '../../utils/usePagination';
-import { Pagination } from '../../components/shared/Pagination';
-import { CsvImporter } from '../../components/shared/CsvImporter';
-import { useToast } from '../../contexts/ToastContext';
+import { ConfirmationDialog } from '../../../components/shared/ConfirmationDialog';
+import { useData } from '../../../hooks/useData';
+import { Button } from '../../../components/shared/Button';
+import { usePagination } from '../../../utils/usePagination';
+import { Pagination } from '../../../components/shared/Pagination';
+import { CsvImporter } from '../../../components/shared/CsvImporter';
+import { useToast } from '../../../contexts/ToastContext';
 
 interface FormErrorState { general: string | null; }
 export type DuplicateCheckFn = (currentPlaceName: string, currentShortName: string, editingId: string | undefined) => { place: string | null; short: string | null; };
@@ -30,8 +27,7 @@ export const ToPlacesList = () => {
   const toast = useToast();
 
   const [search, setSearch] = useState('');
-  const [showFilters, setShowFilters] = useState(false);
-  const [shortNameFilter, setShortNameFilter] = useState('');
+  const [shortNameFilter] = useState('');
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingToPlace, setEditingToPlace] = useState<ToPlace | undefined>(undefined);
@@ -65,12 +61,7 @@ export const ToPlacesList = () => {
     totalPages
   } = usePagination({ data: filteredToPlaces, initialItemsPerPage: 10 });
 
-  const hasActiveFilters = !!search || !!shortNameFilter;
 
-  const clearAllFilters = () => {
-    setSearch('');
-    setShortNameFilter('');
-  };
 
   const checkDuplicates: DuplicateCheckFn = useCallback((currentPlaceName, currentShortName, editingId) => {
     let placeConflict: string | null = null;
@@ -192,18 +183,6 @@ export const ToPlacesList = () => {
             />
           </div>
 
-          {/* Filter Button */}
-          <Button
-            variant={hasActiveFilters ? 'primary' : 'outline'}
-            onClick={() => setShowFilters(!showFilters)}
-            className="h-10 px-4 shrink-0"
-          >
-            <Filter className="w-4 h-4" />
-            Filters
-            {hasActiveFilters && (
-              <span className="ml-1.5 w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
-            )}
-          </Button>
 
           {/* Action Buttons */}
           <Button variant="outline" onClick={handleExport} className="h-10">
@@ -240,17 +219,7 @@ export const ToPlacesList = () => {
                 className="w-full h-10 pl-10 pr-4 bg-secondary/50 text-foreground rounded-lg border-0 focus:outline-none focus:ring-2 focus:ring-primary/20 placeholder:text-muted-foreground/60 text-sm"
               />
             </div>
-            <Button
-              variant={hasActiveFilters ? 'primary' : 'outline'}
-              onClick={() => setShowFilters(!showFilters)}
-              className="h-10 px-3 shrink-0"
-            >
-              <Filter className="w-4 h-4" />
-              <span className="hidden sm:inline ml-1">Filters</span>
-              {hasActiveFilters && (
-                <span className="ml-1.5 w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
-              )}
-            </Button>
+          
           </div>
 
           {/* Row 2: Action Buttons */}
@@ -279,41 +248,7 @@ export const ToPlacesList = () => {
         </div>
       </div>
 
-      {/* Filters Panel */}
-      {showFilters && (
-        <div className="bg-card border border-border rounded-xl p-4 shadow-sm animate-in slide-in-from-top-2 duration-200">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-sm font-semibold text-foreground">Filters</h3>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={clearAllFilters}
-                className="inline-flex items-center gap-1 text-xs text-primary hover:text-primary/80 font-medium"
-              >
-                <FilterX className="w-3.5 h-3.5" />
-                Clear All
-              </button>
-              <button
-                onClick={() => setShowFilters(false)}
-                className="p-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-              >
-                <ChevronUp className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-medium text-muted-foreground mb-1.5">Short Name</label>
-              <input
-                type="text"
-                placeholder="Filter by short name..."
-                value={shortNameFilter}
-                onChange={(e) => setShortNameFilter(e.target.value)}
-                className="w-full h-10 px-3 bg-secondary/50 text-foreground rounded-lg border-0 focus:outline-none focus:ring-2 focus:ring-primary/20 placeholder:text-muted-foreground/60 text-sm"
-              />
-            </div>
-          </div>
-        </div>
-      )}
+    
 
       {/* Data Table */}
       <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">

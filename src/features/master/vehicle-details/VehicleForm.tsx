@@ -214,6 +214,7 @@ export const VehicleForm = ({
                 name="ownerName"
                 value={entry.ownerName}
                 onChange={handleChange}
+                required
                 { ...getValidationProp(entry.ownerName)}
               />
               {formErrors.ownerName && <p className="text-sm text-red-600 mt-1">{formErrors.ownerName}</p>}
@@ -226,6 +227,7 @@ export const VehicleForm = ({
                 name="ownerMobile"
                 value={entry.ownerMobile}
                 onChange={handleChange}
+                required
                 { ...getValidationProp(entry.ownerMobile)}
               />
               {formErrors.ownerMobile && <p className="text-sm text-red-600 mt-1">{formErrors.ownerMobile}</p>}

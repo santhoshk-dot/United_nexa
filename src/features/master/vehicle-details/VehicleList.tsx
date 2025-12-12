@@ -6,13 +6,12 @@ import {
   Search,
   Download,
   Plus,
-  Filter,
-  FilterX,
+ 
   Truck,
   Hash,
   User,
   Phone,
-  ChevronUp,
+ 
 } from "lucide-react";
 import { VehicleForm } from "./VehicleForm";
 import { ConfirmationDialog } from "../../../components/shared/ConfirmationDialog";
@@ -38,8 +37,8 @@ export const VehicleList = () => {
   const toast = useToast();
 
   const [search, setSearch] = useState("");
-  const [showFilters, setShowFilters] = useState(false);
-  const [ownerFilter, setOwnerFilter] = useState("");
+  const [] = useState(false);
+  const [ownerFilter] = useState("");
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingEntry, setEditingEntry] = useState<VehicleEntry | undefined>(undefined);
@@ -52,12 +51,18 @@ export const VehicleList = () => {
     fetchVehicleEntries();
   }, [fetchVehicleEntries]);
 
-  const filteredEntries = useMemo(() => {
+ const filteredEntries = useMemo(() => {
     return vehicleEntries.filter((entry: VehicleEntry) => {
+      const searchLower = search.toLowerCase();
+      
       const matchesSearch =
-        entry.vehicleNo.toLowerCase().includes(search.toLowerCase()) ||
-        entry.vehicleName.toLowerCase().includes(search.toLowerCase());
+        entry.vehicleNo.toLowerCase().includes(searchLower) ||
+        entry.vehicleName.toLowerCase().includes(searchLower) ||
+        (entry.ownerName || '').toLowerCase().includes(searchLower) ||   // Added Owner Name
+        (entry.ownerMobile || '').toLowerCase().includes(searchLower);   // Added Owner Mobile
+
       const matchesOwner = !ownerFilter || (entry.ownerName || '').toLowerCase().includes(ownerFilter.toLowerCase());
+      
       return matchesSearch && matchesOwner;
     });
   }, [vehicleEntries, search, ownerFilter]);
@@ -75,12 +80,7 @@ export const VehicleList = () => {
     initialItemsPerPage: 10,
   });
 
-  const hasActiveFilters = !!search || !!ownerFilter;
 
-  const clearAllFilters = () => {
-    setSearch("");
-    setOwnerFilter("");
-  };
 
   const handleEdit = (entry: VehicleEntry) => {
     setEditingEntry(entry);
@@ -152,13 +152,17 @@ export const VehicleList = () => {
   const csvMapRow = (row: any) => {
     if (!row.vehicleno || !row.vehiclename) return null;
     if (!VEHICLE_REGEX.test(row.vehicleno)) return null;
-    if (row.ownermobile && !MOBILE_REGEX.test(row.ownermobile)) return null;
+
+    // Strict validation for required fields: Owner Name and Mobile
+    if (!row.ownername || row.ownername.trim() === '') return null;
+    if (!row.ownermobile || !MOBILE_REGEX.test(row.ownermobile)) return null;
+
     return {
       id: `veh-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       vehicleNo: row.vehicleno,
       vehicleName: row.vehiclename,
-      ownerName: row.ownername || '',
-      ownerMobile: row.ownermobile || ''
+      ownerName: row.ownername,
+      ownerMobile: row.ownermobile
     };
   };
 
@@ -180,18 +184,7 @@ export const VehicleList = () => {
             />
           </div>
 
-          {/* Filter Button */}
-          <Button
-            variant={hasActiveFilters ? 'primary' : 'outline'}
-            onClick={() => setShowFilters(!showFilters)}
-            className="h-10 px-4 shrink-0"
-          >
-            <Filter className="w-4 h-4" />
-            Filters
-            {hasActiveFilters && (
-              <span className="ml-1.5 w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
-            )}
-          </Button>
+         
 
           {/* Action Buttons */}
           <Button variant="outline" onClick={handleExport} className="h-10">
@@ -227,17 +220,7 @@ export const VehicleList = () => {
                 className="w-full h-10 pl-10 pr-4 bg-secondary/50 text-foreground rounded-lg border-0 focus:outline-none focus:ring-2 focus:ring-primary/20 placeholder:text-muted-foreground/60 text-sm"
               />
             </div>
-            <Button
-              variant={hasActiveFilters ? 'primary' : 'outline'}
-              onClick={() => setShowFilters(!showFilters)}
-              className="h-10 px-3 shrink-0"
-            >
-              <Filter className="w-4 h-4" />
-              <span className="hidden sm:inline ml-1">Filters</span>
-              {hasActiveFilters && (
-                <span className="ml-1.5 w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
-              )}
-            </Button>
+           
           </div>
 
           {/* Row 2: Action Buttons */}
@@ -265,41 +248,7 @@ export const VehicleList = () => {
         </div>
       </div>
 
-      {/* Filters Panel */}
-      {showFilters && (
-        <div className="bg-card border border-border rounded-xl p-4 shadow-sm animate-in slide-in-from-top-2 duration-200">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-sm font-semibold text-foreground">Filters</h3>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={clearAllFilters}
-                className="inline-flex items-center gap-1 text-xs text-primary hover:text-primary/80 font-medium"
-              >
-                <FilterX className="w-3.5 h-3.5" />
-                Clear All
-              </button>
-              <button
-                onClick={() => setShowFilters(false)}
-                className="p-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-              >
-                <ChevronUp className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-medium text-muted-foreground mb-1.5">Owner Name</label>
-              <input
-                type="text"
-                placeholder="Filter by owner name..."
-                value={ownerFilter}
-                onChange={(e) => setOwnerFilter(e.target.value)}
-                className="w-full h-10 px-3 bg-secondary/50 text-foreground rounded-lg border-0 focus:outline-none focus:ring-2 focus:ring-primary/20 placeholder:text-muted-foreground/60 text-sm"
-              />
-            </div>
-          </div>
-        </div>
-      )}
+      
 
       {/* Data Table */}
       <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">

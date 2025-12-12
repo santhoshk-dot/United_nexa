@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useAuth } from '../../hooks/useAuth';
+import { useAuth } from '../../../../hooks/useAuth';
 import {
   FilePenLine,
   Trash2,
@@ -8,21 +8,19 @@ import {
   User as UserIcon,
   Search,
   Download,
-  Filter,
-  FilterX,
-  ChevronUp,
+ 
   Hash,
   Phone,
   Mail,
 } from 'lucide-react';
 import { UserForm } from './UserForm';
-import { ConfirmationDialog } from '../../components/shared/ConfirmationDialog';
-import type { AppUser } from '../../types';
-import { Button } from '../../components/shared/Button';
-import { CsvImporter } from '../../components/shared/CsvImporter';
-import { useToast } from '../../contexts/ToastContext';
-import { usePagination } from '../../utils/usePagination';
-import { Pagination } from '../../components/shared/Pagination';
+import { ConfirmationDialog } from '../../../../components/shared/ConfirmationDialog';
+import type { AppUser } from '../../../../types';
+import { Button } from '../../../../components/shared/Button';
+import { CsvImporter } from '../../../../components/shared/CsvImporter';
+import { useToast } from '../../../../contexts/ToastContext';
+import { usePagination } from '../../../../utils/usePagination';
+import { Pagination } from '../../../../components/shared/Pagination';
 
 const MOBILE_REGEX = /^[6-9]\d{9}$/;
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -32,8 +30,8 @@ export const UserList = () => {
   const toast = useToast();
 
   const [search, setSearch] = useState('');
-  const [showFilters, setShowFilters] = useState(false);
-  const [roleFilter, setRoleFilter] = useState<string>('all');
+ 
+  const [roleFilter] = useState<string>('all');
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<AppUser | undefined>(undefined);
@@ -72,12 +70,9 @@ export const UserList = () => {
     initialItemsPerPage: 10,
   });
 
-  const hasActiveFilters = !!search || roleFilter !== 'all';
+ 
 
-  const clearAllFilters = () => {
-    setSearch('');
-    setRoleFilter('all');
-  };
+ 
 
   const handleEdit = (user: AppUser) => {
     setEditingUser(user);
@@ -189,23 +184,14 @@ export const UserList = () => {
             />
           </div>
 
-          <Button
-            variant={hasActiveFilters ? 'primary' : 'outline'}
-            onClick={() => setShowFilters(!showFilters)}
-            className="h-10 px-4 shrink-0"
-          >
-            <Filter className="w-4 h-4" />
-            Filters
-            {hasActiveFilters && (
-              <span className="ml-1.5 w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
-            )}
-          </Button>
+        
 
           <Button variant="outline" onClick={handleExport} className="h-10">
             <Download className="w-4 h-4" />
             Export
           </Button>
           <CsvImporter<AppUser>
+            
             onImport={handleImport}
             existingData={users}
             label="Import"
@@ -233,17 +219,7 @@ export const UserList = () => {
                 className="w-full h-10 pl-10 pr-4 bg-secondary/50 text-foreground rounded-lg border-0 focus:outline-none focus:ring-2 focus:ring-primary/20 placeholder:text-muted-foreground/60 text-sm"
               />
             </div>
-            <Button
-              variant={hasActiveFilters ? 'primary' : 'outline'}
-              onClick={() => setShowFilters(!showFilters)}
-              className="h-10 px-3 shrink-0"
-            >
-              <Filter className="w-4 h-4" />
-              <span className="hidden sm:inline ml-1">Filters</span>
-              {hasActiveFilters && (
-                <span className="ml-1.5 w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
-              )}
-            </Button>
+            
           </div>
 
           <div className="flex items-center gap-2">
@@ -270,43 +246,7 @@ export const UserList = () => {
         </div>
       </div>
 
-      {/* Filters Panel */}
-      {showFilters && (
-        <div className="bg-card border border-border rounded-xl p-4 shadow-sm animate-in slide-in-from-top-2 duration-200">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-sm font-semibold text-foreground">Filters</h3>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={clearAllFilters}
-                className="inline-flex items-center gap-1 text-xs text-primary hover:text-primary/80 font-medium"
-              >
-                <FilterX className="w-3.5 h-3.5" />
-                Clear All
-              </button>
-              <button
-                onClick={() => setShowFilters(false)}
-                className="p-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-              >
-                <ChevronUp className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-medium text-muted-foreground mb-1.5">Role</label>
-              <select
-                value={roleFilter}
-                onChange={(e) => setRoleFilter(e.target.value)}
-                className="w-full h-10 px-3 bg-secondary/50 text-foreground rounded-lg border-0 focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm"
-              >
-                <option value="all">All Roles</option>
-                <option value="admin">Admin</option>
-                <option value="user">User</option>
-              </select>
-            </div>
-          </div>
-        </div>
-      )}
+    
 
       {/* Data Table */}
       <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
