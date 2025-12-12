@@ -2,10 +2,10 @@ import { useEffect, useMemo, useRef } from 'react';
 import ReactDOM from 'react-dom';
 import type { TripSheetEntry, TripReportLabels } from '../../../types';
 import { X, Printer } from 'lucide-react';
-import { useDataContext } from '../../../contexts/DataContext'; // 🟢 Import DataContext
+import { useDataContext } from '../../../contexts/DataContext';
 
 // --------------------------------------------------
-// REPORT HEADER (Fixed for Even Alignment)
+// REPORT HEADER
 // --------------------------------------------------
 const ReportHeader = ({ labels }: { labels: TripReportLabels }) => (
   <div
@@ -50,7 +50,7 @@ interface PageProps {
   totalPages: number;
   isLastPage: boolean;
   grandTotal: number;
-  labels: TripReportLabels; // 🟢 Pass labels down
+  labels: TripReportLabels;
 }
 
 const ReportPage = ({
@@ -59,25 +59,32 @@ const ReportPage = ({
   totalPages,
   isLastPage,
   grandTotal,
-  labels, // 🟢 Destructure labels
+  labels,
 }: PageProps) => (
   <div
     className="report-page bg-white text-black"
     style={{
       width: "210mm",
-      minHeight: "297mm",
+      height: "297mm",
+      maxHeight: "297mm",
       padding: "10mm",
       boxSizing: "border-box",
       fontFamily: '"Times New Roman", Times, serif',
-      display: "flex",        // Enable Flexbox
-      flexDirection: "column" // Stack children vertically
+      position: "relative",
+      overflow: "hidden"
     }}
   >
-    {/* CONTENT SECTION (Grows to fill space) */}
-    <div className="flex-1">
-      <ReportHeader labels={labels} />
+    {/* HEADER */}
+    <ReportHeader labels={labels} />
 
-      {/* TABLE */}
+    {/* TABLE CONTAINER - Fixed height to prevent overflow */}
+    <div 
+      className="table-container" 
+      style={{ 
+        maxHeight: 'calc(297mm - 70mm)', // Account for header (~45mm) + footer (~15mm) + padding (20mm)
+        overflow: 'hidden' 
+      }}
+    >
       <table className="w-full table-fixed border-collapse border-x border-b border-black text-[11px] leading-tight mt-0">
         <thead>
           <tr className="h-8">
@@ -116,8 +123,16 @@ const ReportPage = ({
       </table>
     </div>
 
-    {/* FOOTER (Pushed to bottom via flex-1 above) */}
-    <div className="mt-auto pt-4 text-center text-[10px] font-sans">
+    {/* FOOTER - Absolute positioned at bottom */}
+    <div 
+      className="text-center text-[10px] font-sans"
+      style={{
+        position: 'absolute',
+        bottom: '8mm',
+        left: 0,
+        right: 0
+      }}
+    >
       Page {pageNumber} of {totalPages}
     </div>
   </div>
@@ -133,8 +148,8 @@ export const TripSheetReportPrint = ({
   sheets: TripSheetEntry[];
   onClose: () => void;
 }) => {
-  const { printSettings } = useDataContext(); // 🟢 Get Settings
-  const labels = printSettings.tripReport;    // 🟢 Alias
+  const { printSettings } = useDataContext();
+  const labels = printSettings.tripReport;
 
   const printTriggered = useRef(false);
 
@@ -144,13 +159,27 @@ export const TripSheetReportPrint = ({
     [sheets]
   );
 
-  // 2. Split into Pages
-  const ENTRIES_PER_PAGE = 35;
+  // 2. Split into Pages - Reduced entries per page to fit A4
+  const ENTRIES_PER_PAGE = 25; // Reduced from 35 to prevent overflow
+  const ENTRIES_LAST_PAGE = 22; // One less for total row
+  
   const pages = useMemo(() => {
     const arr: TripSheetEntry[][] = [];
-    for (let i = 0; i < sheets.length; i += ENTRIES_PER_PAGE) {
-      arr.push(sheets.slice(i, i + ENTRIES_PER_PAGE));
+    let remaining = [...sheets];
+    
+    while (remaining.length > 0) {
+      const isLikelyLastPage = remaining.length <= ENTRIES_PER_PAGE;
+      const entriesForThisPage = isLikelyLastPage ? ENTRIES_LAST_PAGE : ENTRIES_PER_PAGE;
+      const pageEntries = remaining.slice(0, entriesForThisPage);
+      arr.push(pageEntries);
+      remaining = remaining.slice(entriesForThisPage);
     }
+    
+    // Handle empty data case
+    if (arr.length === 0) {
+      arr.push([]);
+    }
+    
     return arr;
   }, [sheets]);
 
@@ -177,16 +206,14 @@ export const TripSheetReportPrint = ({
     <div className="trip-report-print-wrapper">
       <style>{`
         /* =========================================
-           1. PRINT STYLES (The Output Paper)
+           1. PRINT STYLES
            ========================================= */
         @media print {
-          /* Remove browser default margins */
           @page {
             size: A4;
             margin: 0; 
           }
 
-          /* Hide main app UI */
           body > *:not(.trip-report-print-wrapper) {
             display: none !important;
           }
@@ -194,7 +221,6 @@ export const TripSheetReportPrint = ({
             display: none !important;
           }
 
-          /* Reset HTML/Body */
           html, body {
             height: 100%;
             margin: 0 !important;
@@ -203,7 +229,6 @@ export const TripSheetReportPrint = ({
             background: white !important;
           }
 
-          /* Wrapper takes over */
           .trip-report-print-wrapper {
             display: block !important;
             position: absolute;
@@ -216,87 +241,98 @@ export const TripSheetReportPrint = ({
             z-index: 9999;
           }
 
-          /* Force black text */
           .trip-report-print-wrapper * {
             color: black !important;
             print-color-adjust: exact !important;
             -webkit-print-color-adjust: exact !important;
           }
 
-          /* Hide Toolbar */
           .print-actions { display: none !important; }
 
-          /* Page Breaks */
           .report-page {
             break-after: page;
             page-break-after: always;
+            page-break-inside: avoid;
             width: 210mm;
-            min-height: 297mm;
+            height: 297mm;
+            max-height: 297mm;
             overflow: hidden;
             position: relative;
-            display: flex;
-            flex-direction: column;
+          }
+          
+          .report-page:last-child { 
+            break-after: auto; 
+            page-break-after: auto; 
+          }
+          
+          .table-container {
+            overflow: hidden !important;
+          }
+          
+          table { 
+            page-break-inside: avoid; 
+          }
+          
+          tr { 
+            page-break-inside: avoid; 
           }
         }
 
         /* =========================================
-           2. SCREEN STYLES (The Preview Overlay)
+           2. SCREEN STYLES
            ========================================= */
         @media screen {
           .trip-report-print-wrapper {
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
             width: 100vw;
-            height: 100dvh; /* Mobile-friendly viewport height */
-            
-            /* Theme-aware background color */
+            height: 100dvh;
             background-color: hsl(var(--muted)); 
-            
-            z-index: 2147483647; /* Max Z-Index */
+            z-index: 2147483647;
             overflow-y: auto;
             overflow-x: hidden;
-            
-            /* Layout for centering pages */
-            padding-top: 80px; /* Space for fixed header */
+            padding-top: 80px;
             padding-bottom: 40px;
             box-sizing: border-box;
             display: flex;
             flex-direction: column;
             align-items: center;
-            
             -webkit-overflow-scrolling: touch;
           }
 
-          /* Desktop Page Preview Style */
           .report-page {
             background: white;
-            color: black; /* Preview text always black */
+            color: black;
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
             margin-bottom: 24px;
-            transform-origin: top center;
-            transition: transform 0.2s ease;
-            width: 210mm; /* Fixed A4 width */
+            width: 210mm;
+            height: 297mm;
             min-height: 297mm;
-            display: flex;
-            flex-direction: column;
+            max-height: 297mm;
+            position: relative;
+            flex-shrink: 0;
+            overflow: hidden;
+          }
+          
+          .table-container {
+            overflow: hidden;
           }
         }
 
         /* =========================================
-           3. MOBILE RESPONSIVENESS (Scaling)
+           3. MOBILE RESPONSIVENESS
            ========================================= */
         @media screen and (max-width: 800px) {
           .trip-report-print-wrapper {
             padding-top: 70px;
             padding-left: 0;
             padding-right: 0;
-            background-color: #1f2937; /* Darker background on mobile */
+            background-color: #1f2937;
           }
 
           .report-page {
-            /* Scale A4 (794px) down to fit ~375px screens */
-            transform: scale(0.46); 
-            /* Pull up the whitespace caused by scaling */
+            transform: scale(0.46);
+            transform-origin: top center;
             margin-bottom: -135mm; 
             margin-top: 10px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.3);
@@ -304,7 +340,6 @@ export const TripSheetReportPrint = ({
         }
 
         @media screen and (min-width: 450px) and (max-width: 800px) {
-           /* Tablets */
            .report-page {
              transform: scale(0.65);
              margin-bottom: -90mm;
@@ -312,19 +347,16 @@ export const TripSheetReportPrint = ({
         }
 
         /* =========================================
-           4. TOOLBAR STYLES (Themed)
+           4. TOOLBAR STYLES
            ========================================= */
         .print-actions {
           position: fixed;
           top: 0; left: 0;
           width: 100%;
           height: 64px;
-          
-          /* Theme variables for colors */
           background-color: hsl(var(--card));
           color: hsl(var(--foreground));
           border-bottom: 1px solid hsl(var(--border));
-          
           display: flex;
           align-items: center;
           justify-content: space-between;
@@ -340,14 +372,23 @@ export const TripSheetReportPrint = ({
           overflow: hidden;
           text-overflow: ellipsis;
         }
+        
+        .page-info {
+          font-size: 14px;
+          color: hsl(var(--muted-foreground));
+          margin-left: 12px;
+        }
 
         .action-group {
           display: flex;
           gap: 10px;
+          align-items: center;
         }
 
         .btn-base {
-          display: flex; align-items: center; gap: 8px;
+          display: flex; 
+          align-items: center; 
+          gap: 8px;
           padding: 8px 16px;
           border-radius: 6px;
           font-weight: 600;
@@ -357,7 +398,6 @@ export const TripSheetReportPrint = ({
           transition: all 0.2s;
         }
         
-        /* Themed Primary Button */
         .print-btn {
           background-color: hsl(var(--primary));
           color: hsl(var(--primary-foreground));
@@ -365,7 +405,6 @@ export const TripSheetReportPrint = ({
         .print-btn:active { transform: scale(0.96); }
         .print-btn:hover { opacity: 0.9; }
 
-        /* Themed Destructive Button */
         .close-btn {
           background-color: hsl(var(--destructive));
           color: hsl(var(--destructive-foreground));
@@ -373,9 +412,9 @@ export const TripSheetReportPrint = ({
         .close-btn:active { transform: scale(0.96); }
         .close-btn:hover { opacity: 0.9; }
 
-        /* Small screen adjustments for toolbar */
         @media screen and (max-width: 480px) {
           .preview-title { font-size: 14px; max-width: 120px; }
+          .page-info { display: none; }
           .btn-base { padding: 6px 12px; font-size: 13px; }
           .action-group { gap: 8px; }
         }
@@ -383,9 +422,12 @@ export const TripSheetReportPrint = ({
 
       {/* HEADER TOOLBAR */}
       <div className="print-actions">
-        <span className="preview-title">
-          Trip Report Preview
-        </span>
+        <div>
+          <span className="preview-title">Trip Report Preview</span>
+          <span className="page-info">
+            {pages.length} {pages.length === 1 ? 'page' : 'pages'} • {sheets.length} entries
+          </span>
+        </div>
         <div className="action-group">
           <button onClick={handleManualPrint} className="btn-base print-btn">
             <Printer size={18} />
@@ -408,7 +450,7 @@ export const TripSheetReportPrint = ({
             totalPages={pages.length}
             isLastPage={i === pages.length - 1}
             grandTotal={grandTotal}
-            labels={labels} // 🟢 Pass labels
+            labels={labels}
           />
         ))}
       </div>

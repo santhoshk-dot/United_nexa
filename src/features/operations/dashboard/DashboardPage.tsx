@@ -149,7 +149,7 @@ export const DashboardPage = () => {
               icon={Truck} 
               gradient="bg-gradient-to-br from-emerald-500 to-emerald-600" 
               delay="duration-500 delay-75" 
-              onClick={() => navigate('/trip-sheet')} 
+              onClick={() => navigate('/tripsheet')} 
             />
             <StatCard 
               title="Pending Stock" 

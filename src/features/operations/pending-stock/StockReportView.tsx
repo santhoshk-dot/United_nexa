@@ -96,8 +96,9 @@ const ReportPage = ({
     >
       <ReportHeader label={labels} />
 
-      {/* Table */}
-      <table className="w-full table-fixed border-collapse border-x border-b border-black text-[11px] leading-tight mt-0">
+      {/* Table Container - Fixed height to prevent overflow */}
+      <div className="table-container" style={{ maxHeight: 'calc(297mm - 75mm)', overflow: 'hidden' }}>
+        <table className="w-full table-fixed border-collapse border-x border-b border-black text-[11px] leading-tight mt-0">
         <thead>
           <tr className="h-8">
             <th className="border border-black w-[8%] p-1 text-left font-bold text-xs">{labels.gcLabel}</th>
@@ -114,17 +115,13 @@ const ReportPage = ({
             const isSameAsPrevious = idx > 0 && rows[idx - 1].gcNo === row.gcNo;
             
             // Check Next (for hiding bottom border)
-            // We check if we are NOT the last item, and if the next item is the same GC
             const isSameAsNext = idx < rows.length - 1 && rows[idx + 1].gcNo === row.gcNo;
 
             // Common Merge Style Logic
-            // If same as previous: Remove Top Border
-            // If same as next: Remove Bottom Border
-            // Always: Keep Side Borders (border-l, border-r)
             const getMergedCellClass = (align: 'left' | 'center' | 'right' = 'left', isBold = false) => {
-                const base = `p-1 px-2 text-${align} border-l border-r border-black`; // Always sides
+                const base = `p-1 px-2 text-${align} border-l border-r border-black`;
                 const top = isSameAsPrevious ? 'border-t-0' : 'border-t border-black';
-                const bottom = isSameAsNext ? 'border-b-0' : 'border-b border-black'; // Important for visual merge
+                const bottom = isSameAsNext ? 'border-b-0' : 'border-b border-black';
                 const font = isBold ? 'font-bold' : '';
                 return `${base} ${top} ${bottom} ${font}`;
             };
@@ -175,6 +172,7 @@ const ReportPage = ({
           )}
         </tbody>
       </table>
+      </div>
 
       {/* Static Footer */}
       <div className="absolute bottom-0 left-0 w-full pb-8 text-center">
@@ -248,17 +246,105 @@ export const StockReportPrint = ({ data, onClose }: StockReportPrintProps) => {
     return flattenedRows.reduce((sum, row) => sum + row.quantity, 0);
   }, [flattenedRows]);
 
-  // 3. Pagination Logic
-  const ENTRIES_PER_PAGE = 35;
-  const pages = useMemo(() => {
-    const chunks = [];
-    for (let i = 0; i < flattenedRows.length; i += ENTRIES_PER_PAGE) {
-      chunks.push(flattenedRows.slice(i, i + ENTRIES_PER_PAGE));
+  // 3. Group rows by GC number to keep them together
+  const gcGroups = useMemo(() => {
+    const groups: StockReportRow[][] = [];
+    let currentGroup: StockReportRow[] = [];
+    let currentGcNo = '';
+
+    flattenedRows.forEach((row) => {
+      if (row.gcNo !== currentGcNo) {
+        // Start a new group
+        if (currentGroup.length > 0) {
+          groups.push(currentGroup);
+        }
+        currentGroup = [row];
+        currentGcNo = row.gcNo;
+      } else {
+        // Add to current group
+        currentGroup.push(row);
+      }
+    });
+
+    // Push the last group
+    if (currentGroup.length > 0) {
+      groups.push(currentGroup);
     }
-    return chunks;
+
+    return groups;
   }, [flattenedRows]);
 
-  // 4. Auto Print Trigger
+  // 4. Smart Pagination - keeps GC groups together, creates new pages when needed
+  const pages = useMemo(() => {
+    const MAX_ROWS_PER_PAGE = 23; // Maximum rows that fit on a page (accounting for header + footer)
+    const MAX_ROWS_LAST_PAGE = 20; // Leave room for total row on last page
+    
+    const allPages: StockReportRow[][] = [];
+    let currentPage: StockReportRow[] = [];
+    
+    gcGroups.forEach((group, groupIndex) => {
+      const isLastGroup = groupIndex === gcGroups.length - 1;
+      const remainingGroups = gcGroups.slice(groupIndex + 1);
+      const remainingRowsCount = remainingGroups.reduce((sum, g) => sum + g.length, 0);
+      
+      // Calculate if this could be part of the last page
+      const couldBeLastPage = remainingRowsCount + group.length <= MAX_ROWS_LAST_PAGE;
+      const effectiveMax = couldBeLastPage ? MAX_ROWS_LAST_PAGE : MAX_ROWS_PER_PAGE;
+      
+      // Check if adding this group would exceed the page limit
+      if (currentPage.length + group.length > effectiveMax) {
+        // If group is too large to fit on any page, we need to split it
+        if (group.length > MAX_ROWS_PER_PAGE) {
+          // First, push current page if it has content
+          if (currentPage.length > 0) {
+            allPages.push(currentPage);
+            currentPage = [];
+          }
+          
+          // Split the large group across multiple pages
+          let remainingGroup = [...group];
+          while (remainingGroup.length > 0) {
+            const rowsToTake = Math.min(remainingGroup.length, MAX_ROWS_PER_PAGE);
+            const chunk = remainingGroup.slice(0, rowsToTake);
+            remainingGroup = remainingGroup.slice(rowsToTake);
+            
+            if (remainingGroup.length === 0 && !isLastGroup) {
+              // This is the last chunk of a split group, add to current page
+              currentPage = chunk;
+            } else if (remainingGroup.length === 0 && isLastGroup) {
+              // Last chunk of last group
+              allPages.push(chunk);
+            } else {
+              allPages.push(chunk);
+            }
+          }
+        } else {
+          // Group fits on a page, but not current page - start new page
+          if (currentPage.length > 0) {
+            allPages.push(currentPage);
+          }
+          currentPage = [...group];
+        }
+      } else {
+        // Group fits on current page
+        currentPage.push(...group);
+      }
+    });
+    
+    // Push the last page if it has content
+    if (currentPage.length > 0) {
+      allPages.push(currentPage);
+    }
+    
+    // Handle empty data case
+    if (allPages.length === 0) {
+      allPages.push([]);
+    }
+    
+    return allPages;
+  }, [gcGroups]);
+
+  // 5. Auto Print Trigger
   useEffect(() => {
     if (flattenedRows.length === 0) return;
     if (printTriggered.current) return;
@@ -289,32 +375,58 @@ export const StockReportPrint = ({ data, onClose }: StockReportPrintProps) => {
           .stock-report-print-wrapper { display: block !important; position: absolute; top: 0; left: 0; width: 100%; margin: 0; padding: 0; background: white; z-index: 9999; }
           .stock-report-print-wrapper * { color: black !important; print-color-adjust: exact !important; -webkit-print-color-adjust: exact !important; }
           .print-actions { display: none !important; }
-          .report-page { break-after: page; page-break-after: always; width: 210mm; height: 297mm; overflow: hidden; position: relative; }
+          .report-page { 
+            break-after: page; 
+            page-break-after: always; 
+            page-break-inside: avoid;
+            width: 210mm; 
+            height: 297mm; 
+            overflow: hidden; 
+            position: relative; 
+          }
+          .report-page:last-child { break-after: auto; page-break-after: auto; }
+          .table-container { overflow: hidden !important; }
+          table { page-break-inside: avoid; }
+          tr { page-break-inside: avoid; }
         }
         /* SCREEN STYLES */
         @media screen {
           .stock-report-print-wrapper { position: fixed; top: 0; left: 0; right: 0; bottom: 0; width: 100vw; height: 100dvh; background-color: hsl(var(--muted)); z-index: 2147483647; overflow-y: auto; overflow-x: hidden; padding-top: 80px; padding-bottom: 40px; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; }
-          .report-page { background: white; color: black; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); margin-bottom: 24px; width: 210mm; height: 297mm; position: relative; }
+          .report-page { background: white; color: black; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); margin-bottom: 24px; width: 210mm; min-height: 297mm; height: 297mm; max-height: 297mm; position: relative; flex-shrink: 0; overflow: hidden; }
+          .table-container { overflow: hidden; }
         }
         /* MOBILE SCALING */
         @media screen and (max-width: 800px) {
           .stock-report-print-wrapper { padding-top: 70px; background-color: #1f2937; }
-          .report-page { transform: scale(0.46); margin-bottom: -135mm; margin-top: 10px; }
+          .report-page { transform: scale(0.46); transform-origin: top center; margin-bottom: -135mm; margin-top: 10px; }
         }
         /* TOOLBAR */
         .print-actions { position: fixed; top: 0; left: 0; width: 100%; height: 64px; background-color: hsl(var(--card)); color: hsl(var(--foreground)); border-bottom: 1px solid hsl(var(--border)); display: flex; align-items: center; justify-content: space-between; padding: 0 16px; z-index: 2147483648; }
         .preview-title { font-weight: 700; font-size: 16px; }
-        .action-group { display: flex; gap: 10px; }
-        .btn-base { display: flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 6px; font-weight: 600; font-size: 14px; border: none; cursor: pointer; }
+        .page-info { font-size: 14px; color: hsl(var(--muted-foreground)); }
+        .action-group { display: flex; gap: 10px; align-items: center; }
+        .btn-base { display: flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 6px; font-weight: 600; font-size: 14px; border: none; cursor: pointer; transition: opacity 0.2s; }
+        .btn-base:hover { opacity: 0.9; }
         .print-btn { background-color: hsl(var(--primary)); color: hsl(var(--primary-foreground)); }
         .close-btn { background-color: hsl(var(--destructive)); color: hsl(var(--destructive-foreground)); }
       `}</style>
 
       <div className="print-actions">
-        <span className="preview-title">Stock Report Preview</span>
+        <div>
+          <span className="preview-title">Stock Report Preview</span>
+          <span className="page-info" style={{ marginLeft: '12px' }}>
+            {pages.length} {pages.length === 1 ? 'page' : 'pages'} • {flattenedRows.length} items
+          </span>
+        </div>
         <div className="action-group">
-          <button onClick={handleManualPrint} className="btn-base print-btn"><Printer size={18} /><span>Print</span></button>
-          <button onClick={onClose} className="btn-base close-btn"><X size={18} /><span>Close</span></button>
+          <button onClick={handleManualPrint} className="btn-base print-btn">
+            <Printer size={18} />
+            <span>Print</span>
+          </button>
+          <button onClick={onClose} className="btn-base close-btn">
+            <X size={18} />
+            <span>Close</span>
+          </button>
         </div>
       </div>
 

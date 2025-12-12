@@ -520,8 +520,9 @@ export const TripSheetForm = () => {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-5.5rem)]"> 
-      <div className="flex-1 overflow-y-auto p-1">
+    <div className="flex flex-col h-[calc(100vh-5.5rem)] overflow-hidden"> 
+      {/* Scrollable Form Area - min-h-0 is critical for flex overflow */}
+      <div className="flex-1 overflow-y-auto p-1 min-h-0">
         <form onSubmit={handleSave} className="bg-background rounded-xl shadow-sm border border-muted p-6 space-y-6 text-sm">
           
           <div>
@@ -532,11 +533,11 @@ export const TripSheetForm = () => {
                 {formErrors.tsDate && <p className="text-xs text-red-500 mt-1">{formErrors.tsDate}</p>}
               </div>
               <div className="col-span-1 lg:col-span-2">
-                <AsyncAutocomplete label="From Place" placeholder="Select From Place" loadOptions={loadFromPlaceOptions} value={fromPlaceOption} onChange={(v: any) => { setFromPlaceOption(v); const val = v?.value || ''; setFromPlace(val); setFormErrors(p => { const n = {...p}; delete n['fromPlace']; return n; }); validateField('fromPlace', val); }} required defaultOptions={false} {...getValidationProp(fromPlace)} />
+                <AsyncAutocomplete label="From Place" placeholder="Select From Place" loadOptions={loadFromPlaceOptions} value={fromPlaceOption} onChange={(v: any) => { setFromPlaceOption(v); const val = v?.value || ''; setFromPlace(val); setFormErrors(p => { const n = {...p}; delete n['fromPlace']; return n; }); validateField('fromPlace', val); }} required defaultOptions={false} menuPortalTarget={document.body} {...getValidationProp(fromPlace)} />
                 {formErrors.fromPlace && <p className="text-xs text-red-500 mt-1">{formErrors.fromPlace}</p>}
               </div>
               <div className="col-span-1 lg:col-span-2">
-                <AsyncAutocomplete label="To Place" placeholder="Select To Place" loadOptions={loadToPlaceOptions} value={toPlaceOption} onChange={(v: any) => { setToPlaceOption(v); const val = v?.value || ''; setToPlace(val); if(!isEditMode) { setUnloadPlace(val); setFormErrors(p => { const n = {...p}; delete n['unloadPlace']; return n; }); } setFormErrors(p => { const n = {...p}; delete n['toPlace']; return n; }); validateField('toPlace', val); }} required defaultOptions={false} {...getValidationProp(toPlace)} />
+                <AsyncAutocomplete label="To Place" placeholder="Select To Place" loadOptions={loadToPlaceOptions} value={toPlaceOption} onChange={(v: any) => { setToPlaceOption(v); const val = v?.value || ''; setToPlace(val); if(!isEditMode) { setUnloadPlace(val); setFormErrors(p => { const n = {...p}; delete n['unloadPlace']; return n; }); } setFormErrors(p => { const n = {...p}; delete n['toPlace']; return n; }); validateField('toPlace', val); }} required defaultOptions={false} menuPortalTarget={document.body} {...getValidationProp(toPlace)} />
                 {formErrors.toPlace && <p className="text-xs text-red-500 mt-1">{formErrors.toPlace}</p>}
               </div>
               <div className="col-span-1 sm:col-span-2 lg:col-span-2">
@@ -563,7 +564,8 @@ export const TripSheetForm = () => {
                     value={gcOption}
                     onChange={(v: any) => handleGcSelect(v)}
                     required
-                    defaultOptions={false} 
+                    defaultOptions={false}
+                    menuPortalTarget={document.body}
                     {...getValidationProp(gcNo)}
                   />
                 </div>
@@ -676,7 +678,7 @@ export const TripSheetForm = () => {
             </h3>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-10 gap-4">
-              {/* 🟢 UPDATED: DL No - inline onChange like To Place pattern */}
+              {/* 🟢 UPDATED: DL No - with menuPortalTarget to prevent scroll issues */}
               <div className="col-span-1 lg:col-span-2">
                 <AsyncAutocomplete 
                   label="DL No" 
@@ -692,13 +694,15 @@ export const TripSheetForm = () => {
                     handleDriverSelect(v); 
                   }} 
                   required 
-                  defaultOptions={false} 
+                  defaultOptions={false}
+                  menuPortalTarget={document.body}
+                  maxMenuHeight={180}
                   {...getValidationProp(dlNo)} 
                 />
                 {formErrors.dlNo && <p className="text-xs text-red-500 mt-1">{formErrors.dlNo}</p>}
               </div>
               
-              {/* 🟢 UPDATED: Driver Mobile - inline onChange like To Place pattern */}
+              {/* 🟢 UPDATED: Driver Mobile - with menuPortalTarget to prevent scroll issues */}
               <div className="col-span-1 lg:col-span-2">
                 <AsyncAutocomplete 
                   label="Driver Mobile" 
@@ -714,13 +718,15 @@ export const TripSheetForm = () => {
                     handleDriverSelect(v); 
                   }} 
                   required 
-                  defaultOptions={false} 
+                  defaultOptions={false}
+                  menuPortalTarget={document.body}
+                  maxMenuHeight={180}
                   {...getValidationProp(driverMobile)} 
                 />
                 {formErrors.driverMobile && <p className="text-xs text-red-500 mt-1">{formErrors.driverMobile}</p>}
               </div>
               
-              {/* 🟢 UPDATED: Driver Name - inline onChange like To Place pattern */}
+              {/* 🟢 UPDATED: Driver Name - with menuPortalTarget to prevent scroll issues */}
               <div className="col-span-1 lg:col-span-2">
                 <AsyncAutocomplete 
                   label="Driver Name" 
@@ -732,13 +738,15 @@ export const TripSheetForm = () => {
                     handleDriverSelect(v); 
                   }} 
                   required 
-                  defaultOptions={false} 
+                  defaultOptions={false}
+                  menuPortalTarget={document.body}
+                  maxMenuHeight={180}
                   {...getValidationProp(driverName)} 
                 />
                 {formErrors.driverName && <p className="text-xs text-red-500 mt-1">{formErrors.driverName}</p>}
               </div>
               
-              {/* 🟢 UPDATED: Lorry No - inline onChange like To Place pattern */}
+              {/* 🟢 UPDATED: Lorry No - with menuPortalTarget to prevent scroll issues */}
               <div className="col-span-1 lg:col-span-2">
                 <AsyncAutocomplete 
                   label="Lorry No" 
@@ -750,13 +758,15 @@ export const TripSheetForm = () => {
                     handleVehicleSelect(v); 
                   }} 
                   required 
-                  defaultOptions={false} 
+                  defaultOptions={false}
+                  menuPortalTarget={document.body}
+                  maxMenuHeight={180}
                   {...getValidationProp(lorryNo)} 
                 />
                 {formErrors.lorryNo && <p className="text-xs text-red-500 mt-1">{formErrors.lorryNo}</p>}
               </div>
               
-              {/* 🟢 UPDATED: Lorry Name - inline onChange like To Place pattern */}
+              {/* 🟢 UPDATED: Lorry Name - with menuPortalTarget to prevent scroll issues */}
               <div className="col-span-1 lg:col-span-2">
                 <AsyncAutocomplete 
                   label="Lorry Name" 
@@ -772,7 +782,9 @@ export const TripSheetForm = () => {
                     handleVehicleSelect(v); 
                   }} 
                   required 
-                  defaultOptions={false} 
+                  defaultOptions={false}
+                  menuPortalTarget={document.body}
+                  maxMenuHeight={180}
                   {...getValidationProp(lorryName)} 
                 />
                 {formErrors.lorryName && <p className="text-xs text-red-500 mt-1">{formErrors.lorryName}</p>}
@@ -797,14 +809,15 @@ export const TripSheetForm = () => {
         </form>
       </div>
 
-      <div className="p-4 border-t border-muted bg-background flex flex-col sm:flex-row justify-end gap-3 mt-auto shadow-md z-10">
+      {/* Fixed Action Buttons - Always visible at bottom */}
+      <div className="flex-shrink-0 p-4 border-t border-muted bg-background flex flex-col sm:flex-row justify-end gap-3 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
         <Button type="button" variant="secondary" onClick={() => navigate("/trip-sheet")}>
-          <X size={16} className="mr-2" />
+          <X size={16} />
           Cancel
         </Button>
 
         <Button type="submit" variant="primary" onClick={handleSave}>
-          <Save size={16} className="mr-2" />
+          <Save size={16} />
           Save Trip Sheet
         </Button>
       </div>
