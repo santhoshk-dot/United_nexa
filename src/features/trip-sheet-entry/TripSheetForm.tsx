@@ -378,47 +378,82 @@ export const TripSheetForm = () => {
     if (!isEditMode) setUnloadPlace(toPlace);
   }, [toPlace, isEditMode]);
 
+  // 🟢 UPDATED: Handle driver selection - now handles clearing (when option is null) like To Place
   const handleDriverSelect = (option: any) => {
-      if (!option) return;
-      const newName = option.driverName.toUpperCase();
-      setDriverName(newName);
-      setDlNo(option.dlNo);
-      setDriverMobile(option.mobile);
-      setDriverNameOption({ value: option.id, label: newName });
-      setDriverDlOption({ value: option.id, label: option.dlNo });
-      setDriverMobileOption({ value: option.id, label: option.mobile });
-      
-      setFormErrors(prev => {
-          const next = { ...prev };
-          delete next['driverName'];
-          delete next['dlNo'];
-          delete next['driverMobile'];
-          return next;
-      });
+      if (option) {
+          // When a driver is selected, populate all driver fields
+          const newName = option.driverName?.toUpperCase() || '';
+          setDriverName(newName);
+          setDlNo(option.dlNo || '');
+          setDriverMobile(option.mobile || '');
+          setDriverNameOption({ value: option.id, label: newName });
+          setDriverDlOption({ value: option.id, label: option.dlNo });
+          setDriverMobileOption({ value: option.id, label: option.mobile });
+          
+          // Clear errors for all driver fields
+          setFormErrors(prev => {
+              const next = { ...prev };
+              delete next['driverName'];
+              delete next['dlNo'];
+              delete next['driverMobile'];
+              return next;
+          });
+      } else {
+          // When cleared (option is null), reset all driver fields to empty
+          setDriverName('');
+          setDlNo('');
+          setDriverMobile('');
+          setDriverNameOption(null);
+          setDriverDlOption(null);
+          setDriverMobileOption(null);
+          
+          // Trigger validation for required fields (this will show errors)
+          validateField('driverName', '');
+          validateField('dlNo', '');
+          validateField('driverMobile', '');
+      }
   };
 
+  // 🟢 UPDATED: Handle vehicle selection - now handles clearing (when option is null) like To Place
   const handleVehicleSelect = (option: any) => {
-      if (!option) return;
-      const newLorryNo = option.vehicleNo;
-      const newLorryName = option.vehicleName.toUpperCase();
-      const newOwnerName = option.ownerName ? option.ownerName.toUpperCase() : "";
-      
-      setLorryNo(newLorryNo);
-      setLorryName(newLorryName);
-      setOwnerName(newOwnerName);
-      setOwnerMobile(option.ownerMobile ?? "");
-      
-      setLorryNoOption({ value: option.id, label: newLorryNo });
-      setLorryNameOption({ value: option.id, label: newLorryName });
-      
-      setFormErrors(prev => {
-          const next = { ...prev };
-          delete next['lorryNo'];
-          delete next['lorryName'];
-          delete next['ownerName'];
-          delete next['ownerMobile'];
-          return next;
-      });
+      if (option) {
+          // When a vehicle is selected, populate all vehicle fields
+          const newLorryNo = option.vehicleNo || '';
+          const newLorryName = option.vehicleName?.toUpperCase() || '';
+          const newOwnerName = option.ownerName?.toUpperCase() || '';
+          
+          setLorryNo(newLorryNo);
+          setLorryName(newLorryName);
+          setOwnerName(newOwnerName);
+          setOwnerMobile(option.ownerMobile ?? '');
+          
+          setLorryNoOption({ value: option.id, label: newLorryNo });
+          setLorryNameOption({ value: option.id, label: newLorryName });
+          
+          // Clear errors for all vehicle fields
+          setFormErrors(prev => {
+              const next = { ...prev };
+              delete next['lorryNo'];
+              delete next['lorryName'];
+              delete next['ownerName'];
+              delete next['ownerMobile'];
+              return next;
+          });
+      } else {
+          // When cleared (option is null), reset all vehicle fields to empty
+          setLorryNo('');
+          setLorryName('');
+          setOwnerName('');
+          setOwnerMobile('');
+          setLorryNoOption(null);
+          setLorryNameOption(null);
+          
+          // Trigger validation for required fields (this will show errors)
+          validateField('lorryNo', '');
+          validateField('lorryName', '');
+          validateField('ownerName', '');
+          validateField('ownerMobile', '');
+      }
   };
 
   const onOwnerNameChange = (v: string) => { 
@@ -640,26 +675,108 @@ export const TripSheetForm = () => {
             </h3>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-10 gap-4">
+              {/* 🟢 UPDATED: DL No - inline onChange like To Place pattern */}
               <div className="col-span-1 lg:col-span-2">
-                <AsyncAutocomplete label="DL No" placeholder="Select DL No" loadOptions={async (s, p, a) => { const res = await loadDriverOptions(s, p, a); res.options = res.options.map((o: any) => ({ ...o, label: o.dlNo })); return res; }} value={driverDlOption} onChange={(v: any) => handleDriverSelect(v)} required defaultOptions={false} {...getValidationProp(dlNo)} />
+                <AsyncAutocomplete 
+                  label="DL No" 
+                  placeholder="Select DL No" 
+                  loadOptions={async (s, p, a) => { 
+                    const res = await loadDriverOptions(s, p, a); 
+                    res.options = res.options.map((o: any) => ({ ...o, label: o.dlNo })); 
+                    return res; 
+                  }} 
+                  value={driverDlOption} 
+                  onChange={(v: any) => { 
+                    setDriverDlOption(v); 
+                    handleDriverSelect(v); 
+                  }} 
+                  required 
+                  defaultOptions={false} 
+                  {...getValidationProp(dlNo)} 
+                />
                 {formErrors.dlNo && <p className="text-xs text-red-500 mt-1">{formErrors.dlNo}</p>}
               </div>
+              
+              {/* 🟢 UPDATED: Driver Mobile - inline onChange like To Place pattern */}
               <div className="col-span-1 lg:col-span-2">
-                <AsyncAutocomplete label="Driver Mobile" placeholder="Select Mobile" loadOptions={async (s, p, a) => { const res = await loadDriverOptions(s, p, a); res.options = res.options.map((o: any) => ({ ...o, label: o.mobile })); return res; }} value={driverMobileOption} onChange={(v: any) => handleDriverSelect(v)} required defaultOptions={false} {...getValidationProp(driverMobile)} />
+                <AsyncAutocomplete 
+                  label="Driver Mobile" 
+                  placeholder="Select Mobile" 
+                  loadOptions={async (s, p, a) => { 
+                    const res = await loadDriverOptions(s, p, a); 
+                    res.options = res.options.map((o: any) => ({ ...o, label: o.mobile })); 
+                    return res; 
+                  }} 
+                  value={driverMobileOption} 
+                  onChange={(v: any) => { 
+                    setDriverMobileOption(v); 
+                    handleDriverSelect(v); 
+                  }} 
+                  required 
+                  defaultOptions={false} 
+                  {...getValidationProp(driverMobile)} 
+                />
                 {formErrors.driverMobile && <p className="text-xs text-red-500 mt-1">{formErrors.driverMobile}</p>}
               </div>
+              
+              {/* 🟢 UPDATED: Driver Name - inline onChange like To Place pattern */}
               <div className="col-span-1 lg:col-span-2">
-                <AsyncAutocomplete label="Driver Name" placeholder="Select Driver Name" loadOptions={loadDriverOptions} value={driverNameOption} onChange={(v: any) => handleDriverSelect(v)} required defaultOptions={false} {...getValidationProp(driverName)} />
+                <AsyncAutocomplete 
+                  label="Driver Name" 
+                  placeholder="Select Driver Name" 
+                  loadOptions={loadDriverOptions} 
+                  value={driverNameOption} 
+                  onChange={(v: any) => { 
+                    setDriverNameOption(v); 
+                    handleDriverSelect(v); 
+                  }} 
+                  required 
+                  defaultOptions={false} 
+                  {...getValidationProp(driverName)} 
+                />
                 {formErrors.driverName && <p className="text-xs text-red-500 mt-1">{formErrors.driverName}</p>}
               </div>
+              
+              {/* 🟢 UPDATED: Lorry No - inline onChange like To Place pattern */}
               <div className="col-span-1 lg:col-span-2">
-                <AsyncAutocomplete label="Lorry No" placeholder="Select Lorry No" loadOptions={loadVehicleOptions} value={lorryNoOption} onChange={(v: any) => handleVehicleSelect(v)} required defaultOptions={false} {...getValidationProp(lorryNo)} />
+                <AsyncAutocomplete 
+                  label="Lorry No" 
+                  placeholder="Select Lorry No" 
+                  loadOptions={loadVehicleOptions} 
+                  value={lorryNoOption} 
+                  onChange={(v: any) => { 
+                    setLorryNoOption(v); 
+                    handleVehicleSelect(v); 
+                  }} 
+                  required 
+                  defaultOptions={false} 
+                  {...getValidationProp(lorryNo)} 
+                />
                 {formErrors.lorryNo && <p className="text-xs text-red-500 mt-1">{formErrors.lorryNo}</p>}
               </div>
+              
+              {/* 🟢 UPDATED: Lorry Name - inline onChange like To Place pattern */}
               <div className="col-span-1 lg:col-span-2">
-                <AsyncAutocomplete label="Lorry Name" placeholder="Select Lorry Name" loadOptions={async (s, p, a) => { const res = await loadVehicleOptions(s, p, a); res.options = res.options.map((o: any) => ({ ...o, label: o.vehicleName })); return res; }} value={lorryNameOption} onChange={(v: any) => handleVehicleSelect(v)} required defaultOptions={false} {...getValidationProp(lorryName)} />
+                <AsyncAutocomplete 
+                  label="Lorry Name" 
+                  placeholder="Select Lorry Name" 
+                  loadOptions={async (s, p, a) => { 
+                    const res = await loadVehicleOptions(s, p, a); 
+                    res.options = res.options.map((o: any) => ({ ...o, label: o.vehicleName })); 
+                    return res; 
+                  }} 
+                  value={lorryNameOption} 
+                  onChange={(v: any) => { 
+                    setLorryNameOption(v); 
+                    handleVehicleSelect(v); 
+                  }} 
+                  required 
+                  defaultOptions={false} 
+                  {...getValidationProp(lorryName)} 
+                />
                 {formErrors.lorryName && <p className="text-xs text-red-500 mt-1">{formErrors.lorryName}</p>}
               </div>
+              
               <div className="col-span-1 lg:col-span-2">
                 <Input label="Owner Name" value={ownerName} onChange={(e) => onOwnerNameChange(e.target.value)} readOnly={!!lorryNo} required {...getValidationProp(ownerName)} />
                 {formErrors.ownerName && <p className="text-xs text-red-500 mt-1">{formErrors.ownerName}</p>}
