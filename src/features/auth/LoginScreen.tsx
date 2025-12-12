@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Eye, EyeOff, ArrowUpRight, Truck, Package, MapPin } from 'lucide-react';
+import { Eye, EyeOff, ChevronRight, Box, ArrowUpRight } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { loginSchema } from '../../schemas';
 
@@ -78,17 +78,351 @@ export const LoginScreen = () => {
   };
 
   return (
-    <div className="min-h-screen w-full bg-background text-foreground overflow-hidden relative">
-      {/* Custom Styles */}
+    <div className="min-h-screen w-full bg-background text-foreground overflow-hidden">
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=DM+Sans:wght@400;500;600&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
         
-        .font-display { font-family: 'Playfair Display', serif; }
-        .font-body { font-family: 'DM Sans', sans-serif; }
+        * { font-family: 'Outfit', sans-serif; }
         
-        /* Entry Animations */
-        @keyframes slideUp {
-          from { opacity: 0; transform: translateY(40px); }
+        /* ===== DESKTOP LEFT PANEL - LIGHT MODE (Dark Panel) ===== */
+        .desktop-brand-panel {
+          background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+          position: relative;
+          overflow: hidden;
+        }
+        
+        /* Grid pattern - Light Mode */
+        .grid-pattern {
+          position: absolute;
+          inset: 0;
+          background-image: 
+            linear-gradient(hsl(var(--primary) / 0.06) 1px, transparent 1px),
+            linear-gradient(90deg, hsl(var(--primary) / 0.06) 1px, transparent 1px);
+          background-size: 50px 50px;
+        }
+        
+        /* Gradient glow - Light Mode */
+        .glow-effect {
+          position: absolute;
+          width: 600px;
+          height: 600px;
+          background: radial-gradient(circle, hsl(var(--primary) / 0.15) 0%, transparent 70%);
+          top: 50%;
+          right: -200px;
+          transform: translateY(-50%);
+          pointer-events: none;
+        }
+        
+        /* Corner decorations - Light Mode */
+        .corner-deco {
+          position: absolute;
+          width: 100px;
+          height: 100px;
+          border: 2px solid hsl(var(--primary) / 0.2);
+        }
+        
+        .corner-deco-tl {
+          top: 40px;
+          left: 40px;
+          border-right: none;
+          border-bottom: none;
+        }
+        
+        .corner-deco-br {
+          bottom: 40px;
+          right: 40px;
+          border-left: none;
+          border-top: none;
+        }
+        
+        /* Left panel text colors - Light Mode (light text on dark) */
+        .panel-text-primary {
+          color: #f8fafc;
+        }
+        
+        .panel-text-secondary {
+          color: #94a3b8;
+        }
+        
+        .panel-text-muted {
+          color: #64748b;
+        }
+        
+        /* Logo mark - Light Mode */
+        .logo-mark {
+          width: 52px;
+          height: 52px;
+          background: hsl(var(--primary));
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 14px;
+          box-shadow: 0 8px 24px hsl(var(--primary) / 0.3);
+        }
+        
+        .logo-mark .logo-icon {
+          color: #ffffff;
+        }
+        
+        /* Status badge - Light Mode */
+        .status-badge {
+          background: rgba(255, 255, 255, 0.08);
+          backdrop-filter: blur(8px);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          border-radius: 100px;
+          padding: 10px 18px;
+        }
+        
+        /* Stat divider - Light Mode */
+        .stat-item:not(:last-child) {
+          border-right: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        /* Panel footer border - Light Mode */
+        .panel-footer-border {
+          border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        /* ===== DESKTOP LEFT PANEL - DARK MODE (DEEP MIDNIGHT) ===== */
+        .dark .desktop-brand-panel {
+          background: linear-gradient(135deg, #020617 0%, #0f172a 100%);
+        }
+        
+        /* Grid pattern - Dark Mode */
+        .dark .grid-pattern {
+          background-image: 
+            linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+        }
+        
+        /* Gradient glow - Dark Mode */
+        .dark .glow-effect {
+          background: radial-gradient(circle, hsl(var(--primary) / 0.2) 0%, transparent 70%);
+        }
+        
+        /* Corner decorations - Dark Mode */
+        .dark .corner-deco {
+          border-color: rgba(255, 255, 255, 0.1);
+        }
+        
+        /* Left panel text colors - Dark Mode */
+        .dark .panel-text-primary {
+          color: #f8fafc;
+        }
+        
+        .dark .panel-text-secondary {
+          color: #cbd5e1;
+        }
+        
+        .dark .panel-text-muted {
+          color: #64748b;
+        }
+        
+        /* Logo mark - Dark Mode */
+        .dark .logo-mark {
+          background: hsl(var(--primary));
+          box-shadow: 0 8px 24px hsl(var(--primary) / 0.4);
+        }
+        
+        .dark .logo-mark .logo-icon {
+          color: #ffffff;
+        }
+        
+        /* Status badge - Dark Mode */
+        .dark .status-badge {
+          background: rgba(255, 255, 255, 0.05);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        
+        /* Stat divider - Dark Mode */
+        .dark .stat-item:not(:last-child) {
+          border-right: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        /* Panel footer border - Dark Mode */
+        .dark .panel-footer-border {
+          border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        /* Stat value - Dark Mode */
+        .dark .stat-value {
+          color: #f8fafc;
+        }
+        
+        /* ===== COMMON STYLES ===== */
+        
+        /* Highlight text */
+        .highlight-text {
+          color: hsl(var(--primary));
+        }
+        
+        /* Stat item */
+        .stat-item {
+          text-align: center;
+          padding: 0 20px;
+        }
+        
+        .stat-value {
+          font-size: 2.5rem;
+          font-weight: 700;
+          color: #f8fafc;
+          line-height: 1;
+        }
+        
+        .stat-label {
+          font-size: 11px;
+          font-weight: 600;
+          letter-spacing: 0.1em;
+          text-transform: uppercase;
+          color: #64748b;
+          margin-top: 8px;
+        }
+        
+        .dark .stat-label {
+          color: #94a3b8;
+        }
+        
+        /* ===== RIGHT PANEL / FORM ===== */
+        .form-container {
+          background: hsl(var(--card));
+          border: 1px solid hsl(var(--border));
+        }
+        
+        /* ===== INPUT STYLING WITH ANIMATED UNDERLINE ===== */
+        .input-wrapper {
+          position: relative;
+        }
+        
+        .input-minimal {
+          background: transparent;
+          border: none;
+          border-bottom: 2px solid hsl(var(--border));
+          border-radius: 0;
+          padding: 16px 0;
+          font-size: 17px;
+          font-weight: 400;
+          color: hsl(var(--foreground));
+          width: 100%;
+          transition: border-color 0.3s ease;
+        }
+        
+        .input-minimal::placeholder {
+          color: hsl(var(--muted-foreground) / 0.6);
+        }
+        
+        /* Remove all focus styles from input itself */
+        .input-minimal:focus {
+          outline: none !important;
+          box-shadow: none !important;
+          border-bottom-color: hsl(var(--border));
+        }
+        
+        .input-minimal:focus-visible {
+          outline: none !important;
+          box-shadow: none !important;
+        }
+        
+        .input-minimal.has-error {
+          border-bottom-color: hsl(var(--destructive));
+        }
+        
+        .input-minimal:-webkit-autofill,
+        .input-minimal:-webkit-autofill:hover,
+        .input-minimal:-webkit-autofill:focus {
+          -webkit-box-shadow: 0 0 0 30px hsl(var(--background)) inset !important;
+          -webkit-text-fill-color: hsl(var(--foreground)) !important;
+          transition: background-color 5000s ease-in-out 0s;
+        }
+        
+        /* Animated underline */
+        .input-underline {
+          position: absolute;
+          bottom: 0;
+          left: 0;
+          height: 2px;
+          width: 100%;
+          background: hsl(var(--primary));
+          transform: scaleX(0);
+          transform-origin: left;
+          transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+          pointer-events: none;
+        }
+        
+        /* Animate underline on focus */
+        .input-wrapper:focus-within .input-underline {
+          transform: scaleX(1);
+        }
+        
+        /* Error state underline */
+        .input-underline.has-error {
+          background: hsl(var(--destructive));
+        }
+        
+        .input-label {
+          font-size: 11px;
+          font-weight: 600;
+          letter-spacing: 0.15em;
+          text-transform: uppercase;
+          color: hsl(var(--muted-foreground));
+          margin-bottom: 8px;
+          display: block;
+          transition: color 0.3s ease;
+        }
+        
+        .input-label.active {
+          color: hsl(var(--primary));
+        }
+        
+        /* Button */
+        .btn-main {
+          background: hsl(var(--foreground));
+          color: hsl(var(--background));
+          border: none;
+          padding: 18px 32px;
+          font-size: 14px;
+          font-weight: 600;
+          letter-spacing: 0.05em;
+          cursor: pointer;
+          position: relative;
+          overflow: hidden;
+          transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        
+        .btn-main:hover:not(:disabled) {
+          transform: translateY(-2px);
+          box-shadow: 0 12px 40px hsl(var(--foreground) / 0.2);
+        }
+        
+        .btn-main:disabled {
+          opacity: 0.4;
+          cursor: not-allowed;
+        }
+        
+        .btn-main::after {
+          content: '';
+          position: absolute;
+          inset: 0;
+          background: hsl(var(--primary));
+          transform: translateY(100%);
+          transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        
+        .btn-main:hover:not(:disabled)::after {
+          transform: translateY(0);
+        }
+        
+        .btn-main span {
+          position: relative;
+          z-index: 1;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 12px;
+        }
+        
+        /* Entrance animations */
+        @keyframes fadeUp {
+          from { opacity: 0; transform: translateY(30px); }
           to { opacity: 1; transform: translateY(0); }
         }
         
@@ -97,319 +431,259 @@ export const LoginScreen = () => {
           to { opacity: 1; }
         }
         
-        @keyframes expandWidth {
-          from { transform: scaleX(0); }
-          to { transform: scaleX(1); }
+        @keyframes slideIn {
+          from { opacity: 0; transform: translateX(-20px); }
+          to { opacity: 1; transform: translateX(0); }
         }
         
-        /* Logistics Animations */
-        @keyframes moveTruck {
-          0% { transform: translateX(-100px); opacity: 0; }
-          10% { opacity: 1; }
-          90% { opacity: 1; }
-          100% { transform: translateX(calc(100% + 100px)); opacity: 0; }
+        .anim-fadeUp {
+          opacity: 0;
+          animation: fadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
         
-        @keyframes movePackage {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-8px); }
+        .anim-fadeIn {
+          opacity: 0;
+          animation: fadeIn 1s ease forwards;
         }
         
-        @keyframes pulse {
-          0%, 100% { transform: scale(1); opacity: 0.7; }
-          50% { transform: scale(1.5); opacity: 0.3; }
+        .anim-slideIn {
+          opacity: 0;
+          animation: slideIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
         
-        @keyframes drawPath {
-          0% { stroke-dashoffset: 1000; }
-          100% { stroke-dashoffset: 0; }
+        .delay-1 { animation-delay: 0.1s; }
+        .delay-2 { animation-delay: 0.2s; }
+        .delay-3 { animation-delay: 0.3s; }
+        .delay-4 { animation-delay: 0.4s; }
+        .delay-5 { animation-delay: 0.5s; }
+        .delay-6 { animation-delay: 0.6s; }
+        .delay-7 { animation-delay: 0.7s; }
+        
+        /* Status dot */
+        @keyframes blink {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.3; }
         }
         
-        @keyframes float {
-          0%, 100% { transform: translateY(0) rotate(0deg); }
-          50% { transform: translateY(-10px) rotate(2deg); }
+        .status-dot {
+          width: 8px;
+          height: 8px;
+          background: #22c55e;
+          border-radius: 50%;
+          animation: blink 2s ease-in-out infinite;
         }
         
-        @keyframes shimmer {
-          0% { background-position: -200% 0; }
-          100% { background-position: 200% 0; }
-        }
-        
-        .animate-slideUp { animation: slideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-        .animate-fadeIn { animation: fadeIn 1s ease forwards; }
-        .animate-expandWidth { animation: expandWidth 1s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-        .animate-truck { animation: moveTruck 12s linear infinite; }
-        .animate-package { animation: movePackage 2s ease-in-out infinite; }
-        .animate-pulse-dot { animation: pulse 2s ease-in-out infinite; }
-        .animate-float { animation: float 4s ease-in-out infinite; }
-        .animate-path { animation: drawPath 3s ease forwards; stroke-dasharray: 1000; stroke-dashoffset: 1000; }
-        
-        .delay-100 { animation-delay: 0.1s; }
-        .delay-200 { animation-delay: 0.2s; }
-        .delay-300 { animation-delay: 0.3s; }
-        .delay-400 { animation-delay: 0.4s; }
-        .delay-500 { animation-delay: 0.5s; }
-        .delay-700 { animation-delay: 0.7s; }
-        .delay-1000 { animation-delay: 1s; }
-        
-        .input-underline {
-          background: linear-gradient(90deg, 
-            hsl(var(--primary)) 0%, 
-            hsl(var(--primary) / 0.7) 50%, 
-            hsl(var(--primary)) 100%
-          );
-          transform-origin: left;
-          transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-        
-        .btn-primary-custom {
-          background: hsl(var(--primary));
-          color: hsl(var(--primary-foreground));
+        /* Hover line effect */
+        .hover-line {
           position: relative;
-          overflow: hidden;
         }
         
-        .btn-primary-custom::before {
+        .hover-line::after {
           content: '';
           position: absolute;
-          inset: 0;
-          background: linear-gradient(
-            90deg,
-            transparent,
-            hsl(var(--primary-foreground) / 0.2),
-            transparent
-          );
-          transform: translateX(-100%);
-          transition: transform 0.6s ease;
+          bottom: -2px;
+          left: 0;
+          width: 100%;
+          height: 1px;
+          background: hsl(var(--primary));
+          transform: scaleX(0);
+          transform-origin: right;
+          transition: transform 0.3s ease;
         }
         
-        .btn-primary-custom:hover:not(:disabled)::before {
-          transform: translateX(100%);
+        .hover-line:hover::after {
+          transform: scaleX(1);
+          transform-origin: left;
         }
         
-        /* Clean input styles */
-        .clean-input {
-          outline: none !important;
-          box-shadow: none !important;
-          -webkit-appearance: none;
-          -moz-appearance: none;
-          appearance: none;
-          border-radius: 0;
+        /* Mobile logo mark */
+        .logo-mark-dark {
+          width: 48px;
+          height: 48px;
+          background: hsl(var(--foreground));
+          display: flex;
+          align-items: center;
+          justify-content: center;
         }
         
-        .clean-input:focus,
-        .clean-input:focus-visible {
-          outline: none !important;
-          box-shadow: none !important;
+        /* Password toggle button */
+        .password-toggle {
+          position: absolute;
+          right: 0;
+          top: 50%;
+          transform: translateY(-50%);
+          padding: 8px;
+          color: hsl(var(--muted-foreground));
+          background: transparent;
+          border: none;
+          cursor: pointer;
+          transition: color 0.2s ease;
+          z-index: 2;
         }
         
-        .clean-input:-webkit-autofill,
-        .clean-input:-webkit-autofill:hover,
-        .clean-input:-webkit-autofill:focus,
-        .clean-input:-webkit-autofill:active {
-          -webkit-box-shadow: 0 0 0 30px hsl(var(--background)) inset !important;
-          -webkit-text-fill-color: hsl(var(--foreground)) !important;
-          caret-color: hsl(var(--foreground)) !important;
-          transition: background-color 5000s ease-in-out 0s;
+        .password-toggle:hover {
+          color: hsl(var(--foreground));
         }
         
-        *:focus, *:focus-visible {
+        .password-toggle:focus {
           outline: none;
-        }
-        
-        /* Gradient mesh for light mode */
-        .gradient-mesh {
-          background: 
-            radial-gradient(at 20% 20%, hsl(var(--primary) / 0.08) 0%, transparent 50%),
-            radial-gradient(at 80% 80%, hsl(var(--primary) / 0.05) 0%, transparent 50%),
-            radial-gradient(at 40% 60%, hsl(var(--primary) / 0.03) 0%, transparent 50%);
-        }
-        
-        /* Route line styles */
-        .route-line {
-          stroke: hsl(var(--primary) / 0.3);
-          stroke-width: 2;
-          fill: none;
-          stroke-linecap: round;
-          stroke-dasharray: 8 4;
-        }
-        
-        /* Location dot */
-        .location-dot {
-          fill: hsl(var(--primary));
-        }
-        
-        /* Card with subtle border */
-        .form-card {
-          background: hsl(var(--card));
-          border: 1px solid hsl(var(--border));
-          box-shadow: 
-            0 4px 6px -1px hsl(var(--foreground) / 0.05),
-            0 2px 4px -2px hsl(var(--foreground) / 0.05);
         }
       `}</style>
 
-      {/* Animated Background - Works for both light and dark */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        {/* Gradient Mesh Background */}
-        <div className="absolute inset-0 gradient-mesh" />
-        
-        {/* Animated Route SVG */}
-        <svg className="absolute inset-0 w-full h-full opacity-40" preserveAspectRatio="none">
-          {/* Curved route path */}
-          <path 
-            className="route-line animate-path"
-            d="M -50 400 Q 200 350 400 450 T 800 400 T 1200 500 T 1600 400"
-          />
-          <path 
-            className="route-line animate-path delay-500"
-            d="M -50 600 Q 300 550 500 650 T 900 580 T 1300 650 T 1700 600"
-            style={{ animationDelay: '0.5s' }}
-          />
-        </svg>
-        
-        {/* Animated location dots */}
-        <div className="absolute top-[35%] left-[15%] animate-pulse-dot" style={{ animationDelay: '0s' }}>
-          <div className="w-3 h-3 rounded-full bg-primary/40" />
-        </div>
-        <div className="absolute top-[45%] left-[30%] animate-pulse-dot" style={{ animationDelay: '0.5s' }}>
-          <div className="w-2 h-2 rounded-full bg-primary/30" />
-        </div>
-        <div className="absolute top-[38%] left-[45%] animate-pulse-dot" style={{ animationDelay: '1s' }}>
-          <div className="w-3 h-3 rounded-full bg-primary/40" />
-        </div>
-        
-        {/* Moving truck animation */}
-        <div className="absolute top-[42%] left-0 w-full">
-          <div className="animate-truck">
-            <Truck className="w-8 h-8 text-primary/30" />
-          </div>
-        </div>
-        
-        {/* Floating elements */}
-        <div className="absolute top-[20%] right-[15%] animate-float opacity-20">
-          <Package className="w-6 h-6 text-primary" />
-        </div>
-        <div className="absolute bottom-[25%] left-[20%] animate-float opacity-15" style={{ animationDelay: '1s' }}>
-          <MapPin className="w-5 h-5 text-primary" />
-        </div>
-        <div className="absolute top-[60%] right-[25%] animate-float opacity-20" style={{ animationDelay: '2s' }}>
-          <Package className="w-5 h-5 text-primary" />
-        </div>
-      </div>
-
-      {/* Main Container */}
+      {/* Main Layout */}
       <div className="relative z-10 min-h-screen flex">
         
-        {/* Left Side - Branding */}
-        <div className="hidden lg:flex w-1/2 flex-col justify-between p-16 xl:p-20">
+        {/* ===== LEFT PANEL - BRAND (Desktop Only) ===== */}
+        <div className="hidden lg:flex desktop-brand-panel lg:w-[55%] xl:w-[58%] 2xl:w-[60%] flex-col justify-between p-10 xl:p-14 2xl:p-16 relative">
           
-          {/* Logo */}
-          <div className="opacity-0 animate-slideUp">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 border-2 border-primary flex items-center justify-center rounded-lg">
-                <span className="font-display text-2xl font-bold text-primary">U</span>
+          {/* Background Elements */}
+          <div className="grid-pattern" />
+          <div className="glow-effect" />
+          
+          {/* Corner Decorations */}
+          <div className="corner-deco corner-deco-tl" />
+          <div className="corner-deco corner-deco-br" />
+          
+          {/* Top Section - Logo & Badge */}
+          <div className="relative z-10 flex items-start justify-between">
+            <div className="flex items-center gap-4 anim-slideIn">
+              <div className="logo-mark">
+                <Box className="w-6 h-6 logo-icon" strokeWidth={1.5} />
               </div>
-              <span className="font-body text-sm tracking-[0.3em] text-primary uppercase">
-                United Transport
-              </span>
-            </div>
-          </div>
-
-          {/* Main Title */}
-          <div className="space-y-8 max-w-xl">
-            <h1 className="opacity-0 animate-slideUp delay-200">
-              <span className="font-display text-7xl xl:text-8xl font-medium leading-[0.9] tracking-tight text-foreground">
-                Move with
-              </span>
-              <br />
-              <span className="font-display text-7xl xl:text-8xl font-medium leading-[0.9] tracking-tight italic text-primary">
-                confidence.
-              </span>
-            </h1>
-            
-            <div className="w-24 h-px bg-primary/40 opacity-0 animate-expandWidth delay-400" />
-            
-            <p className="font-body text-lg text-muted-foreground leading-relaxed max-w-md opacity-0 animate-slideUp delay-300">
-              Precision logistics management. Real-time tracking. 
-              Enterprise-grade security for your operations.
-            </p>
-            
-            {/* Animated Stats */}
-            <div className="flex gap-8 pt-4 opacity-0 animate-slideUp delay-500">
-              <div className="text-center">
-                <div className="font-display text-3xl font-semibold text-foreground">2.4M+</div>
-                <div className="font-body text-xs text-muted-foreground uppercase tracking-wider mt-1">Deliveries</div>
-              </div>
-              <div className="w-px bg-border" />
-              <div className="text-center">
-                <div className="font-display text-3xl font-semibold text-foreground">99.9%</div>
-                <div className="font-body text-xs text-muted-foreground uppercase tracking-wider mt-1">Uptime</div>
-              </div>
-              <div className="w-px bg-border" />
-              <div className="text-center">
-                <div className="font-display text-3xl font-semibold text-foreground">150+</div>
-                <div className="font-body text-xs text-muted-foreground uppercase tracking-wider mt-1">Cities</div>
-              </div>
-            </div>
-          </div>
-
-          {/* Footer */}
-          <div className="flex items-center justify-between opacity-0 animate-fadeIn delay-700">
-            <span className="font-body text-xs tracking-[0.2em] text-muted-foreground uppercase">
-              Est. 2024
-            </span>
-            <span className="font-body text-xs text-muted-foreground">
-              &copy; {new Date().getFullYear()} All rights reserved
-            </span>
-          </div>
-        </div>
-
-        {/* Right Side - Form */}
-        <div className="w-full lg:w-1/2 flex items-center justify-center p-8 lg:p-16">
-          <div className="w-full max-w-md">
-            
-            {/* Mobile Logo */}
-            <div className="lg:hidden mb-12 opacity-0 animate-slideUp">
-              <div className="flex items-center justify-center gap-3">
-                <div className="w-10 h-10 border-2 border-primary flex items-center justify-center rounded-lg">
-                  <span className="font-display text-xl font-bold text-primary">U</span>
-                </div>
-                <span className="font-body text-xs tracking-[0.3em] text-primary uppercase">
+              <div>
+                <div className="text-xl font-semibold tracking-tight panel-text-primary">
                   United Transport
+                </div>
+                <div className="text-[11px] font-medium tracking-[0.2em] uppercase panel-text-muted">
+                  Enterprise Logistics
+                </div>
+              </div>
+            </div>
+            
+            <div className="status-badge flex items-center gap-2 anim-fadeIn delay-3">
+              <div className="status-dot" />
+              <span className="text-[11px] font-medium panel-text-secondary">
+                All systems operational
+              </span>
+            </div>
+          </div>
+          
+          {/* Middle Section - Hero Content */}
+          <div className="relative z-10 space-y-10 max-w-2xl">
+            
+            {/* Tagline */}
+            <div className="space-y-6">
+              <div className="anim-fadeUp delay-1">
+                <span className="text-[11px] font-semibold tracking-[0.25em] uppercase highlight-text">
+                  Fleet Management Platform
                 </span>
               </div>
+              
+              <h1 className="anim-fadeUp delay-2">
+                <span className="text-[clamp(2.8rem,4.5vw,4.5rem)] font-bold leading-[1.05] tracking-tight panel-text-primary block">
+                  Streamline your
+                </span>
+                <span className="text-[clamp(2.8rem,4.5vw,4.5rem)] font-bold leading-[1.05] tracking-tight highlight-text block">
+                  logistics operations
+                </span>
+                <span className="text-[clamp(2.8rem,4.5vw,4.5rem)] font-bold leading-[1.05] tracking-tight panel-text-primary block">
+                  at scale.
+                </span>
+              </h1>
+              
+              <p className="text-lg panel-text-secondary leading-relaxed max-w-lg anim-fadeUp delay-3">
+                Real-time visibility across your entire supply chain. Track, manage, 
+                and optimize every delivery with enterprise-grade precision.
+              </p>
             </div>
-
+            
+            {/* Stats Row */}
+            <div className="flex anim-fadeUp delay-4">
+              <div className="stat-item">
+                <div className="stat-value">2.4M+</div>
+                <div className="stat-label">Deliveries</div>
+              </div>
+              <div className="stat-item">
+                <div className="stat-value">150+</div>
+                <div className="stat-label">Cities</div>
+              </div>
+              <div className="stat-item">
+                <div className="stat-value">99.9%</div>
+                <div className="stat-label">Uptime</div>
+              </div>
+              <div className="stat-item">
+                <div className="stat-value">24/7</div>
+                <div className="stat-label">Support</div>
+              </div>
+            </div>
+          </div>
+          
+          {/* Bottom Section - Footer */}
+          <div className="relative z-10">
+            <div className="flex items-center justify-between pt-4 panel-footer-border anim-fadeIn delay-5">
+              <div className="flex items-center gap-6">
+                <span className="text-[11px] font-medium panel-text-muted">ISO 27001</span>
+                <span className="text-[11px] font-medium panel-text-muted">SOC 2</span>
+                <span className="text-[11px] font-medium panel-text-muted">GDPR</span>
+              </div>
+              <span className="text-[11px] panel-text-muted">
+                © {new Date().getFullYear()} United Transport
+              </span>
+            </div>
+          </div>
+          
+        </div>
+        
+        {/* ===== RIGHT PANEL - LOGIN FORM ===== */}
+        <div className="flex-1 flex items-center justify-center p-6 sm:p-8 lg:p-12 xl:p-16 bg-background">
+          
+          <div className="w-full max-w-[400px]">
+            
+            {/* ===== MOBILE HEADER ===== */}
+            <div className="lg:hidden mb-12 anim-fadeUp">
+              <div className="flex items-center gap-3 mb-8">
+                <div className="logo-mark-dark">
+                  <Box className="w-5 h-5 text-background" strokeWidth={1.5} />
+                </div>
+                <span className="text-base font-semibold text-foreground">United Transport</span>
+              </div>
+              <h1 className="text-3xl font-bold text-foreground leading-tight">
+                Streamline your<br />
+                <span className="text-primary">logistics.</span>
+              </h1>
+            </div>
+            
             {/* Form Card */}
-            <div className="form-card rounded-2xl p-8 lg:p-10 opacity-0 animate-slideUp delay-100">
+            <div className="form-container p-8 sm:p-10 anim-fadeUp delay-1 lg:delay-2">
               
               {/* Form Header */}
               <div className="mb-10">
-                <span className="font-body text-xs tracking-[0.3em] text-primary uppercase mb-3 block">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-1.5 h-1.5 bg-primary" />
+                  <span className="text-[10px] font-semibold tracking-[0.2em] uppercase text-muted-foreground">
+                    Account Login
+                  </span>
+                </div>
+                <h2 className="text-2xl sm:text-3xl font-semibold text-foreground">
                   Welcome back
-                </span>
-                <h2 className="font-display text-3xl lg:text-4xl font-medium tracking-tight text-foreground">
-                  Sign in to your
-                  <br />
-                  <span className="italic">account</span>
                 </h2>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Enter your credentials to access your dashboard
+                </p>
               </div>
-
+              
               {/* Form */}
-              <form onSubmit={handleSubmit} className="space-y-6" autoComplete="off">
+              <form onSubmit={handleSubmit} className="space-y-8" autoComplete="off">
                 
-                {/* Email Field */}
-                <div className="opacity-0 animate-slideUp delay-200">
+                {/* Email */}
+                <div className="anim-fadeUp delay-2 lg:delay-3">
                   <label 
-                    htmlFor="email"
-                    className={`font-body text-xs tracking-[0.15em] uppercase mb-2 block transition-colors duration-300 ${
-                      isFocused === 'email' ? 'text-primary' : 'text-muted-foreground'
-                    }`}
+                    htmlFor="email" 
+                    className={`input-label ${isFocused === 'email' ? 'active' : ''}`}
                   >
-                    Email Address
+                    Email
                   </label>
-                  <div className="relative">
+                  <div className="input-wrapper">
                     <input
                       id="email"
                       type="email"
@@ -422,36 +696,29 @@ export const LoginScreen = () => {
                       autoCorrect="off"
                       autoCapitalize="off"
                       spellCheck="false"
-                      className={`clean-input w-full bg-transparent font-body text-base text-foreground py-3 border-b-2 transition-colors placeholder:text-muted-foreground/50 ${
-                        formErrors.email ? 'border-destructive' : 'border-border'
-                      }`}
-                      placeholder="name@company.com"
+                      placeholder="you@company.com"
                       required
+                      className={`input-minimal ${formErrors.email ? 'has-error' : ''}`}
                     />
-                    <div 
-                      className="absolute bottom-0 left-0 h-0.5 input-underline"
-                      style={{ 
-                        width: '100%',
-                        transform: isFocused === 'email' ? 'scaleX(1)' : 'scaleX(0)'
-                      }}
-                    />
+                    <div className={`input-underline ${formErrors.email ? 'has-error' : ''}`} />
                   </div>
                   {formErrors.email && (
-                    <p className="font-body text-xs text-destructive mt-2">{formErrors.email}</p>
+                    <p className="text-[12px] text-destructive mt-2 flex items-center gap-2">
+                      <span className="w-1 h-1 bg-destructive rounded-full" />
+                      {formErrors.email}
+                    </p>
                   )}
                 </div>
-
-                {/* Password Field */}
-                <div className="opacity-0 animate-slideUp delay-300">
+                
+                {/* Password */}
+                <div className="anim-fadeUp delay-3 lg:delay-4">
                   <label 
-                    htmlFor="password"
-                    className={`font-body text-xs tracking-[0.15em] uppercase mb-2 block transition-colors duration-300 ${
-                      isFocused === 'password' ? 'text-primary' : 'text-muted-foreground'
-                    }`}
+                    htmlFor="password" 
+                    className={`input-label ${isFocused === 'password' ? 'active' : ''}`}
                   >
                     Password
                   </label>
-                  <div className="relative">
+                  <div className="input-wrapper">
                     <input
                       id="password"
                       type={showPassword ? 'text' : 'password'}
@@ -464,70 +731,70 @@ export const LoginScreen = () => {
                       autoCorrect="off"
                       autoCapitalize="off"
                       spellCheck="false"
-                      className={`clean-input w-full bg-transparent font-body text-base text-foreground py-3 pr-12 border-b-2 transition-colors placeholder:text-muted-foreground/50 ${
-                        formErrors.password ? 'border-destructive' : 'border-border'
-                      }`}
-                      placeholder="Enter your password"
+                      placeholder="Enter password"
                       required
+                      className={`input-minimal ${formErrors.password ? 'has-error' : ''}`}
+                      style={{ paddingRight: '48px' }}
                     />
+                    <div className={`input-underline ${formErrors.password ? 'has-error' : ''}`} />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-0 top-1/2 -translate-y-1/2 p-2 text-muted-foreground hover:text-primary transition-colors"
                       tabIndex={-1}
+                      className="password-toggle"
                     >
                       {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                     </button>
-                    <div 
-                      className="absolute bottom-0 left-0 h-0.5 input-underline"
-                      style={{ 
-                        width: '100%',
-                        transform: isFocused === 'password' ? 'scaleX(1)' : 'scaleX(0)'
-                      }}
-                    />
                   </div>
                   {formErrors.password && (
-                    <p className="font-body text-xs text-destructive mt-2">{formErrors.password}</p>
+                    <p className="text-[12px] text-destructive mt-2 flex items-center gap-2">
+                      <span className="w-1 h-1 bg-destructive rounded-full" />
+                      {formErrors.password}
+                    </p>
                   )}
                 </div>
-
-                {/* Submit Button */}
-                <div className="pt-4 opacity-0 animate-slideUp delay-400">
+                
+                {/* Submit */}
+                <div className="pt-4 anim-fadeUp delay-4 lg:delay-5">
                   <button
                     type="submit"
                     disabled={loading || !email || !password || Object.keys(formErrors).length > 0}
-                    className="group w-full font-body text-sm tracking-[0.15em] uppercase py-4 btn-primary-custom font-semibold rounded-xl transition-all duration-300 hover:shadow-lg hover:shadow-primary/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="btn-main w-full"
                   >
-                    <span className="relative flex items-center justify-center gap-3">
+                    <span>
                       {loading ? (
-                        <div className="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                        <div className="w-5 h-5 border-2 border-background/30 border-t-background rounded-full animate-spin" />
                       ) : (
                         <>
-                          Continue
-                          <ArrowUpRight 
-                            size={18} 
-                            className="transition-transform duration-300 group-hover:translate-x-1 group-hover:-translate-y-1" 
-                          />
+                          Sign In
+                          <ChevronRight size={18} />
                         </>
                       )}
                     </span>
                   </button>
                 </div>
-
+                
               </form>
             </div>
-
-            {/* Security Badge */}
-            <div className="mt-8 flex items-center justify-center gap-2 opacity-0 animate-fadeIn delay-500">
-              <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
-              <span className="font-body text-xs text-muted-foreground">
-                256-bit SSL encryption
-              </span>
+            
+            {/* Bottom Links - MOBILE ONLY */}
+            <div className="lg:hidden mt-8 flex items-center justify-between text-[12px] text-muted-foreground anim-fadeIn delay-5">
+              <div className="flex items-center gap-4">
+                <span className="hover-line cursor-pointer">Privacy</span>
+                <span className="hover-line cursor-pointer">Terms</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span>Need help?</span>
+                <a href="#" className="text-primary font-medium flex items-center gap-1 hover-line">
+                  Contact
+                  <ArrowUpRight size={12} />
+                </a>
+              </div>
             </div>
-
+            
           </div>
         </div>
-
+        
       </div>
     </div>
   );
