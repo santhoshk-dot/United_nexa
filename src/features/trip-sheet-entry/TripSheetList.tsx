@@ -372,6 +372,7 @@ export const TripSheetList = () => {
       setSelectedMfNos((prev) => prev.filter((id) => !selectedVisible.includes(id)));
       setExcludedMfNos((prev) => Array.from(new Set([...prev, ...selectedVisible])));
       setExclusionFilter({ isActive: true, filterKey: "Manual Selection" });
+      toast.success(`Excluded ${selectedVisible.length} items from bulk selection.`);
       return;
     }
 
@@ -402,6 +403,7 @@ export const TripSheetList = () => {
         isActive: true,
         filterKey
       });
+      toast.success(`Excluded ${idsToExclude.length} items from bulk selection.`);
 
     } catch (e) {
       console.error("Exclude failed during bulk fetch:", e);
@@ -603,12 +605,11 @@ export const TripSheetList = () => {
             </div>
           </div>
 
-          {/* Exclusion banner */}
-          {excludedMfNos.length > 0 && (
+          {/* {excludedMfNos.length > 0 && (
             <div className="mb-4 p-3 bg-yellow-100 text-yellow-800 border border-yellow-300 rounded text-sm">
               <strong>Exclusion Active:</strong> {excludedMfNos.length} Trip Sheets are currently excluded from the selection {selectAllSnapshot.active && exclusionFilter.filterKey && (<>(e.g., those matching <strong>{exclusionFilter.filterKey}: {consignorOption?.label || destinationOption?.label || (consigneeOptions[0]?.label as string) || "Filter Value"}</strong>).</>)}
             </div>
-          )}
+          )}  */}
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
             <AsyncAutocomplete label="Filter by Destination" loadOptions={loadDestinationOptions} value={destinationOption} onChange={(val: any) => { setDestinationOption(val); setFilters({ toPlace: val?.value || "" }); }} placeholder="Select destination..." defaultOptions />
