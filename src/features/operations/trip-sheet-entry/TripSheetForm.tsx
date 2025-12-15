@@ -507,7 +507,7 @@ export const TripSheetForm = () => {
     else result = await addTripSheet(payload);
 
     if (result) {
-        navigate("/trip-sheet");
+        navigate("/tripsheet");
     }
   };
 

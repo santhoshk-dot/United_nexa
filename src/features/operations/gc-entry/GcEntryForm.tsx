@@ -87,7 +87,7 @@ export const GcEntryForm = () => {
         freightUptoAt: '',
         godown: '',
         billNo: '',
-        billValue: 0,
+        billValue: '' as unknown as number,
         tollFee: 0,
         freight: 0,
         godownCharge: 0,
@@ -160,7 +160,7 @@ export const GcEntryForm = () => {
 
                     setForm({
                         ...gc,
-                        billValue: (gc.billValue || 0),
+                        billValue: (gc.billValue ||  '' as unknown as number),
                         tollFee: (gc.tollFee || 0),
                         freight: (gc.freight || 0),
                         godownCharge: (gc.godownCharge || 0),
@@ -903,7 +903,7 @@ export const GcEntryForm = () => {
                                 {formErrors.billNo && <p className="text-xs text-red-500 mt-1">{formErrors.billNo}</p>}
                             </div>
                             <div className="col-span-1">
-                                <Input label="Bill Value" name="billValue" value={form.billValue} onChange={handleChange} required {...getValidationProp(form.billValue)} />
+                                <Input label="Bill Value" name="billValue"  placeholder='0' value={form.billValue} onChange={handleChange} required {...getValidationProp(form.billValue)} />
                                 {formErrors.billValue && <p className="text-xs text-red-500 mt-1">{formErrors.billValue}</p>}
                             </div>
                             <div className="col-span-1"><Input label="Toll" name="tollFee" value={form.tollFee} onChange={handleChange} /></div>
