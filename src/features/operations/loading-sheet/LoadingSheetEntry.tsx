@@ -392,7 +392,7 @@ export const LoadingSheetEntry = () => {
       filters: completeFilters,
     });
 
-    toast.success(`Selected ${totalItems} items (snapshot).`);
+    
   };
 
   // ---------------------------------------------------------------------------
