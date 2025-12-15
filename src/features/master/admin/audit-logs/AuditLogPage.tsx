@@ -536,7 +536,7 @@ const AuditLogPage = () => {
                     logs.map((log) => (
                       <tr key={log._id} className="hover:bg-muted/30 transition-colors">
                         <td className="px-4 py-3">
-                          <span className="font-mono font-bold text-primary">{log.documentId}</span>
+                          <span className="font-mono font-semibold text-primary">{log.documentId}</span>
                         </td>
                         <td className="px-4 py-3">
                           <span className="text-sm text-foreground">{getModuleLabel(log.collectionName)}</span>
@@ -604,7 +604,7 @@ const AuditLogPage = () => {
                       <tr key={log._id} className="hover:bg-muted/30 transition-colors">
                         <td className="px-3 py-3">
                           <div>
-                            <span className="font-mono font-bold text-primary block">{log.documentId}</span>
+                            <span className="font-mono font-semibold text-primary block">{log.documentId}</span>
                             <span className="text-xs text-muted-foreground mt-0.5 block">{getModuleLabel(log.collectionName)}</span>
                           </div>
                         </td>
@@ -664,7 +664,7 @@ const AuditLogPage = () => {
                         {/* Header */}
                         <div className="mb-2">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <h3 className="font-mono font-bold text-primary">{log.documentId}</h3>
+                            <h3 className="font-mono font-semibold text-primary">{log.documentId}</h3>
                             <span className="text-[10px] font-semibold text-muted-foreground bg-muted px-1.5 py-0.5 rounded uppercase tracking-wide">
                               {getModuleLabel(log.collectionName)}
                             </span>
@@ -789,9 +789,8 @@ const AuditLogPage = () => {
                 </div>
               ) : (
                 <div className="text-center py-6 md:py-8">
-                  <div className={`mx-auto w-12 h-12 md:w-16 md:h-16 rounded-full flex items-center justify-center mb-4 ${
-                    selectedLog.action === 'CREATE' ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'
-                  }`}>
+                  <div className={`mx-auto w-12 h-12 md:w-16 md:h-16 rounded-full flex items-center justify-center mb-4 ${selectedLog.action === 'CREATE' ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'
+                    }`}>
                     {selectedLog.action === 'CREATE' ? <FileText size={24} className="md:w-8 md:h-8" /> : <X size={24} className="md:w-8 md:h-8" />}
                   </div>
                   <h3 className="text-lg md:text-xl font-medium text-foreground">

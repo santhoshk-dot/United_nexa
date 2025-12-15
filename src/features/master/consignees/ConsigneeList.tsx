@@ -1,12 +1,12 @@
 import { useState, useMemo, useEffect } from 'react';
 import type { Consignee } from '../../../types';
-import { 
-  FilePenLine, 
-  Trash2, 
-  Search, 
-  Filter, 
-  Download, 
-  FilterX, 
+import {
+  FilePenLine,
+  Trash2,
+  Search,
+  Filter,
+  Download,
+  FilterX,
   ChevronUp,
   Plus,
   User,
@@ -59,10 +59,10 @@ export const ConsigneeList = () => {
 
   const filteredConsignees = useMemo(() => {
     return consignees.filter(
-      c => 
+      c =>
         (c.name.toLowerCase().includes(search.toLowerCase()) ||
-        c.phone.toLowerCase().includes(search.toLowerCase()) ||
-        c.destination.toLowerCase().includes(search.toLowerCase())) &&
+          c.phone.toLowerCase().includes(search.toLowerCase()) ||
+          c.destination.toLowerCase().includes(search.toLowerCase())) &&
         (() => {
           const date = c.filingDate;
           switch (filterType) {
@@ -86,33 +86,33 @@ export const ConsigneeList = () => {
     totalItems,
   } = usePagination({ data: filteredConsignees, initialItemsPerPage: 10 });
 
-  const handleEdit = (consignee: Consignee) => { 
-    setEditingConsignee(consignee); 
-    setIsFormOpen(true); 
+  const handleEdit = (consignee: Consignee) => {
+    setEditingConsignee(consignee);
+    setIsFormOpen(true);
   };
-  
+
   const handleDelete = (consignee: Consignee) => {
     setDeletingId(consignee.id);
     setDeleteMessage(`Are you sure you want to delete consignee "${consignee.name}"?`);
     setIsConfirmOpen(true);
   };
 
-  const handleConfirmDelete = () => { 
-    if (deletingId) deleteConsignee(deletingId); 
-    setIsConfirmOpen(false); 
-    setDeletingId(null); 
+  const handleConfirmDelete = () => {
+    if (deletingId) deleteConsignee(deletingId);
+    setIsConfirmOpen(false);
+    setDeletingId(null);
   };
 
-  const handleCreateNew = () => { 
-    setEditingConsignee(undefined); 
-    setIsFormOpen(true); 
+  const handleCreateNew = () => {
+    setEditingConsignee(undefined);
+    setIsFormOpen(true);
   };
 
-  const handleFormClose = () => { 
-    setIsFormOpen(false); 
-    setEditingConsignee(undefined); 
+  const handleFormClose = () => {
+    setIsFormOpen(false);
+    setEditingConsignee(undefined);
   };
-  
+
   const handleFormSave = (savedConsignee: Consignee) => {
     const exists = consignees.some(c => c.id === savedConsignee.id);
     if (exists) updateConsignee(savedConsignee);
@@ -170,7 +170,7 @@ export const ConsigneeList = () => {
     const aadhar = row.aadhar || undefined;
 
     if (!nameInput || !mobileInput || !destinationInput || !addressInput) return null;
-    
+
     const mobileStr = String(mobileInput).trim();
     if (!MOBILE_REGEX.test(mobileStr)) return null;
 
@@ -213,7 +213,7 @@ export const ConsigneeList = () => {
           </div>
 
           {/* Filter Button */}
-          <Button 
+          <Button
             variant={hasActiveFilters ? 'primary' : 'outline'}
             onClick={() => setShowFilters(!showFilters)}
             className="h-10 px-4 shrink-0"
@@ -234,8 +234,8 @@ export const ConsigneeList = () => {
             onImport={handleImport}
             existingData={consignees}
             label="Import"
-            checkDuplicate={(newItem, existing) => 
-              newItem.name.trim().toLowerCase() === existing.name.trim().toLowerCase() && 
+            checkDuplicate={(newItem, existing) =>
+              newItem.name.trim().toLowerCase() === existing.name.trim().toLowerCase() &&
               newItem.destination.trim().toLowerCase() === existing.destination.trim().toLowerCase()
             }
             mapRow={csvMapRow}
@@ -260,7 +260,7 @@ export const ConsigneeList = () => {
                 className="w-full h-10 pl-10 pr-4 bg-secondary/50 text-foreground rounded-lg border-0 focus:outline-none focus:ring-2 focus:ring-primary/20 placeholder:text-muted-foreground/60 text-sm"
               />
             </div>
-            <Button 
+            <Button
               variant={hasActiveFilters ? 'primary' : 'outline'}
               onClick={() => setShowFilters(!showFilters)}
               className="h-10 px-3 shrink-0"
@@ -284,8 +284,8 @@ export const ConsigneeList = () => {
               existingData={consignees}
               label="Import"
               className="flex-1 h-9 text-xs sm:text-sm"
-              checkDuplicate={(newItem, existing) => 
-                newItem.name.trim().toLowerCase() === existing.name.trim().toLowerCase() && 
+              checkDuplicate={(newItem, existing) =>
+                newItem.name.trim().toLowerCase() === existing.name.trim().toLowerCase() &&
                 newItem.destination.trim().toLowerCase() === existing.destination.trim().toLowerCase()
               }
               mapRow={csvMapRow}
@@ -305,15 +305,15 @@ export const ConsigneeList = () => {
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-sm font-semibold text-foreground">Filters</h3>
             <div className="flex items-center gap-2">
-              <button 
-                onClick={clearAllFilters} 
+              <button
+                onClick={clearAllFilters}
                 className="inline-flex items-center gap-1 text-xs text-primary hover:text-primary/80 font-medium"
               >
                 <FilterX className="w-3.5 h-3.5" />
                 Clear All
               </button>
-              <button 
-                onClick={() => setShowFilters(false)} 
+              <button
+                onClick={() => setShowFilters(false)}
                 className="p-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
               >
                 <ChevronUp className="w-4 h-4" />
@@ -372,7 +372,7 @@ export const ConsigneeList = () => {
                 paginatedData.map((consignee, index) => (
                   <tr key={consignee.id} className="hover:bg-muted/30 transition-colors">
                     <td className="px-4 py-3">
-                      <span className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-primary/10 text-primary text-xs font-semibold">
+                      <span className="font-semibold text-primary">
                         {(currentPage - 1) * itemsPerPage + index + 1}
                       </span>
                     </td>
@@ -387,15 +387,15 @@ export const ConsigneeList = () => {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-1">
-                        <button 
-                          onClick={() => handleEdit(consignee)} 
+                        <button
+                          onClick={() => handleEdit(consignee)}
                           className="p-1.5 rounded-md text-blue-600 hover:bg-blue-500/10 transition-colors"
                           title="Edit"
                         >
                           <FilePenLine className="w-4 h-4" />
                         </button>
-                        <button 
-                          onClick={() => handleDelete(consignee)} 
+                        <button
+                          onClick={() => handleDelete(consignee)}
                           className="p-1.5 rounded-md text-destructive hover:bg-destructive/10 transition-colors"
                           title="Delete"
                         >
@@ -443,7 +443,7 @@ export const ConsigneeList = () => {
                 paginatedData.map((consignee, index) => (
                   <tr key={consignee.id} className="hover:bg-muted/30 transition-colors">
                     <td className="px-3 py-3">
-                      <span className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-primary/10 text-primary text-xs font-semibold">
+                      <span className="font-semibold text-primary">
                         {(currentPage - 1) * itemsPerPage + index + 1}
                       </span>
                     </td>
@@ -458,15 +458,15 @@ export const ConsigneeList = () => {
                     </td>
                     <td className="px-3 py-3">
                       <div className="flex items-center justify-end gap-1">
-                        <button 
-                          onClick={() => handleEdit(consignee)} 
+                        <button
+                          onClick={() => handleEdit(consignee)}
                           className="p-1.5 rounded-md text-blue-600 hover:bg-blue-500/10 transition-colors"
                           title="Edit"
                         >
                           <FilePenLine className="w-4 h-4" />
                         </button>
-                        <button 
-                          onClick={() => handleDelete(consignee)} 
+                        <button
+                          onClick={() => handleDelete(consignee)}
                           className="p-1.5 rounded-md text-destructive hover:bg-destructive/10 transition-colors"
                           title="Delete"
                         >
@@ -498,7 +498,7 @@ export const ConsigneeList = () => {
                 <div className="flex gap-3">
                   {/* Number Badge */}
                   <div className="pt-0.5 flex-shrink-0">
-                    <span className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-primary/10 text-primary text-xs font-semibold">
+                    <span className="font-semibold text-primary">
                       {(currentPage - 1) * itemsPerPage + index + 1}
                     </span>
                   </div>
@@ -552,13 +552,13 @@ export const ConsigneeList = () => {
         {/* Pagination */}
         {filteredConsignees.length > 0 && (
           <div className="border-t border-border p-4">
-            <Pagination 
-              currentPage={currentPage} 
-              totalPages={totalPages} 
-              onPageChange={setCurrentPage} 
-              itemsPerPage={itemsPerPage} 
-              onItemsPerPageChange={setItemsPerPage} 
-              totalItems={totalItems} 
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+              itemsPerPage={itemsPerPage}
+              onItemsPerPageChange={setItemsPerPage}
+              totalItems={totalItems}
             />
           </div>
         )}
@@ -566,19 +566,19 @@ export const ConsigneeList = () => {
 
       {/* Modals */}
       {isFormOpen && (
-        <ConsigneeForm 
-          initialData={editingConsignee} 
-          onClose={handleFormClose} 
-          onSave={handleFormSave} 
+        <ConsigneeForm
+          initialData={editingConsignee}
+          onClose={handleFormClose}
+          onSave={handleFormSave}
         />
       )}
-      
-      <ConfirmationDialog 
-        open={isConfirmOpen} 
-        onClose={() => setIsConfirmOpen(false)} 
-        onConfirm={handleConfirmDelete} 
-        title="Delete Consignee" 
-        description={deleteMessage} 
+
+      <ConfirmationDialog
+        open={isConfirmOpen}
+        onClose={() => setIsConfirmOpen(false)}
+        onConfirm={handleConfirmDelete}
+        title="Delete Consignee"
+        description={deleteMessage}
       />
     </div>
   );

@@ -8,7 +8,7 @@ import {
   User as UserIcon,
   Search,
   Download,
- 
+
   Hash,
   Phone,
   Mail,
@@ -30,7 +30,7 @@ export const UserList = () => {
   const toast = useToast();
 
   const [search, setSearch] = useState('');
- 
+
   const [roleFilter] = useState<string>('all');
 
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -70,9 +70,9 @@ export const UserList = () => {
     initialItemsPerPage: 10,
   });
 
- 
 
- 
+
+
 
   const handleEdit = (user: AppUser) => {
     setEditingUser(user);
@@ -184,14 +184,14 @@ export const UserList = () => {
             />
           </div>
 
-        
+
 
           <Button variant="outline" onClick={handleExport} className="h-10">
             <Download className="w-4 h-4" />
             Export
           </Button>
           <CsvImporter<AppUser>
-            
+
             onImport={handleImport}
             existingData={users}
             label="Import"
@@ -219,7 +219,7 @@ export const UserList = () => {
                 className="w-full h-10 pl-10 pr-4 bg-secondary/50 text-foreground rounded-lg border-0 focus:outline-none focus:ring-2 focus:ring-primary/20 placeholder:text-muted-foreground/60 text-sm"
               />
             </div>
-            
+
           </div>
 
           <div className="flex items-center gap-2">
@@ -246,7 +246,7 @@ export const UserList = () => {
         </div>
       </div>
 
-    
+
 
       {/* Data Table */}
       <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
@@ -289,7 +289,7 @@ export const UserList = () => {
                 paginatedData.map((u, index) => (
                   <tr key={u.id} className="hover:bg-muted/30 transition-colors">
                     <td className="px-4 py-3">
-                      <span className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-primary/10 text-primary text-xs font-semibold">
+                      <span className="font-semibold text-primary">
                         {(currentPage - 1) * itemsPerPage + index + 1}
                       </span>
                     </td>
@@ -308,11 +308,10 @@ export const UserList = () => {
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-md border ${
-                        u.role === 'admin'
-                          ? 'bg-purple-100 text-purple-700 border-purple-200'
-                          : 'bg-emerald-100 text-emerald-700 border-emerald-200'
-                      }`}>
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-md border ${u.role === 'admin'
+                        ? 'bg-purple-100 text-purple-700 border-purple-200'
+                        : 'bg-emerald-100 text-emerald-700 border-emerald-200'
+                        }`}>
                         {u.role.toUpperCase()}
                       </span>
                     </td>
@@ -379,7 +378,7 @@ export const UserList = () => {
                 paginatedData.map((u, index) => (
                   <tr key={u.id} className="hover:bg-muted/30 transition-colors">
                     <td className="px-3 py-3">
-                      <span className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-primary/10 text-primary text-xs font-semibold">
+                      <span className="font-semibold text-primary">
                         {(currentPage - 1) * itemsPerPage + index + 1}
                       </span>
                     </td>
@@ -396,11 +395,10 @@ export const UserList = () => {
                     </td>
                     <td className="px-3 py-3">
                       <div>
-                        <span className={`inline-flex px-2 py-0.5 text-[10px] font-semibold rounded border ${
-                          u.role === 'admin'
-                            ? 'bg-purple-100 text-purple-700 border-purple-200'
-                            : 'bg-emerald-100 text-emerald-700 border-emerald-200'
-                        }`}>
+                        <span className={`inline-flex px-2 py-0.5 text-[10px] font-semibold rounded border ${u.role === 'admin'
+                          ? 'bg-purple-100 text-purple-700 border-purple-200'
+                          : 'bg-emerald-100 text-emerald-700 border-emerald-200'
+                          }`}>
                           {u.role.toUpperCase()}
                         </span>
                         <span className="text-xs text-muted-foreground block mt-1">{u.mobile || '-'}</span>
@@ -450,7 +448,7 @@ export const UserList = () => {
                 <div className="flex gap-3">
                   {/* Number Badge */}
                   <div className="pt-0.5 flex-shrink-0">
-                    <span className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-primary/10 text-primary text-xs font-semibold">
+                    <span className="font-semibold text-primary">
                       {(currentPage - 1) * itemsPerPage + index + 1}
                     </span>
                   </div>
@@ -465,11 +463,10 @@ export const UserList = () => {
                         </div>
                         <div className="min-w-0">
                           <h3 className="font-semibold text-foreground truncate">{u.name}</h3>
-                          <span className={`inline-flex px-2 py-0.5 text-[10px] font-semibold rounded border mt-0.5 ${
-                            u.role === 'admin'
-                              ? 'bg-purple-100 text-purple-700 border-purple-200'
-                              : 'bg-emerald-100 text-emerald-700 border-emerald-200'
-                          }`}>
+                          <span className={`inline-flex px-2 py-0.5 text-[10px] font-semibold rounded border mt-0.5 ${u.role === 'admin'
+                            ? 'bg-purple-100 text-purple-700 border-purple-200'
+                            : 'bg-emerald-100 text-emerald-700 border-emerald-200'
+                            }`}>
                             {u.role.toUpperCase()}
                           </span>
                         </div>

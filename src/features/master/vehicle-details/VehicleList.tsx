@@ -6,12 +6,12 @@ import {
   Search,
   Download,
   Plus,
- 
+
   Truck,
   Hash,
   User,
   Phone,
- 
+
 } from "lucide-react";
 import { VehicleForm } from "./VehicleForm";
 import { ConfirmationDialog } from "../../../components/shared/ConfirmationDialog";
@@ -51,10 +51,10 @@ export const VehicleList = () => {
     fetchVehicleEntries();
   }, [fetchVehicleEntries]);
 
- const filteredEntries = useMemo(() => {
+  const filteredEntries = useMemo(() => {
     return vehicleEntries.filter((entry: VehicleEntry) => {
       const searchLower = search.toLowerCase();
-      
+
       const matchesSearch =
         entry.vehicleNo.toLowerCase().includes(searchLower) ||
         entry.vehicleName.toLowerCase().includes(searchLower) ||
@@ -62,7 +62,7 @@ export const VehicleList = () => {
         (entry.ownerMobile || '').toLowerCase().includes(searchLower);   // Added Owner Mobile
 
       const matchesOwner = !ownerFilter || (entry.ownerName || '').toLowerCase().includes(ownerFilter.toLowerCase());
-      
+
       return matchesSearch && matchesOwner;
     });
   }, [vehicleEntries, search, ownerFilter]);
@@ -184,7 +184,7 @@ export const VehicleList = () => {
             />
           </div>
 
-         
+
 
           {/* Action Buttons */}
           <Button variant="outline" onClick={handleExport} className="h-10">
@@ -220,7 +220,7 @@ export const VehicleList = () => {
                 className="w-full h-10 pl-10 pr-4 bg-secondary/50 text-foreground rounded-lg border-0 focus:outline-none focus:ring-2 focus:ring-primary/20 placeholder:text-muted-foreground/60 text-sm"
               />
             </div>
-           
+
           </div>
 
           {/* Row 2: Action Buttons */}
@@ -248,7 +248,7 @@ export const VehicleList = () => {
         </div>
       </div>
 
-      
+
 
       {/* Data Table */}
       <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
@@ -291,7 +291,7 @@ export const VehicleList = () => {
                 paginatedData.map((entry: VehicleEntry, index) => (
                   <tr key={entry.id} className="hover:bg-muted/30 transition-colors">
                     <td className="px-4 py-3">
-                      <span className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-primary/10 text-primary text-xs font-semibold">
+                      <span className="font-semibold text-primary">
                         {(currentPage - 1) * itemsPerPage + index + 1}
                       </span>
                     </td>
@@ -365,7 +365,7 @@ export const VehicleList = () => {
                 paginatedData.map((entry: VehicleEntry, index) => (
                   <tr key={entry.id} className="hover:bg-muted/30 transition-colors">
                     <td className="px-3 py-3">
-                      <span className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-primary/10 text-primary text-xs font-semibold">
+                      <span className="font-semibold text-primary">
                         {(currentPage - 1) * itemsPerPage + index + 1}
                       </span>
                     </td>
@@ -423,7 +423,7 @@ export const VehicleList = () => {
                 <div className="flex gap-3">
                   {/* Number Badge */}
                   <div className="pt-0.5 flex-shrink-0">
-                    <span className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-primary/10 text-primary text-xs font-semibold">
+                    <span className="font-semibold text-primary">
                       {(currentPage - 1) * itemsPerPage + index + 1}
                     </span>
                   </div>
