@@ -1,12 +1,12 @@
 import { useState, useMemo, useEffect } from 'react';
 import type { Consignor, Consignee } from '../../../types';
-import { 
-  FilePenLine, 
-  Trash2, 
-  Search, 
-  Filter, 
-  Download, 
-  FilterX, 
+import {
+  FilePenLine,
+  Trash2,
+  Search,
+  Filter,
+  Download,
+  FilterX,
   Plus,
   Store,
   Hash,
@@ -36,14 +36,14 @@ export const ConsignorList = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingConsignor, setEditingConsignor] = useState<Consignor | undefined>(undefined);
-  
+
   const [filterType, setFilterType] = useState('all');
   const [customStart, setCustomStart] = useState('');
   const [customEnd, setCustomEnd] = useState('');
 
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [deleteMessage, setDeleteMessage] = useState(""); 
+  const [deleteMessage, setDeleteMessage] = useState("");
 
   useEffect(() => {
     fetchConsignors();
@@ -58,9 +58,9 @@ export const ConsignorList = () => {
 
   const filteredConsignors = useMemo(() => {
     return consignors.filter(
-      c => 
+      c =>
         (c.name.toLowerCase().includes(search.toLowerCase()) ||
-        c.gst.toLowerCase().includes(search.toLowerCase())) &&
+          c.gst.toLowerCase().includes(search.toLowerCase())) &&
         (() => {
           const date = c.filingDate;
           switch (filterType) {
@@ -88,7 +88,7 @@ export const ConsignorList = () => {
     setEditingConsignor(consignor);
     setIsFormOpen(true);
   };
-  
+
   const handleDelete = (consignor: Consignor) => {
     setDeletingId(consignor.id);
     setDeleteMessage(`Are you sure you want to delete consignor "${consignor.name}"?`);
@@ -110,7 +110,7 @@ export const ConsignorList = () => {
     setIsFormOpen(false);
     setEditingConsignor(undefined);
   };
-  
+
   const handleFormSave = (savedConsignor: Consignor, firstConsignee?: Consignee) => {
     const exists = consignors.some(c => c.id === savedConsignor.id);
     if (exists) updateConsignor(savedConsignor);
@@ -198,7 +198,7 @@ export const ConsignorList = () => {
           </div>
 
           {/* Filter Button */}
-          <Button 
+          <Button
             variant={hasActiveFilters ? 'primary' : 'outline'}
             onClick={() => setShowFilters(!showFilters)}
             className="h-10 px-4 shrink-0"
@@ -219,7 +219,7 @@ export const ConsignorList = () => {
             onImport={handleImport}
             existingData={consignors}
             label="Import"
-            checkDuplicate={(newItem, existing) => 
+            checkDuplicate={(newItem, existing) =>
               newItem.gst.trim().toLowerCase() === existing.gst.trim().toLowerCase()
             }
             mapRow={csvMapRow}
@@ -244,7 +244,7 @@ export const ConsignorList = () => {
                 className="w-full h-10 pl-10 pr-4 bg-secondary/50 text-foreground rounded-lg border-0 focus:outline-none focus:ring-2 focus:ring-primary/20 placeholder:text-muted-foreground/60 text-sm"
               />
             </div>
-            <Button 
+            <Button
               variant={hasActiveFilters ? 'primary' : 'outline'}
               onClick={() => setShowFilters(!showFilters)}
               className="h-10 px-3 shrink-0"
@@ -268,7 +268,7 @@ export const ConsignorList = () => {
               existingData={consignors}
               label="Import"
               className="flex-1 h-9 text-xs sm:text-sm"
-              checkDuplicate={(newItem, existing) => 
+              checkDuplicate={(newItem, existing) =>
                 newItem.gst.trim().toLowerCase() === existing.gst.trim().toLowerCase()
               }
               mapRow={csvMapRow}
@@ -288,15 +288,15 @@ export const ConsignorList = () => {
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-sm font-semibold text-foreground">Filters</h3>
             <div className="flex items-center gap-2">
-              <button 
-                onClick={clearAllFilters} 
+              <button
+                onClick={clearAllFilters}
                 className="inline-flex items-center gap-1 text-xs text-primary hover:text-primary/80 font-medium"
               >
                 <FilterX className="w-3.5 h-3.5" />
                 Clear All
               </button>
-              <button 
-                onClick={() => setShowFilters(false)} 
+              <button
+                onClick={() => setShowFilters(false)}
                 className="p-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
               >
                 <ChevronUp className="w-4 h-4" />
@@ -349,7 +349,7 @@ export const ConsignorList = () => {
                 paginatedData.map((consignor, index) => (
                   <tr key={consignor.id} className="hover:bg-muted/30 transition-colors">
                     <td className="px-4 py-3">
-                      <span className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-primary/10 text-primary text-xs font-semibold">
+                      <span className="font-semibold text-primary">
                         {(currentPage - 1) * itemsPerPage + index + 1}
                       </span>
                     </td>
@@ -361,15 +361,15 @@ export const ConsignorList = () => {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-1">
-                        <button 
-                          onClick={() => handleEdit(consignor)} 
+                        <button
+                          onClick={() => handleEdit(consignor)}
                           className="p-1.5 rounded-md text-blue-600 hover:bg-blue-500/10 transition-colors"
                           title="Edit"
                         >
                           <FilePenLine className="w-4 h-4" />
                         </button>
-                        <button 
-                          onClick={() => handleDelete(consignor)} 
+                        <button
+                          onClick={() => handleDelete(consignor)}
                           className="p-1.5 rounded-md text-destructive hover:bg-destructive/10 transition-colors"
                           title="Delete"
                         >
@@ -414,7 +414,7 @@ export const ConsignorList = () => {
                 paginatedData.map((consignor, index) => (
                   <tr key={consignor.id} className="hover:bg-muted/30 transition-colors">
                     <td className="px-3 py-3">
-                      <span className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-primary/10 text-primary text-xs font-semibold">
+                      <span className="font-semibold text-primary">
                         {(currentPage - 1) * itemsPerPage + index + 1}
                       </span>
                     </td>
@@ -426,15 +426,15 @@ export const ConsignorList = () => {
                     </td>
                     <td className="px-3 py-3">
                       <div className="flex items-center justify-end gap-1">
-                        <button 
-                          onClick={() => handleEdit(consignor)} 
+                        <button
+                          onClick={() => handleEdit(consignor)}
                           className="p-1.5 rounded-md text-blue-600 hover:bg-blue-500/10 transition-colors"
                           title="Edit"
                         >
                           <FilePenLine className="w-4 h-4" />
                         </button>
-                        <button 
-                          onClick={() => handleDelete(consignor)} 
+                        <button
+                          onClick={() => handleDelete(consignor)}
                           className="p-1.5 rounded-md text-destructive hover:bg-destructive/10 transition-colors"
                           title="Delete"
                         >
@@ -466,7 +466,7 @@ export const ConsignorList = () => {
                 <div className="flex gap-3">
                   {/* Number Badge */}
                   <div className="pt-0.5 flex-shrink-0">
-                    <span className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-primary/10 text-primary text-xs font-semibold">
+                    <span className="font-semibold text-primary">
                       {(currentPage - 1) * itemsPerPage + index + 1}
                     </span>
                   </div>
@@ -516,13 +516,13 @@ export const ConsignorList = () => {
         {/* Pagination */}
         {filteredConsignors.length > 0 && (
           <div className="border-t border-border p-4">
-            <Pagination 
-              currentPage={currentPage} 
-              totalPages={totalPages} 
-              onPageChange={setCurrentPage} 
-              itemsPerPage={itemsPerPage} 
-              onItemsPerPageChange={setItemsPerPage} 
-              totalItems={totalItems} 
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+              itemsPerPage={itemsPerPage}
+              onItemsPerPageChange={setItemsPerPage}
+              totalItems={totalItems}
             />
           </div>
         )}
@@ -530,19 +530,19 @@ export const ConsignorList = () => {
 
       {/* Modals */}
       {isFormOpen && (
-        <ConsignorForm 
-          initialData={editingConsignor} 
-          onClose={handleFormClose} 
-          onSave={handleFormSave} 
+        <ConsignorForm
+          initialData={editingConsignor}
+          onClose={handleFormClose}
+          onSave={handleFormSave}
         />
       )}
-      
-      <ConfirmationDialog 
-        open={isConfirmOpen} 
-        onClose={() => setIsConfirmOpen(false)} 
-        onConfirm={handleConfirmDelete} 
-        title="Delete Consignor" 
-        description={deleteMessage} 
+
+      <ConfirmationDialog
+        open={isConfirmOpen}
+        onClose={() => setIsConfirmOpen(false)}
+        onConfirm={handleConfirmDelete}
+        title="Delete Consignor"
+        description={deleteMessage}
       />
     </div>
   );

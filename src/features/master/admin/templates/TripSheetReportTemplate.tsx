@@ -20,13 +20,13 @@ const EditableText: React.FC<{
     onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
     className?: string;
     placeholder?: string;
-}> = ({ value, onChange, placeholder = "" }) => (
+}> = ({ value, onChange, placeholder = "", className = "" }) => (
     <input
         type="text"
         value={value || ""}
         onChange={onChange}
         placeholder={placeholder}
-        className={`border border-dashed border-gray-400 p-0.5 w-full appearance-none focus:border-solid focus:bg-white bg-transparent ${"className"}`}
+        className={`border border-dashed border-gray-400 p-0.5 w-full appearance-none focus:border-solid focus:bg-white bg-transparent ${className}`}
         style={{ minWidth: '30px' }}
     />
 );
@@ -74,7 +74,7 @@ export const TripReportTemplate: React.FC<TripReportTemplateProps> = (props) => 
             onEdit(hasChanges, saveHandler, resetHandler, undoHandler);
         }
     }, [hasChanges, onEdit, saveHandler, resetHandler, undoHandler]);
-   
+
     const handleTextChange = (field: keyof TripReportLabels) => (
         e: React.ChangeEvent<HTMLInputElement>
     ) => {
@@ -93,28 +93,28 @@ export const TripReportTemplate: React.FC<TripReportTemplateProps> = (props) => 
             });
         }
     };
-   
+
     return (
         <div
-            className="report-page bg-white text-black shadow-2xl mx-auto border border-gray-300"
+            className="report-page bg-white text-black mx-auto border border-gray-300 shadow-2xl"
             style={{
                 maxWidth: "210mm",
                 minHeight: "230mm",
                 padding: "5mm",
                 boxSizing: "border-box",
-                fontFamily: '"Times New Roman", Times, serif'
+                fontFamily: 'Arial, Helvetica, sans-serif'
             }}
         >
-            <div className="w-full font-serif mb-0 text-black">
+            <div className="w-full mb-0 text-black">
                 <div className="text-center font-bold text-sm md:text-lg mb-1 uppercase">
-                     <EditableText
-                        value={localLabels.title || 'TRIP SHEET REPORT'}
+                    <EditableText
+                        value={localLabels.title}
                         className="font-bold text-center w-auto"
                         placeholder="TRIP SHEET REPORT"
                         onChange={handleTextChange("title")}
                     />
                 </div>
-    
+
                 <div className="border border-black flex flex-row">
                     <div className="w-[70%] border-r border-black p-1 md:p-2">
                         <div className="flex justify-between gap-1 items-baseline text-[9px] md:text-xs font-bold mb-1 lining-nums leading-none">
@@ -127,13 +127,13 @@ export const TripReportTemplate: React.FC<TripReportTemplateProps> = (props) => 
                                 <EditableText value={localLabels.mobileNumberValue} className="w-auto" onChange={handleTextChange("mobileNumberValue")} />
                             </span>
                         </div>
-    
-                        <h1 className="text-sm md:text-2xl font-bold uppercase text-left tracking-tight mt-1">
+
+                        <h1 className="text-sm md:text-2xl font-bold uppercase text-center tracking-tight mt-1">
                             <EditableText
-                                value={localLabels.companyName || 'UNITED TRANSPORT COMPANY'}
+                                value={localLabels.companyName}
                                 className="font-bold text-left tracking-tight"
                                 placeholder="UNITED TRANSPORT COMPANY"
-                                    onChange={handleTextChange("companyName")}
+                                onChange={handleTextChange("companyName")}
                             />
                         </h1>
                         <p className="text-[9px] md:text-xs font-bold mt-1 text-left">
@@ -141,17 +141,17 @@ export const TripReportTemplate: React.FC<TripReportTemplateProps> = (props) => 
                                 value={localLabels.companyAddress}
                                 className="font-bold text-left"
                                 placeholder="Address..."
-                                    onChange={handleTextChange("companyAddress")}
+                                onChange={handleTextChange("companyAddress")}
                             />
                         </p>
                     </div>
                     <div className="w-[30%]"></div>
                 </div>
-    
-                <div className="border-x border-b border-black p-1 pl-2 text-[10px] md:text-sm font-normal">
+
+                <div className="border-x border-b border-black p-1 text-[10px] md:text-sm font-normal text-center">
                     <EditableText
-                        value={localLabels.mainHeader || 'Overall TripSheet Report'}
-                        className="font-bold w-auto"
+                        value={localLabels.mainHeader}
+                        className="font-bold w-full text-center"
                         placeholder="Report Header"
                         onChange={handleTextChange("mainHeader")}
                     />
@@ -163,10 +163,10 @@ export const TripReportTemplate: React.FC<TripReportTemplateProps> = (props) => 
                     <thead>
                         <tr className="h-6 md:h-8">
                             <th className="border border-black w-[10%] p-0.5 text-center font-bold">
-                                <EditableText value={localLabels.tsLabel} className="font-bold text-center"  onChange={handleTextChange("tsLabel")}/>
+                                <EditableText value={localLabels.tsLabel} className="font-bold text-center" onChange={handleTextChange("tsLabel")} />
                             </th>
                             <th className="border border-black w-[13%] p-0.5 text-center font-bold">
-                                <EditableText value={localLabels.dateLabel } className="font-bold text-center" onChange={handleTextChange("dateLabel")} />
+                                <EditableText value={localLabels.dateLabel} className="font-bold text-center" onChange={handleTextChange("dateLabel")} />
                             </th>
                             <th className="border border-black w-[25%] p-0.5 text-center font-bold">
                                 <EditableText value={localLabels.fromPlaceLabel} className="font-bold text-center" onChange={handleTextChange("fromPlaceLabel")} />
@@ -181,15 +181,15 @@ export const TripReportTemplate: React.FC<TripReportTemplateProps> = (props) => 
                     </thead>
                     <tbody>
                         <tr className="h-6 md:h-8">
-                             <td className="border border-black p-0.5"></td>
-                             <td className="border border-black p-0.5"></td>
-                             <td className="border border-black p-0.5"></td>
-                             <td className="border border-black p-0.5"></td>
-                             <td className="border border-black p-0.5"></td>
+                            <td className="border border-black p-0.5"></td>
+                            <td className="border border-black p-0.5"></td>
+                            <td className="border border-black p-0.5"></td>
+                            <td className="border border-black p-0.5"></td>
+                            <td className="border border-black p-0.5"></td>
                         </tr>
                         <tr className="h-6 md:h-8 font-bold bg-gray-50">
                             <td className="border border-black p-0.5 px-2 text-right" colSpan={4}>
-                                <EditableText value={localLabels.totalLabel || 'Total :'} className="font-bold text-right w-auto" placeholder="Total :" onChange={handleTextChange("totalLabel")}/>
+                                <EditableText value={localLabels.totalLabel} className="font-bold text-right w-auto" placeholder="Total :" onChange={handleTextChange("totalLabel")} />
                             </td>
                             <td className="border border-black p-0.5" colSpan={1}></td>
                         </tr>
@@ -202,13 +202,13 @@ export const TripReportTemplate: React.FC<TripReportTemplateProps> = (props) => 
 
 export const TripSheetReportTemplate: React.FC<TripReportTemplateProps> = (props) => {
     return (
-        <div className="stock-report-screen-wrapper bg-gray-100 dark:bg-black">
-             <style>{`
+        <div className="stock-report-screen-wrapper dark:bg-black">
+            <style>{`
                 .stock-report-screen-wrapper {
                     min-height: 100vh;
                 }
                 .report-page {
-                    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+                    // box-shadow: 0 0 10px rgba(0,0,0,0.1);
                     margin: 10px auto;
                     border: 1px solid #ccc;
                 }
@@ -218,7 +218,7 @@ export const TripSheetReportTemplate: React.FC<TripReportTemplateProps> = (props
                         background: white;
                     }
                     .report-page {
-                        box-shadow: none;
+                        // box-shadow: none;
                         border: none;
                         margin: 0;
                         padding: 0;
@@ -229,7 +229,7 @@ export const TripSheetReportTemplate: React.FC<TripReportTemplateProps> = (props
                     @page { size: A4; margin: 0; }
                 }
             `}</style>
-            <TripReportTemplate {...props}/>
+            <TripReportTemplate {...props} />
         </div>
     );
 }

@@ -210,7 +210,7 @@ export const UserList = () => {
                 className="w-full h-10 pl-10 pr-4 bg-secondary/50 text-foreground rounded-lg border-0 focus:outline-none focus:ring-2 focus:ring-primary/20 placeholder:text-muted-foreground/60 text-sm"
               />
             </div>
-            
+
           </div>
 
           <div className="flex items-center gap-2">
@@ -278,7 +278,7 @@ export const UserList = () => {
                 paginatedData.map((u, index) => (
                   <tr key={u.id} className="hover:bg-muted/30 transition-colors">
                     <td className="px-4 py-3">
-                      <span className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-primary/10 text-primary text-xs font-semibold">
+                      <span className="font-semibold text-primary">
                         {(currentPage - 1) * itemsPerPage + index + 1}
                       </span>
                     </td>
@@ -297,11 +297,10 @@ export const UserList = () => {
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-md border ${
-                        u.role === 'admin'
-                          ? 'bg-purple-100 text-purple-700 border-purple-200'
-                          : 'bg-emerald-100 text-emerald-700 border-emerald-200'
-                      }`}>
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-md border ${u.role === 'admin'
+                        ? 'bg-purple-100 text-purple-700 border-purple-200'
+                        : 'bg-emerald-100 text-emerald-700 border-emerald-200'
+                        }`}>
                         {u.role.toUpperCase()}
                       </span>
                     </td>
@@ -368,7 +367,7 @@ export const UserList = () => {
                 paginatedData.map((u, index) => (
                   <tr key={u.id} className="hover:bg-muted/30 transition-colors">
                     <td className="px-3 py-3">
-                      <span className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-primary/10 text-primary text-xs font-semibold">
+                      <span className="font-semibold text-primary">
                         {(currentPage - 1) * itemsPerPage + index + 1}
                       </span>
                     </td>
@@ -385,11 +384,10 @@ export const UserList = () => {
                     </td>
                     <td className="px-3 py-3">
                       <div>
-                        <span className={`inline-flex px-2 py-0.5 text-[10px] font-semibold rounded border ${
-                          u.role === 'admin'
-                            ? 'bg-purple-100 text-purple-700 border-purple-200'
-                            : 'bg-emerald-100 text-emerald-700 border-emerald-200'
-                        }`}>
+                        <span className={`inline-flex px-2 py-0.5 text-[10px] font-semibold rounded border ${u.role === 'admin'
+                          ? 'bg-purple-100 text-purple-700 border-purple-200'
+                          : 'bg-emerald-100 text-emerald-700 border-emerald-200'
+                          }`}>
                           {u.role.toUpperCase()}
                         </span>
                         <span className="text-xs text-muted-foreground block mt-1">{u.mobile || '-'}</span>
@@ -439,25 +437,23 @@ export const UserList = () => {
                 {/* Header: Avatar, Name and Role */}
                 <div className="flex items-start justify-between gap-3 mb-3">
                   <div className="flex items-center gap-3">
-                    <div className={`flex-shrink-0 h-10 w-10 rounded-full flex items-center justify-center ${
-                      u.role === 'admin' ? 'bg-purple-100 text-purple-600' : 'bg-primary/10 text-primary'
-                    }`}>
+                    <div className={`flex-shrink-0 h-10 w-10 rounded-full flex items-center justify-center ${u.role === 'admin' ? 'bg-purple-100 text-purple-600' : 'bg-primary/10 text-primary'
+                      }`}>
                       {u.role === 'admin' ? <Shield size={18} /> : <UserIcon size={18} />}
                     </div>
                     <div>
                       <h3 className="font-semibold text-foreground text-base">{u.name}</h3>
                       <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-0.5">
-                         <span className="truncate max-w-[150px]">{u.email}</span>
+                        <span className="truncate max-w-[150px]">{u.email}</span>
                       </div>
                     </div>
                   </div>
-                  
+
                   {/* Role Badge - Top Right */}
-                  <span className={`flex-shrink-0 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full border ${
-                     u.role === 'admin'
-                       ? 'bg-purple-50 text-purple-700 border-purple-200'
-                       : 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                   }`}>
+                  <span className={`flex-shrink-0 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full border ${u.role === 'admin'
+                    ? 'bg-purple-50 text-purple-700 border-purple-200'
+                    : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                    }`}>
                     {u.role}
                   </span>
                 </div>

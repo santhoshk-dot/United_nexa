@@ -44,7 +44,7 @@ const EditableTextArea: React.FC<{
         placeholder={placeholder}
         rows={rows}
         className={`border border-dashed border-gray-400 p-0.5 w-full focus:border-solid focus:bg-white bg-transparent ${className}`}
-        style={{ minHeight: `${rows * 1.2}rem`}}
+        style={{ minHeight: `${rows * 1.2}rem` }}
     />
 );
 
@@ -92,7 +92,7 @@ const GcCoreTemplate: React.FC<GcPrintTemplateProps> = ({ initialData, onSave, o
             onEdit(hasChanges, saveHandler, resetHandler, undoHandler);
         }
     }, [hasChanges, onEdit, saveHandler, resetHandler, undoHandler]);
-   
+
     const handleLabelChange = (field: keyof GcEntryLabels) => (
         e: React.ChangeEvent<StaticChangeElement>
     ) => {
@@ -117,7 +117,7 @@ const GcCoreTemplate: React.FC<GcPrintTemplateProps> = ({ initialData, onSave, o
             className="print-page font-sans text-black bg-white shadow-2xl mx-auto"
             style={{
                 maxWidth: "210mm",
-                padding: "3mm", 
+                padding: "3mm",
                 boxSizing: "border-box",
                 width: "100%",
             }}
@@ -125,7 +125,7 @@ const GcCoreTemplate: React.FC<GcPrintTemplateProps> = ({ initialData, onSave, o
             {/* --- 1. HEADER ROW (GSTIN & Mobile) --- */}
             <div className="flex flex-row mb-1 font-bold text-[10px] md:text-sm">
                 <div className="flex flex-row gap-2 w-full justify-between items-center">
-                    
+
                     {/* LEFT: GSTIN (Modified to prevent cutoff) */}
                     <div className="flex gap-1 items-center">
                         <EditableText
@@ -428,25 +428,25 @@ const GcCoreTemplate: React.FC<GcPrintTemplateProps> = ({ initialData, onSave, o
             {/* --- 6. FOOTER AREA (FIXED ALIGNMENT) --- */}
             {/* Added proper height constraints and vertical alignment spacing */}
             <div className="border-x border-b border-black p-1 flex flex-row h-[6rem] relative text-[9px] md:text-xs">
-                
+
                 {/* LEFT COLUMN: QR & Freight */}
                 <div className="w-1/3 flex justify-between items-start h-full pl-1 pb-1">
-                     {/* QR Placeholder - Fixed Size */}
+                    {/* QR Placeholder - Fixed Size */}
                     <div className="flex flex-col items-center">
                         <div className="w-12 h-12 border border-black flex items-center justify-center text-[7px] mb-1">QR</div>
                         <EditableText
-                                value={localLabels.scanLabel}
-                                onChange={handleLabelChange("scanLabel")}
-                                className="w-20 font-normal text-[7px] text-center"
-                                placeholder="Scan Label"
+                            value={localLabels.scanLabel}
+                            onChange={handleLabelChange("scanLabel")}
+                            className="w-20 font-normal text-[7px] text-center"
+                            placeholder="Scan Label"
                         />
                     </div>
                     {/* Freight Fixed Label */}
                     <div className="w-full mt-1">
-                         <EditableText 
-                            value={localLabels.freightFixedUptoLabel} 
-                            onChange={handleLabelChange("freightFixedUptoLabel")} 
-                            className="w-full font-normal text-center text-[8px]" 
+                        <EditableText
+                            value={localLabels.freightFixedUptoLabel}
+                            onChange={handleLabelChange("freightFixedUptoLabel")}
+                            className="w-full font-normal text-center text-[8px]"
                             placeholder="Freight fixed upto..."
                         />
                     </div>
@@ -467,11 +467,11 @@ const GcCoreTemplate: React.FC<GcPrintTemplateProps> = ({ initialData, onSave, o
                 <div className="w-1/3 flex flex-col justify-end items-end h-full pr-1 pb-1">
                     <div className="w-full text-right">
                         <div className="h-8"></div> {/* Spacer for signature area */}
-                        <EditableText 
-                            value={localLabels.footerSignatureLine} 
-                            onChange={handleLabelChange("footerSignatureLine")} 
-                            className="italic font-bold w-full text-right text-[8px]" 
-                            placeholder="Authorized Signatory" 
+                        <EditableText
+                            value={localLabels.footerSignatureLine}
+                            onChange={handleLabelChange("footerSignatureLine")}
+                            className="italic font-bold w-full text-right text-[8px]"
+                            placeholder="Authorized Signatory"
                         />
                     </div>
                 </div>
@@ -493,11 +493,11 @@ const GcCoreTemplate: React.FC<GcPrintTemplateProps> = ({ initialData, onSave, o
 // --- Outer Wrapper Component (Exports and passes onEdit) ---
 export const GcPrintTemplate: React.FC<GcPrintTemplateProps> = (props) => {
     return (
-        <div className="gc-print-screen-wrapper bg-gray-100 min-h-screen dark:bg-black">
-             <style>{`
+        <div className="gc-print-screen-wrapper min-h-screen dark:bg-black">
+            <style>{`
                 .print-page {
                     // MODIFIED: Removed fixed width for screen viewing
-                    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+                    // box-shadow: 0 0 10px rgba(0,0,0,0.1);
                     margin: 10px auto;
                     border: 1px solid #ccc;
                     // Ensure editable text fields don't cause overflow

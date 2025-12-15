@@ -20,19 +20,19 @@ const EditableText: React.FC<{
     onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
     className?: string;
     placeholder?: string;
-}> = ({ value, onChange, placeholder = "" }) => (
+}> = ({ value, onChange, placeholder = "", className = "" }) => (
     <input
         type="text"
         value={value || ""}
         onChange={onChange}
         placeholder={placeholder}
-        className={`border border-dashed border-gray-400 p-0.5 w-full appearance-none block focus:border-solid focus:bg-white bg-transparent ${"className"}`}
+        className={`border border-dashed border-gray-400 p-0.5 w-full appearance-none block focus:border-solid focus:bg-white bg-transparent ${className}`}
         style={{ minWidth: '20px' }}
     />
 );
 
 const StockReportCoreTemplate: React.FC<StockReportTemplateProps> = ({ initialData, onSave, onEdit }) => {
-    
+
     // 🟢 Use props.initialData instead of local context
     const [localLabels, setLocalLabels] = useState<StockLabels>(initialData);
     const [historyStack, setHistoryStack] = useState<Change[]>([]);
@@ -73,7 +73,7 @@ const StockReportCoreTemplate: React.FC<StockReportTemplateProps> = ({ initialDa
             onEdit(hasChanges, saveHandler, resetHandler, undoHandler);
         }
     }, [hasChanges, onEdit, saveHandler, resetHandler, undoHandler]);
-    
+
     const handleTextChange = (field: keyof StockLabels) => (
         e: React.ChangeEvent<HTMLInputElement>
     ) => {
@@ -97,24 +97,24 @@ const StockReportCoreTemplate: React.FC<StockReportTemplateProps> = ({ initialDa
         <div
             className="report-page bg-white text-black shadow-2xl mx-auto border border-gray-300"
             style={{
-                maxWidth: "210mm", 
+                maxWidth: "210mm",
                 minHeight: "230mm",
                 padding: "5mm",
                 boxSizing: "border-box",
-                fontFamily: '"Times New Roman", Times, serif'
+                fontFamily: 'Arial, Helvetica, sans-serif'
             }}
         >
             {/* Header */}
-            <div className="w-full font-serif mb-0 text-black">
+            <div className="w-full mb-0 text-black">
                 <div className="text-center font-bold text-sm md:text-lg mb-1 uppercase">
-                     <EditableText
-                        value={localLabels.title }
+                    <EditableText
+                        value={localLabels.title}
                         className="text-sm md:text-lg font-bold text-center w-auto"
                         placeholder="STOCK REPORT"
                         onChange={handleTextChange("title")}
                     />
                 </div>
-            
+
                 <div className="border border-black flex flex-row">
                     <div className="w-[70%] border-r border-black p-1 md:p-2">
                         <div className="flex flex-wrap justify-between gap-1 items-baseline text-[9px] md:text-xs font-bold mb-1 lining-nums leading-none">
@@ -127,10 +127,10 @@ const StockReportCoreTemplate: React.FC<StockReportTemplateProps> = ({ initialDa
                                 <EditableText value={localLabels.mobileNumberValue} className="font-bold w-auto" onChange={handleTextChange("mobileNumberValue")} />
                             </span>
                         </div>
-                    
-                        <h1 className="text-sm md:text-2xl font-bold uppercase text-left tracking-tight mt-1">
+
+                        <h1 className="text-sm md:text-2xl font-bold uppercase text-center tracking-tight mt-1">
                             <EditableText
-                                value={localLabels.companyName }
+                                value={localLabels.companyName}
                                 className="text-sm md:text-2xl font-bold text-left tracking-tight"
                                 placeholder="UNITED TRANSPORT COMPANY"
                                 onChange={handleTextChange("companyName")}
@@ -138,7 +138,7 @@ const StockReportCoreTemplate: React.FC<StockReportTemplateProps> = ({ initialDa
                         </h1>
                         <p className="text-[9px] md:text-xs font-bold mt-1 text-left">
                             <EditableText
-                                value={localLabels.companyAddress }
+                                value={localLabels.companyAddress}
                                 className="font-bold text-left"
                                 placeholder="Address..."
                                 onChange={handleTextChange("companyAddress")}
@@ -147,11 +147,11 @@ const StockReportCoreTemplate: React.FC<StockReportTemplateProps> = ({ initialDa
                     </div>
                     <div className="w-[30%] p-2"></div>
                 </div>
-            
-                <div className="border-x border-b border-black p-1 pl-2 text-[10px] md:text-sm font-normal">
+
+                <div className="border-x border-b border-black p-1 text-[10px] md:text-sm font-normal text-center">
                     <EditableText
-                        value={localLabels.mainHeader }
-                        className="font-bold w-auto"
+                        value={localLabels.mainHeader}
+                        className="font-bold w-full text-center"
                         placeholder="Stock Report"
                         onChange={handleTextChange("mainHeader")}
                     />
@@ -162,7 +162,7 @@ const StockReportCoreTemplate: React.FC<StockReportTemplateProps> = ({ initialDa
                 <table className="w-full min-w-[320px] table-fixed border-collapse border-x border-b border-black text-[9px] md:text-[11px] leading-tight mt-0">
                     <thead>
                         <tr className="h-6 md:h-8">
-                            <th className="border border-black w-[12%] p-0.5 text-left font-bold"><EditableText value={localLabels.gcLabel} className="font-bold text-left" onChange={handleTextChange("gcLabel")}/></th>
+                            <th className="border border-black w-[12%] p-0.5 text-left font-bold"><EditableText value={localLabels.gcLabel} className="font-bold text-left" onChange={handleTextChange("gcLabel")} /></th>
                             <th className="border border-black w-[10%] p-0.5 text-left font-bold"><EditableText value={localLabels.stockCountLabel} className="font-bold text-left" onChange={handleTextChange("stockCountLabel")} /></th>
                             <th className="border border-black w-[15%] p-0.5 text-center font-bold"><EditableText value={localLabels.contentLabel} className="font-bold text-center" onChange={handleTextChange("contentLabel")} /></th>
                             <th className="border border-black w-[25%] p-0.5 text-center font-bold"><EditableText value={localLabels.consignorLabel} className="font-bold text-center" onChange={handleTextChange("consignorLabel")} /></th>
@@ -172,16 +172,16 @@ const StockReportCoreTemplate: React.FC<StockReportTemplateProps> = ({ initialDa
                     </thead>
                     <tbody>
                         <tr className="h-6 md:h-8">
-                             <td className="border border-black p-0.5"></td>
-                             <td className="border border-black p-0.5"></td>
-                             <td className="border border-black p-0.5"></td>
-                             <td className="border border-black p-0.5"></td>
-                             <td className="border border-black p-0.5"></td>
-                             <td className="border border-black p-0.5"></td>
+                            <td className="border border-black p-0.5"></td>
+                            <td className="border border-black p-0.5"></td>
+                            <td className="border border-black p-0.5"></td>
+                            <td className="border border-black p-0.5"></td>
+                            <td className="border border-black p-0.5"></td>
+                            <td className="border border-black p-0.5"></td>
                         </tr>
                         <tr className="h-6 md:h-8 font-bold bg-gray-50">
                             <td className="border border-black p-0.5 text-right">
-                                <EditableText value={localLabels.totalLabel} className="font-bold text-right w-auto" placeholder="Total :" onChange={handleTextChange("totalLabel")}/>
+                                <EditableText value={localLabels.totalLabel} className="font-bold text-right w-auto" placeholder="Total :" onChange={handleTextChange("totalLabel")} />
                             </td>
                             <td className="border border-black p-0.5 text-left"></td>
                             <td className="border border-black p-0.5" colSpan={4}></td>
@@ -195,13 +195,13 @@ const StockReportCoreTemplate: React.FC<StockReportTemplateProps> = ({ initialDa
 
 export const StockReportTemplate: React.FC<StockReportTemplateProps> = (props) => {
     return (
-        <div className="stock-report-screen-wrapper bg-gray-100 dark:bg-black">
-             <style>{`
+        <div className="stock-report-screen-wrapper dark:bg-black">
+            <style>{`
                 .stock-report-screen-wrapper {
                     min-height: 100vh;
                 }
                 .report-page {
-                    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+                    // box-shadow: 0 0 10px rgba(0,0,0,0.1);
                     margin: 10px auto;
                     border: 1px solid #ccc;
                 }
@@ -211,7 +211,7 @@ export const StockReportTemplate: React.FC<StockReportTemplateProps> = (props) =
                         background: white;
                     }
                     .report-page {
-                        box-shadow: none;
+                        // box-shadow: none;
                         border: none;
                         margin: 0;
                         padding: 0;
@@ -222,7 +222,7 @@ export const StockReportTemplate: React.FC<StockReportTemplateProps> = (props) =
                     .report-page input[type="text"] {
                         border: none !important;
                         padding: 0 !important;
-                        box-shadow: none !important;
+                        // box-shadow: none !important;   
                     }
                     @page { size: A4; margin: 0; }
                 }

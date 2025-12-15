@@ -238,7 +238,7 @@ export const ContentList = () => {
         </div>
       </div>
 
-     
+
 
       {/* Data Table */}
       <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
@@ -275,7 +275,7 @@ export const ContentList = () => {
                 paginatedData.map((entry, index) => (
                   <tr key={entry.id} className="hover:bg-muted/30 transition-colors">
                     <td className="px-4 py-3">
-                      <span className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-primary/10 text-primary text-xs font-semibold">
+                      <span className="font-semibold text-primary">
                         {(currentPage - 1) * itemsPerPage + index + 1}
                       </span>
                     </td>
@@ -340,7 +340,7 @@ export const ContentList = () => {
                 paginatedData.map((entry, index) => (
                   <tr key={entry.id} className="hover:bg-muted/30 transition-colors">
                     <td className="px-3 py-3">
-                      <span className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-primary/10 text-primary text-xs font-semibold">
+                      <span className="font-semibold text-primary">
                         {(currentPage - 1) * itemsPerPage + index + 1}
                       </span>
                     </td>
@@ -392,7 +392,7 @@ export const ContentList = () => {
                 <div className="flex gap-3">
                   {/* Number Badge */}
                   <div className="pt-0.5 flex-shrink-0">
-                    <span className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-primary/10 text-primary text-xs font-semibold">
+                    <span className="font-semibold text-primary">
                       {(currentPage - 1) * itemsPerPage + index + 1}
                     </span>
                   </div>

@@ -160,7 +160,7 @@ export const GcEntryForm = () => {
 
                     setForm({
                         ...gc,
-                        billValue: (gc.billValue ||  '' as unknown as number),
+                        billValue: (gc.billValue || '' as unknown as number),
                         tollFee: (gc.tollFee || 0),
                         freight: (gc.freight || 0),
                         godownCharge: (gc.godownCharge || 0),
@@ -181,7 +181,7 @@ export const GcEntryForm = () => {
                             value: gc.consignorId,
                             label: consignorName,
                             gst: gst,
-                            from: consignorFrom 
+                            from: consignorFrom
                         });
 
                         setConsignorGst(gst);
@@ -200,8 +200,8 @@ export const GcEntryForm = () => {
                     }
 
                     if (gc.consigneeId && (gc as any).consigneeName) {
-                        setConsigneeOption({ 
-                            value: gc.consigneeId, 
+                        setConsigneeOption({
+                            value: gc.consigneeId,
                             label: (gc as any).consigneeName,
                             gst: (gc as any).consigneeGst,
                             pan: (gc as any).consigneePan,
@@ -399,7 +399,7 @@ export const GcEntryForm = () => {
         if (option) {
             const gst = option.gst || '';
             // FIX: Removed 'from' update so form.from stays as 'Sivakasi' (or current value)
-            setForm(prev => ({ ...prev, consignorId: val })); 
+            setForm(prev => ({ ...prev, consignorId: val }));
             setConsignorGst(gst);
 
             setConsignorGstOption(gst ? {
@@ -496,26 +496,26 @@ export const GcEntryForm = () => {
 
     const handleProofTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const newProofType = e.target.value as ProofType;
-        
+
         // 1. Get the correct value based on the selected type from the stored consignee option
         let newProofValue = '';
         if (consigneeOption) {
-             if (newProofType === 'gst') {
-                 newProofValue = consigneeOption.gst || '';
-             } else if (newProofType === 'pan') {
-                 newProofValue = consigneeOption.pan || '';
-             } else if (newProofType === 'aadhar') {
-                 newProofValue = consigneeOption.aadhar || '';
-             }
+            if (newProofType === 'gst') {
+                newProofValue = consigneeOption.gst || '';
+            } else if (newProofType === 'pan') {
+                newProofValue = consigneeOption.pan || '';
+            } else if (newProofType === 'aadhar') {
+                newProofValue = consigneeOption.aadhar || '';
+            }
         }
 
         // 2. Update the form with the new type AND the new value
-        setForm(prev => ({ 
-            ...prev, 
-            consigneeProofType: newProofType, 
-            consigneeProofValue: newProofValue 
+        setForm(prev => ({
+            ...prev,
+            consigneeProofType: newProofType,
+            consigneeProofValue: newProofValue
         }));
-        
+
         // 3. Trigger validation for the value field immediately so errors clear/appear
         validateField('consigneeProofValue', newProofValue);
     };
@@ -734,10 +734,10 @@ export const GcEntryForm = () => {
                                 <label className="block text-sm font-medium text-foreground mb-1.5">
                                     Proof Type <span className="text-destructive ml-1">*</span>
                                 </label>
-                                <select 
-                                    name="consigneeProofType" 
-                                    value={form.consigneeProofType} 
-                                    onChange={handleProofTypeChange} 
+                                <select
+                                    name="consigneeProofType"
+                                    value={form.consigneeProofType}
+                                    onChange={handleProofTypeChange}
                                     required
                                     className="w-full h-11 px-4 bg-background text-foreground border border-border rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200 hover:border-primary/50"
                                 >
@@ -784,8 +784,9 @@ export const GcEntryForm = () => {
                     </div>
 
                     <section className="bg-card text-foreground rounded-md p-4 border border-border">
-                        <h3 className="text-lg font-bold text-primary border-b border-border pb-2 mb-4">
-                            Contents <span className="text-muted-foreground font-normal text-sm ml-4">Net Qty: <span className="text-primary font-bold">{form.netQty}</span></span>
+                        <h3 className="text-lg font-bold text-primary border-b border-border pb-2 mb-4 flex justify-between items-center">
+                            <span>Contents</span>
+                            <span className="text-muted-foreground font-normal text-sm">Net Qty: <span className="text-primary font-bold">{form.netQty}</span></span>
                         </h3>
                         <div className="mb-6">
                             <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-4 items-end">
@@ -879,7 +880,7 @@ export const GcEntryForm = () => {
                                 <tbody>
                                     {contentItems.map((item) => (
                                         <tr key={item.id} className="even:bg-muted/20">
-                                            <td className="border border-muted p-2 text-center">{item.qty}</td>                                            
+                                            <td className="border border-muted p-2 text-center">{item.qty}</td>
                                             <td className="border border-muted p-2 text-center">{item.fromNo}</td>
                                             <td className="border border-muted p-2 text-center">{getToNo(item) > 0 ? getToNo(item) : '-'}</td>
                                             <td className="border border-muted p-2">{item.packing}</td>
@@ -918,7 +919,7 @@ export const GcEntryForm = () => {
                                 {formErrors.billNo && <p className="text-xs text-red-500 mt-1">{formErrors.billNo}</p>}
                             </div>
                             <div className="col-span-1">
-                                <Input label="Bill Value" name="billValue"  placeholder='0' value={form.billValue} onChange={handleChange} required {...getValidationProp(form.billValue)} />
+                                <Input label="Bill Value" name="billValue" placeholder='0' value={form.billValue} onChange={handleChange} required {...getValidationProp(form.billValue)} />
                                 {formErrors.billValue && <p className="text-xs text-red-500 mt-1">{formErrors.billValue}</p>}
                             </div>
                             <div className="col-span-1"><Input label="Toll" name="tollFee" value={form.tollFee} onChange={handleChange} /></div>
@@ -930,17 +931,17 @@ export const GcEntryForm = () => {
                         </div>
                     </div>
 
-                   <div className="pt-2">
-                    <RadioGroup
-                        label="Payment Type"
-                        options={[
-                            { value: 'To Pay', label: 'To Pay' },
-                            { value: 'Paid', label: 'Paid' }
-                        ]}
-                        value={form.paymentType}
-                        onChange={(value) => handleFormValueChange('paymentType', value)}
-                    />
-                </div>
+                    <div className="pt-2">
+                        <RadioGroup
+                            label="Payment Type"
+                            options={[
+                                { value: 'To Pay', label: 'To Pay' },
+                                { value: 'Paid', label: 'Paid' }
+                            ]}
+                            value={form.paymentType}
+                            onChange={(value) => handleFormValueChange('paymentType', value)}
+                        />
+                    </div>
                 </form>
             </div>
 
