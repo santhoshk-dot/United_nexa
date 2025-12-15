@@ -9,40 +9,39 @@
    Change the @apply rule below to switch themes.
    
    Available Options:
-   @apply theme-blue;       (Royal Blue & Pure Black OLED)
-   @apply theme-ocean;      (Deep Ocean Blue & Teal)
-   @apply theme-sunset;     (Warm Orange & Coral)
-   @apply theme-forest;     (Deep Green & Earth)
-   @apply theme-violet;     (Midnight Purple & Magenta)
-   @apply theme-desert;     (Sandy Beige & Terracotta)
-   @apply theme-arctic;     (Ice Blue & Cool Gray)
-   @apply theme-emerald;    (Rich Emerald & Gold)
-   @apply theme-sapphire;   (Deep Sapphire & Cyan)
-   @apply theme-ruby;       (Deep Ruby & Rose Gold)
-   @apply theme-jade;       (Rich Jade & Pearl)
-   @apply theme-obsidian;   (Obsidian Black & Silver)
-   @apply theme-coral;      (Coral Reef & Aquamarine)
-   @apply theme-amber;      (Golden Amber & Burgundy)
-   ============================================ */
+   @apply theme-blue;     (Royal Blue & Pure Black OLED)
+   @apply theme-ocean;    (Deep Ocean Blue & Teal)
+   @apply theme-sunset;   (Warm Orange & Coral)
+   @apply theme-forest;   (Deep Green & Earth)
+   @apply theme-violet;   (Midnight Purple & Magenta)
+   @apply theme-desert;   (Sandy Beige & Terracotta)
+   @apply theme-arctic;   (Ice Blue & Cool Gray)
+   @apply theme-emerald;  (Rich Emerald & Gold)
+   @apply theme-sapphire; (Deep Sapphire & Cyan)
+   @apply theme-ruby;     (Deep Ruby & Rose Gold)
+   @apply theme-jade;     (Rich Jade & Pearl)
+   @apply theme-obsidian; (Obsidian Black & Silver)
+   @apply theme-coral;    (Coral Reef & Aquamarine)
+   @apply theme-amber;    (Golden Amber & Burgundy)
+   @apply theme-cherry;   (Pure White & Cherry Red)
+============================================ */
 
 @layer base {
   :root {
     /* ▼ ACTIVE THEME: Royal Blue & Pure Black ▼ */
-    @apply theme-blue; 
+    @apply theme-blue;
   }
 
   body {
     @apply bg-background text-foreground transition-colors duration-300;
-    font-family: 'Manrope', ui-sans-serif, system-ui, sans-serif,
-                 "Apple Color Emoji", "Segoe UI Emoji",
-                 "Segoe UI Symbol", "Noto Color Emoji";
+    font-family: 'Manrope', ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
   }
 
   /* Premium Focus States */
   *:focus-visible {
     @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
   }
-  
+
   /* Smooth Scrolling */
   * {
     @apply scroll-smooth;
@@ -50,12 +49,11 @@
 
   /* ============================================
      🚫 AUTOFILL FIX (Forces Theme Colors)
-     ============================================ */
-  
+  ============================================ */
   /* Light Mode Autofill */
   input:-webkit-autofill,
-  input:-webkit-autofill:hover, 
-  input:-webkit-autofill:focus, 
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus,
   input:-webkit-autofill:active {
     -webkit-box-shadow: 0 0 0 30px hsl(var(--background)) inset !important;
     -webkit-text-fill-color: hsl(var(--foreground)) !important;
@@ -64,8 +62,8 @@
 
   /* Dark Mode Autofill */
   .dark input:-webkit-autofill,
-  .dark input:-webkit-autofill:hover, 
-  .dark input:-webkit-autofill:focus, 
+  .dark input:-webkit-autofill:hover,
+  .dark input:-webkit-autofill:focus,
   .dark input:-webkit-autofill:active {
     -webkit-box-shadow: 0 0 0 30px hsl(var(--background)) inset !important;
     -webkit-text-fill-color: hsl(var(--foreground)) !important;
@@ -75,8 +73,7 @@
 
 /* ============================================
    🛠️ THEME DEFINITIONS
-   ============================================ */
-
+============================================ */
 @layer components {
 
   /* ===== THEME: ROYAL BLUE & PURE BLACK (OLED) ===== */
@@ -102,7 +99,8 @@
     --radius: 0.5rem;
   }
 
-  .theme-blue.dark, .dark .theme-blue {
+  .theme-blue.dark,
+  .dark .theme-blue {
     /* Dark Mode: Pure Black & Neon Blue */
     --background: 0 0% 0%;
     --foreground: 0 0% 100%;
@@ -146,7 +144,8 @@
     --radius: 0.625rem;
   }
 
-  .theme-ocean.dark, .dark .theme-ocean {
+  .theme-ocean.dark,
+  .dark .theme-ocean {
     /* Dark Mode: Pitch Black & Bright Teal */
     --background: 0 0% 0%;
     --foreground: 175 80% 90%;
@@ -190,7 +189,8 @@
     --radius: 0.75rem;
   }
 
-  .theme-sunset.dark, .dark .theme-sunset {
+  .theme-sunset.dark,
+  .dark .theme-sunset {
     /* Dark Mode: Pitch Black & Fiery Orange */
     --background: 0 0% 0%;
     --foreground: 35 80% 90%;
@@ -234,7 +234,8 @@
     --radius: 0.5rem;
   }
 
-  .theme-forest.dark, .dark .theme-forest {
+  .theme-forest.dark,
+  .dark .theme-forest {
     /* Dark Mode: Pitch Black & Bright Moss */
     --background: 0 0% 0%;
     --foreground: 100 40% 90%;
@@ -278,7 +279,8 @@
     --radius: 0.875rem;
   }
 
-  .theme-violet.dark, .dark .theme-violet {
+  .theme-violet.dark,
+  .dark .theme-violet {
     /* Dark Mode: Pitch Black & Electric Purple */
     --background: 0 0% 0%;
     --foreground: 280 60% 90%;
@@ -322,7 +324,8 @@
     --radius: 0.5rem;
   }
 
-  .theme-desert.dark, .dark .theme-desert {
+  .theme-desert.dark,
+  .dark .theme-desert {
     /* Dark Mode: Pitch Black & Warm Terracotta */
     --background: 0 0% 0%;
     --foreground: 40 50% 90%;
@@ -366,7 +369,8 @@
     --radius: 0.625rem;
   }
 
-  .theme-arctic.dark, .dark .theme-arctic {
+  .theme-arctic.dark,
+  .dark .theme-arctic {
     /* Dark Mode: Pitch Black & Neon Ice */
     --background: 0 0% 0%;
     --foreground: 200 60% 90%;
@@ -410,7 +414,8 @@
     --radius: 0.625rem;
   }
 
-  .theme-emerald.dark, .dark .theme-emerald {
+  .theme-emerald.dark,
+  .dark .theme-emerald {
     /* Dark Mode: Pitch Black & Emerald-Gold */
     --background: 0 0% 0%;
     --foreground: 0 0% 100%;
@@ -454,7 +459,8 @@
     --radius: 0.625rem;
   }
 
-  .theme-sapphire.dark, .dark .theme-sapphire {
+  .theme-sapphire.dark,
+  .dark .theme-sapphire {
     /* Dark Mode: Pitch Black & Sapphire-Cyan */
     --background: 0 0% 0%;
     --foreground: 0 0% 100%;
@@ -498,7 +504,8 @@
     --radius: 0.75rem;
   }
 
-  .theme-ruby.dark, .dark .theme-ruby {
+  .theme-ruby.dark,
+  .dark .theme-ruby {
     /* Dark Mode: Pitch Black & Ruby-Rose */
     --background: 0 0% 0%;
     --foreground: 0 0% 100%;
@@ -542,7 +549,8 @@
     --radius: 0.875rem;
   }
 
-  .theme-jade.dark, .dark .theme-jade {
+  .theme-jade.dark,
+  .dark .theme-jade {
     /* Dark Mode: Pitch Black & Jade-Pearl */
     --background: 0 0% 0%;
     --foreground: 0 0% 100%;
@@ -586,7 +594,8 @@
     --radius: 0.5rem;
   }
 
-  .theme-obsidian.dark, .dark .theme-obsidian {
+  .theme-obsidian.dark,
+  .dark .theme-obsidian {
     /* Dark Mode: Pitch Black & Silver Accents */
     --background: 0 0% 0%;
     --foreground: 0 0% 100%;
@@ -630,7 +639,8 @@
     --radius: 0.75rem;
   }
 
-  .theme-coral.dark, .dark .theme-coral {
+  .theme-coral.dark,
+  .dark .theme-coral {
     /* Dark Mode: Pitch Black & Coral-Aquamarine */
     --background: 0 0% 0%;
     --foreground: 0 0% 100%;
@@ -674,7 +684,8 @@
     --radius: 0.625rem;
   }
 
-  .theme-amber.dark, .dark .theme-amber {
+  .theme-amber.dark,
+  .dark .theme-amber {
     /* Dark Mode: Pitch Black & Amber-Burgundy */
     --background: 0 0% 0%;
     --foreground: 0 0% 100%;
@@ -695,20 +706,65 @@
     --ring: 38 90% 58%;
   }
 
+  /* ===== THEME 14: CHERRY (Pure White & Cherry Red) ===== */
+  .theme-cherry {
+    /* Light Mode: Pure White & Cherry Red */
+    --background: 0 0% 100%;
+    --foreground: 350 30% 15%;
+    --card: 0 0% 100%;
+    --card-foreground: 350 30% 15%;
+    --primary: 350 85% 50%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 350 30% 96%;
+    --secondary-foreground: 350 30% 15%;
+    --muted: 350 20% 95%;
+    --muted-foreground: 350 15% 45%;
+    --accent: 350 80% 94%;
+    --accent-foreground: 350 85% 35%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 350 20% 90%;
+    --input: 350 20% 90%;
+    --ring: 350 85% 50%;
+    --radius: 0.5rem;
+  }
+
+  .theme-cherry.dark,
+  .dark .theme-cherry {
+    /* Dark Mode: Pitch Black & Bright Cherry */
+    --background: 0 0% 0%;
+    --foreground: 0 0% 100%;
+    --card: 0 0% 0%;
+    --card-foreground: 0 0% 100%;
+    --primary: 350 95% 55%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 0 0% 12%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 0 0% 12%;
+    --muted-foreground: 0 0% 60%;
+    --accent: 350 90% 25%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 100% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 0 0% 20%;
+    --input: 0 0% 20%;
+    --ring: 350 95% 55%;
+  }
+
   /* ============================================
      🎯 UTILITY CLASSES
-     ============================================ */
+  ============================================ */
 
   /* Glass Effect */
   .glass-effect {
     @apply bg-background/80 backdrop-blur-md border border-border;
   }
-  
+
   /* Premium Shadow */
   .premium-shadow {
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
   }
-  
+
   .dark .premium-shadow {
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
   }
@@ -768,6 +824,10 @@
 
   .gradient-amber {
     background: linear-gradient(135deg, hsl(38 80% 55%) 0%, hsl(350 75% 60%) 100%);
+  }
+
+  .gradient-cherry {
+    background: linear-gradient(135deg, hsl(350 85% 50%) 0%, hsl(340 90% 65%) 100%);
   }
 
   /* Glow Effects */

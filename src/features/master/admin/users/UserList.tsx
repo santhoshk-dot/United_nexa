@@ -8,7 +8,6 @@ import {
   User as UserIcon,
   Search,
   Download,
- 
   Hash,
   Phone,
   Mail,
@@ -30,7 +29,6 @@ export const UserList = () => {
   const toast = useToast();
 
   const [search, setSearch] = useState('');
- 
   const [roleFilter] = useState<string>('all');
 
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -69,10 +67,6 @@ export const UserList = () => {
     data: filteredUsers,
     initialItemsPerPage: 10,
   });
-
- 
-
- 
 
   const handleEdit = (user: AppUser) => {
     setEditingUser(user);
@@ -184,14 +178,11 @@ export const UserList = () => {
             />
           </div>
 
-        
-
           <Button variant="outline" onClick={handleExport} className="h-10">
             <Download className="w-4 h-4" />
             Export
           </Button>
           <CsvImporter<AppUser>
-            
             onImport={handleImport}
             existingData={users}
             label="Import"
@@ -245,8 +236,6 @@ export const UserList = () => {
           </div>
         </div>
       </div>
-
-    
 
       {/* Data Table */}
       <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
@@ -442,72 +431,63 @@ export const UserList = () => {
           </table>
         </div>
 
-        {/* Mobile Cards - show on small screens only */}
+        {/* Mobile Cards (Redesigned) - show on small screens only */}
         <div className="block md:hidden divide-y divide-border">
           {paginatedData.length > 0 ? (
-            paginatedData.map((u, index) => (
-              <div key={u.id} className="p-4">
-                <div className="flex gap-3">
-                  {/* Number Badge */}
-                  <div className="pt-0.5 flex-shrink-0">
-                    <span className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-primary/10 text-primary text-xs font-semibold">
-                      {(currentPage - 1) * itemsPerPage + index + 1}
-                    </span>
-                  </div>
-
-                  {/* Content */}
-                  <div className="flex-1 min-w-0">
-                    {/* Header */}
-                    <div className="flex items-start justify-between gap-2 mb-2">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <div className="flex-shrink-0 h-8 w-8 bg-primary/10 rounded-full flex items-center justify-center text-primary">
-                          {u.role === 'admin' ? <Shield size={16} /> : <UserIcon size={16} />}
-                        </div>
-                        <div className="min-w-0">
-                          <h3 className="font-semibold text-foreground truncate">{u.name}</h3>
-                          <span className={`inline-flex px-2 py-0.5 text-[10px] font-semibold rounded border mt-0.5 ${
-                            u.role === 'admin'
-                              ? 'bg-purple-100 text-purple-700 border-purple-200'
-                              : 'bg-emerald-100 text-emerald-700 border-emerald-200'
-                          }`}>
-                            {u.role.toUpperCase()}
-                          </span>
-                        </div>
-                      </div>
+            paginatedData.map((u, _index) => (
+              <div key={u.id} className="p-4 bg-card">
+                {/* Header: Avatar, Name and Role */}
+                <div className="flex items-start justify-between gap-3 mb-3">
+                  <div className="flex items-center gap-3">
+                    <div className={`flex-shrink-0 h-10 w-10 rounded-full flex items-center justify-center ${
+                      u.role === 'admin' ? 'bg-purple-100 text-purple-600' : 'bg-primary/10 text-primary'
+                    }`}>
+                      {u.role === 'admin' ? <Shield size={18} /> : <UserIcon size={18} />}
                     </div>
-
-                    {/* Details */}
-                    <div className="space-y-1 text-sm mb-3">
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <Mail className="w-3.5 h-3.5 flex-shrink-0" />
-                        <span className="truncate">{u.email}</span>
+                    <div>
+                      <h3 className="font-semibold text-foreground text-base">{u.name}</h3>
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-0.5">
+                         <span className="truncate max-w-[150px]">{u.email}</span>
                       </div>
-                      <div className="flex items-center gap-2 text-foreground">
-                        <Phone className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
-                        <span>{u.mobile || '-'}</span>
-                      </div>
-                    </div>
-
-                    {/* Actions */}
-                    <div className="flex items-center gap-2 pt-3 border-t border-border">
-                      <button
-                        onClick={() => handleEdit(u)}
-                        className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium text-blue-600 bg-blue-500/10 hover:bg-blue-500/20 transition-colors"
-                      >
-                        <FilePenLine className="w-3.5 h-3.5" />
-                        Edit
-                      </button>
-                      {currentUser?.id !== u.id && (
-                        <button
-                          onClick={() => handleDelete(u)}
-                          className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium text-destructive bg-destructive/10 hover:bg-destructive/20 transition-colors"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                          Delete
-                        </button>
-                      )}
                     </div>
                   </div>
+                  
+                  {/* Role Badge - Top Right */}
+                  <span className={`flex-shrink-0 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full border ${
+                     u.role === 'admin'
+                       ? 'bg-purple-50 text-purple-700 border-purple-200'
+                       : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                   }`}>
+                    {u.role}
+                  </span>
+                </div>
+
+                {/* Content: Contact Details */}
+                <div className="pl-[3.25rem] mb-4 space-y-1.5">
+                  <div className="flex items-center gap-2 text-sm text-foreground">
+                    <Phone className="w-3.5 h-3.5 text-muted-foreground" />
+                    <span className="font-mono">{u.mobile || 'No mobile'}</span>
+                  </div>
+                </div>
+
+                {/* Footer: Large Action Buttons */}
+                <div className="flex items-center gap-2 pt-3 border-t border-border">
+                  <button
+                    onClick={() => handleEdit(u)}
+                    className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium text-blue-600 bg-blue-500/10 hover:bg-blue-500/20 transition-colors"
+                  >
+                    <FilePenLine className="w-4 h-4" />
+                    Edit
+                  </button>
+                  {currentUser?.id !== u.id && (
+                    <button
+                      onClick={() => handleDelete(u)}
+                      className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium text-destructive bg-destructive/10 hover:bg-destructive/20 transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      Delete
+                    </button>
+                  )}
                 </div>
               </div>
             ))

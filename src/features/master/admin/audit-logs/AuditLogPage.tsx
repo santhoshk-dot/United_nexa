@@ -172,6 +172,15 @@ const AuditLogPage = () => {
     }
   };
 
+  const getModuleIcon = (collectionName: string) => {
+    switch (collectionName) {
+      case 'LoadingSheet': return <Box size={18} />;
+      case 'TripSheet': return <Activity size={18} />;
+      case 'GcEntry': return <FileText size={18} />;
+      default: return <Database size={18} />;
+    }
+  };
+
   const renderLoadingSheetChanges = () => {
     if (loadingContext) {
       return (
@@ -533,8 +542,8 @@ const AuditLogPage = () => {
                 </thead>
                 <tbody className="divide-y divide-border">
                   {logs.length > 0 ? (
-                    logs.map((log) => (
-                      <tr key={log._id} className="hover:bg-muted/30 transition-colors">
+                    logs.map((log, index) => (
+                      <tr key={log._id || index} className="hover:bg-muted/30 transition-colors">
                         <td className="px-4 py-3">
                           <span className="font-mono font-bold text-primary">{log.documentId}</span>
                         </td>
@@ -600,8 +609,8 @@ const AuditLogPage = () => {
                 </thead>
                 <tbody className="divide-y divide-border">
                   {logs.length > 0 ? (
-                    logs.map((log) => (
-                      <tr key={log._id} className="hover:bg-muted/30 transition-colors">
+                    logs.map((log, index) => (
+                      <tr key={log._id || index} className="hover:bg-muted/30 transition-colors">
                         <td className="px-3 py-3">
                           <div>
                             <span className="font-mono font-bold text-primary block">{log.documentId}</span>
@@ -649,51 +658,53 @@ const AuditLogPage = () => {
             {/* Mobile Cards - show on small screens only */}
             <div className="block md:hidden divide-y divide-border">
               {logs.length > 0 ? (
-                logs.map((log) => (
-                  <div key={log._id} className="p-4">
-                    <div className="flex gap-3">
-                      {/* Action Badge as Visual Anchor */}
-                      <div className="pt-0.5 flex-shrink-0">
-                        <span className={`inline-flex items-center justify-center px-2 py-1 rounded text-[10px] font-bold border ${getActionColor(log.action)}`}>
-                          {log.action}
-                        </span>
-                      </div>
-
-                      {/* Content */}
-                      <div className="flex-1 min-w-0">
-                        {/* Header */}
-                        <div className="mb-2">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <h3 className="font-mono font-bold text-primary">{log.documentId}</h3>
-                            <span className="text-[10px] font-semibold text-muted-foreground bg-muted px-1.5 py-0.5 rounded uppercase tracking-wide">
-                              {getModuleLabel(log.collectionName)}
-                            </span>
-                          </div>
+                logs.map((log, index) => (
+                  <div key={log._id || index} className="p-4 bg-card">
+                    {/* Header: Icon (Color by Action) + DocID + Action Badge */}
+                    <div className="flex items-start justify-between gap-3 mb-3">
+                      <div className="flex items-center gap-3">
+                        <div className={`flex-shrink-0 h-10 w-10 rounded-full flex items-center justify-center ${
+                          log.action === 'DELETE' ? 'bg-red-100 text-red-600' : 
+                          log.action === 'CREATE' ? 'bg-emerald-100 text-emerald-600' :
+                          'bg-blue-100 text-blue-600'
+                        }`}>
+                           {getModuleIcon(log.collectionName)}
                         </div>
-
-                        {/* Details */}
-                        <div className="space-y-1 text-sm mb-3">
-                          <div className="flex items-center gap-2 text-foreground">
-                            <User className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
-                            <span>{log.changedBy}</span>
+                        <div>
+                          <h3 className="font-mono font-bold text-foreground text-sm">{log.documentId}</h3>
+                          <div className="text-xs text-muted-foreground mt-0.5">
+                            {getModuleLabel(log.collectionName)}
                           </div>
-                          <div className="flex items-center gap-2 text-muted-foreground">
-                            <Clock className="w-3.5 h-3.5 flex-shrink-0" />
-                            <span className="text-xs font-mono">{formatDateTime(log.timestamp)}</span>
-                          </div>
-                        </div>
-
-                        {/* Actions */}
-                        <div className="flex items-center gap-2 pt-3 border-t border-border">
-                          <button
-                            onClick={() => setSelectedLog(log)}
-                            className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium text-primary bg-primary/10 hover:bg-primary/20 transition-colors"
-                          >
-                            <Eye className="w-3.5 h-3.5" />
-                            View Details
-                          </button>
                         </div>
                       </div>
+                      
+                      {/* Action Badge */}
+                      <span className={`flex-shrink-0 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full border ${getActionColor(log.action)}`}>
+                        {log.action}
+                      </span>
+                    </div>
+
+                    {/* Body Content */}
+                    <div className="pl-[3.25rem] mb-4 space-y-1.5">
+                       <div className="flex items-center gap-2 text-sm text-foreground">
+                         <User className="w-3.5 h-3.5 text-muted-foreground" />
+                         <span>{log.changedBy}</span>
+                       </div>
+                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                         <Clock className="w-3.5 h-3.5" />
+                         <span className="font-mono">{formatDateTime(log.timestamp)}</span>
+                       </div>
+                    </div>
+
+                    {/* Footer Actions */}
+                    <div className="pt-3 border-t border-border">
+                      <button
+                        onClick={() => setSelectedLog(log)}
+                        className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium bg-secondary hover:bg-secondary/80 text-foreground transition-colors border border-border/50"
+                      >
+                        <Eye className="w-4 h-4" />
+                        View Details
+                      </button>
                     </div>
                   </div>
                 ))
