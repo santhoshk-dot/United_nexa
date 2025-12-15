@@ -173,12 +173,15 @@ export const GcEntryForm = () => {
                     if (gc.consignorId && (gc as any).consignorName) {
                         const gst = (gc as any).consignorGSTIN || '';
                         const consignorName = (gc as any).consignorName;
+                        // FIX: Use consignorFrom from backend (which is the actual consignor location)
+                        // instead of gc.from (which is the GC origin, usually Sivakasi)
+                        const consignorFrom = (gc as any).consignorFrom || '';
 
                         setConsignorOption({
                             value: gc.consignorId,
                             label: consignorName,
                             gst: gst,
-                            from: gc.from
+                            from: consignorFrom 
                         });
 
                         setConsignorGst(gst);
@@ -189,7 +192,7 @@ export const GcEntryForm = () => {
                                 label: gst,
                                 gst: gst,
                                 consignorName: consignorName,
-                                from: gc.from
+                                from: consignorFrom
                             });
                         } else {
                             setConsignorGstOption(null);
@@ -197,7 +200,14 @@ export const GcEntryForm = () => {
                     }
 
                     if (gc.consigneeId && (gc as any).consigneeName) {
-                        setConsigneeOption({ value: gc.consigneeId, label: (gc as any).consigneeName });
+                        setConsigneeOption({ 
+                            value: gc.consigneeId, 
+                            label: (gc as any).consigneeName,
+                            gst: (gc as any).consigneeGst,
+                            pan: (gc as any).consigneePan,
+                            aadhar: (gc as any).consigneeAadhar,
+                            destination: gc.destination
+                        });
                         setConsigneeDestDisplay(gc.destination || '');
                     }
 
@@ -388,7 +398,8 @@ export const GcEntryForm = () => {
 
         if (option) {
             const gst = option.gst || '';
-            setForm(prev => ({ ...prev, consignorId: val, from: option.from || 'Sivakasi' }));
+            // FIX: Removed 'from' update so form.from stays as 'Sivakasi' (or current value)
+            setForm(prev => ({ ...prev, consignorId: val })); 
             setConsignorGst(gst);
 
             setConsignorGstOption(gst ? {
@@ -399,7 +410,8 @@ export const GcEntryForm = () => {
                 from: option.from
             } : null);
         } else {
-            setForm(prev => ({ ...prev, consignorId: '', from: 'Sivakasi' }));
+            // FIX: Removed 'from' update
+            setForm(prev => ({ ...prev, consignorId: '' }));
             setConsignorGst('');
             setConsignorGstOption(null);
         }
@@ -425,16 +437,17 @@ export const GcEntryForm = () => {
             });
 
             setConsignorGst(gst);
+            // FIX: Removed 'from' update so form.from stays as 'Sivakasi' (or current value)
             setForm(prev => ({
                 ...prev,
                 consignorId: val,
-                from: option.from || 'Sivakasi'
             }));
         } else {
             setConsignorOption(null);
             setConsignorGst('');
             setConsignorGstOption(null);
-            setForm(prev => ({ ...prev, consignorId: '', from: 'Sivakasi' }));
+            // FIX: Removed 'from' update
+            setForm(prev => ({ ...prev, consignorId: '' }));
         }
 
         setFormErrors(prev => { const n = { ...prev }; delete n['consignorId']; return n; });
@@ -699,7 +712,8 @@ export const GcEntryForm = () => {
                                     {...getValidationProp(consignorGst)}
                                 />
                             </div>
-                            <div className="col-span-1 lg:col-span-3"><Input label="Consignor From" value={form.from} disabled required {...getValidationProp(form.from)} /></div>
+                            {/* FIX: Use consignorOption.from instead of form.from to show Consignor's location */}
+                            <div className="col-span-1 lg:col-span-3"><Input label="Consignor From" value={consignorOption?.from || ''} disabled required {...getValidationProp(consignorOption?.from || '')} /></div>
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-4">
                             <div className="col-span-1 sm:col-span-2 lg:col-span-5">
@@ -724,6 +738,7 @@ export const GcEntryForm = () => {
                                     name="consigneeProofType" 
                                     value={form.consigneeProofType} 
                                     onChange={handleProofTypeChange} 
+                                    required
                                     className="w-full h-11 px-4 bg-background text-foreground border border-border rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200 hover:border-primary/50"
                                 >
                                     <option value="gst">GST</option>
@@ -731,7 +746,7 @@ export const GcEntryForm = () => {
                                     <option value="aadhar">Aadhar</option>
                                 </select>
                             </div>
-                            <div className="col-span-1 lg:col-span-2"><Input label="Proof Value" name="consigneeProofValue" value={form.consigneeProofValue} onChange={handleChange} required {...getValidationProp(form.consigneeProofValue)} /></div>
+                            <div className="col-span-1 lg:col-span-2"><Input label="Proof Value" name="consigneeProofValue" value={form.consigneeProofValue} onChange={handleChange} disabled required {...getValidationProp(form.consigneeProofValue)} /></div>
                         </div>
                     </div>
 

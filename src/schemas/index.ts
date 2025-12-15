@@ -9,6 +9,12 @@ const VEHICLE_REGEX = /^[A-Z]{2}[ -]?[0-9]{1,2}(?:[ -]?[A-Z])?(?:[ -]?[A-Z]*)?[ 
 
 // --- Helper ---
 const optionalNumericString = z.coerce.number().default(0);
+// 🟢 NEW: Helper for required numeric fields (accepts string/number, rejects empty)
+const requiredNumericString = z.union([z.string(), z.number()])
+  .transform((val) => val.toString())
+  .refine((val) => val.trim().length > 0, "Bill Value is required")
+  .refine((val) => !isNaN(Number(val)), "Bill Value must be a number")
+  .transform((val) => Number(val));
 
 // --- 1. Auth Schemas ---
 export const loginSchema = z.object({
@@ -111,7 +117,7 @@ export const gcEntrySchema = z.object({
 
   billNo: z.string().min(1, "Bill No is required"),
   billDate: z.string().min(1, "Bill Date is required"),
-  billValue: optionalNumericString,
+  billValue: requiredNumericString,
 
   tollFee: optionalNumericString,
   freight: optionalNumericString,

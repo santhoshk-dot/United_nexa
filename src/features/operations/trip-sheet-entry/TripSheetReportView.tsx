@@ -67,7 +67,7 @@ const ReportPage = ({
       width: "210mm",
       height: "297mm",
       maxHeight: "297mm",
-      padding: "10mm",
+      padding: "8mm 10mm",
       boxSizing: "border-box",
       fontFamily: '"Times New Roman", Times, serif',
       position: "relative",
@@ -81,24 +81,24 @@ const ReportPage = ({
     <div 
       className="table-container" 
       style={{ 
-        maxHeight: 'calc(297mm - 70mm)', // Account for header (~45mm) + footer (~15mm) + padding (20mm)
+        maxHeight: 'calc(297mm - 65mm)',
         overflow: 'hidden' 
       }}
     >
-      <table className="w-full table-fixed border-collapse border-x border-b border-black text-[11px] leading-tight mt-0">
+      <table className="w-full table-fixed border-collapse border-x border-b border-black text-xs leading-normal mt-0">
         <thead>
           <tr className="h-8">
-            <th className="border border-black w-[12%] p-1 text-left font-bold text-xs">{labels.tsLabel}</th>
-            <th className="border border-black w-[12%] p-1 text-left font-bold text-xs">{labels.dateLabel}</th>
-            <th className="border border-black w-[20%] p-1 text-left font-bold text-xs">{labels.fromPlaceLabel}</th>
-            <th className="border border-black w-[20%] p-1 text-left font-bold text-xs">{labels.toPlaceLabel}</th>
-            <th className="border border-black w-[15%] p-1 text-right font-bold text-xs">{labels.amountLabel}</th>
+            <th className="border border-black w-[12%] p-1 text-left font-bold">{labels.tsLabel}</th>
+            <th className="border border-black w-[12%] p-1 text-left font-bold">{labels.dateLabel}</th>
+            <th className="border border-black w-[20%] p-1 text-left font-bold">{labels.fromPlaceLabel}</th>
+            <th className="border border-black w-[20%] p-1 text-left font-bold">{labels.toPlaceLabel}</th>
+            <th className="border border-black w-[15%] p-1 text-right font-bold">{labels.amountLabel}</th>
           </tr>
         </thead>
 
         <tbody>
           {entries.map((ts) => (
-            <tr key={ts.mfNo} className="h-6">
+            <tr key={ts.mfNo} className="h-7">
               <td className="border border-black p-1 px-2">{ts.mfNo}</td>
               <td className="border border-black p-1 px-2">{ts.tsDate}</td>
               <td className="border border-black p-1 px-2">{ts.fromPlace}</td>
@@ -123,12 +123,12 @@ const ReportPage = ({
       </table>
     </div>
 
-    {/* FOOTER - Absolute positioned at bottom */}
+    {/* Compact Footer */}
     <div 
-      className="text-center text-[10px] font-sans"
+      className="text-center text-[9px] font-sans"
       style={{
         position: 'absolute',
-        bottom: '8mm',
+        bottom: '5mm',
         left: 0,
         right: 0
       }}
@@ -153,19 +153,28 @@ export const TripSheetReportPrint = ({
 
   const printTriggered = useRef(false);
 
-  // 1. Calculate Grand Total
+  // 1. Sort sheets numerically by mfNo (descending: latest first)
+  const sortedSheets = useMemo(() => {
+    return [...sheets].sort((a, b) => {
+      const numA = typeof a.mfNo === 'string' ? parseInt(a.mfNo, 10) : (a.mfNo ?? 0);
+      const numB = typeof b.mfNo === 'string' ? parseInt(b.mfNo, 10) : (b.mfNo ?? 0);
+      return numB - numA; // Descending order (latest first: 3, 2, 1...)
+    });
+  }, [sheets]);
+
+  // 2. Calculate Grand Total
   const grandTotal = useMemo(
-    () => sheets.reduce((s, ts) => s + (ts.totalAmount ?? 0), 0),
-    [sheets]
+    () => sortedSheets.reduce((s, ts) => s + (ts.totalAmount ?? 0), 0),
+    [sortedSheets]
   );
 
-  // 2. Split into Pages - Reduced entries per page to fit A4
-  const ENTRIES_PER_PAGE = 25; // Reduced from 35 to prevent overflow
-  const ENTRIES_LAST_PAGE = 22; // One less for total row
+  // 3. Split into Pages - Optimized for A4 printing
+  const ENTRIES_PER_PAGE = 26; // Rows per page with larger text
+  const ENTRIES_LAST_PAGE = 24; // Last page (account for total row)
   
   const pages = useMemo(() => {
     const arr: TripSheetEntry[][] = [];
-    let remaining = [...sheets];
+    let remaining = [...sortedSheets];
     
     while (remaining.length > 0) {
       const isLikelyLastPage = remaining.length <= ENTRIES_PER_PAGE;
@@ -181,11 +190,11 @@ export const TripSheetReportPrint = ({
     }
     
     return arr;
-  }, [sheets]);
+  }, [sortedSheets]);
 
-  // 3. Auto Print Trigger
+  // 4. Auto Print Trigger
   useEffect(() => {
-    if (sheets.length === 0) return;
+    if (sortedSheets.length === 0) return;
     if (printTriggered.current) return;
 
     const timer = setTimeout(() => {
@@ -196,7 +205,7 @@ export const TripSheetReportPrint = ({
     return () => {
       clearTimeout(timer);
     };
-  }, [sheets]);
+  }, [sortedSheets]);
 
   const handleManualPrint = () => {
     window.print();
@@ -206,11 +215,11 @@ export const TripSheetReportPrint = ({
     <div className="trip-report-print-wrapper">
       <style>{`
         /* =========================================
-           1. PRINT STYLES
+           1. PRINT STYLES - A4 OPTIMIZED
            ========================================= */
         @media print {
           @page {
-            size: A4;
+            size: A4 portrait;
             margin: 0; 
           }
 
@@ -227,6 +236,8 @@ export const TripSheetReportPrint = ({
             padding: 0 !important;
             overflow: visible !important;
             background: white !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
           }
 
           .trip-report-print-wrapper {
@@ -258,6 +269,7 @@ export const TripSheetReportPrint = ({
             max-height: 297mm;
             overflow: hidden;
             position: relative;
+            background: white !important;
           }
           
           .report-page:last-child { 
@@ -275,6 +287,14 @@ export const TripSheetReportPrint = ({
           
           tr { 
             page-break-inside: avoid; 
+          }
+          
+          thead {
+            display: table-header-group;
+          }
+          
+          tbody {
+            display: table-row-group;
           }
         }
 
@@ -425,7 +445,7 @@ export const TripSheetReportPrint = ({
         <div>
           <span className="preview-title">Trip Report Preview</span>
           <span className="page-info">
-            {pages.length} {pages.length === 1 ? 'page' : 'pages'} • {sheets.length} entries
+            {pages.length} {pages.length === 1 ? 'page' : 'pages'} • {sortedSheets.length} entries
           </span>
         </div>
         <div className="action-group">
@@ -459,3 +479,4 @@ export const TripSheetReportPrint = ({
 
   return ReactDOM.createPortal(printContent, document.body);
 };
+
