@@ -811,7 +811,7 @@ export const TripSheetForm = () => {
 
       {/* Fixed Action Buttons - Always visible at bottom */}
       <div className="flex-shrink-0 p-4 border-t border-muted bg-background flex flex-col sm:flex-row justify-end gap-3 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
-        <Button type="button" variant="secondary" onClick={() => navigate("/trip-sheet")}>
+        <Button type="button" variant="secondary" onClick={() => navigate("/tripsheet")}>
           <X size={16} />
           Cancel
         </Button>
