@@ -23,6 +23,7 @@ export const TripSheetPrintCopy: React.FC<Props> = ({ sheet }) => {
   const total = sheet.totalAmount ?? 0;
   const totalWords = numberToWordsInRupees(total);
 
+  // Adjusted to fill the page properly with larger fonts
   const visibleRowCount = 15;
   const items: TripSheetGCItem[] = sheet.items ?? [];
   const fillerCount = Math.max(0, visibleRowCount - items.length);
@@ -31,7 +32,7 @@ export const TripSheetPrintCopy: React.FC<Props> = ({ sheet }) => {
   const totalPackages = items.reduce((acc, it) => acc + (it.qty || 0), 0);
 
   return (
-    <div style={{ fontFamily: "Arial, Helvetica, sans-serif", color: "#000", padding: "10mm" }}>
+    <div style={{ fontFamily: "Arial, Helvetica, sans-serif", color: "#000", padding: "6mm 10mm" }}>
       <style>
         {`
         @page {
@@ -44,6 +45,7 @@ export const TripSheetPrintCopy: React.FC<Props> = ({ sheet }) => {
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
             margin: 0;
+            padding: 0;
           }
 
           * {
@@ -55,54 +57,66 @@ export const TripSheetPrintCopy: React.FC<Props> = ({ sheet }) => {
           text-align: center;
           font-weight: 700;
           font-size: 18px;
-          margin-bottom: 6px;
+          margin-bottom: 5px;
         }
 
         .box {
           border: 2px solid #000;
-          padding: 10px;
+          padding: 8px 10px;
           box-sizing: border-box;
           width: 100%;
         }
 
         .header-flex {
-          display:flex;
-          justify-content:space-between;
-          align-items:flex-start;
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
         }
-        .company-block { width: 64%; border-right: 1px solid #000; font-weight: 600 }
-        .company-title { font-weight: 900; font-size: 20px; }
-        .company-sub { font-size: 11px; margin-top: 3px; }
+        .company-block { 
+          width: 64%; 
+          border-right: 1px solid #000; 
+          font-weight: 600;
+          padding-right: 8px;
+        }
+        .company-title { 
+          font-weight: 900; 
+          font-size: 20px; 
+        }
+        .company-sub { 
+          font-size: 11px; 
+          margin-top: 2px; 
+        }
 
         .meta-block {
           width: 36%;
           text-align: left;
-          font-size: 14px;
+          font-size: 13px;
           line-height: 1.4;
-          padding: 10px;
+          padding: 6px 8px;
         }
 
         .fromto {
-          display:flex;
-          justify-content:space-between;
-          margin-top: 8px;
-          padding: 6px 2px;
+          display: flex;
+          justify-content: space-between;
+          margin-top: 5px;
+          padding: 5px 2px;
           font-weight: 200;
+          font-size: 13px;
           border-top: 1px solid #000;
         }
 
         .ts-table {
-          width:100%;
+          width: 100%;
           border-collapse: collapse;
           font-size: 12px;
-          margin-top: 6px;
+          margin-top: 5px;
         }
 
         .ts-table thead th {
           border-top: 1px solid #000;
           border-bottom: 1px solid #000;
           border-left: 1px solid #000;
-          padding: 6px;
+          padding: 5px;
           font-weight: 700;
         }
         .ts-table thead th:last-child {
@@ -110,10 +124,11 @@ export const TripSheetPrintCopy: React.FC<Props> = ({ sheet }) => {
         }
 
         .ts-table tbody td {
-          padding: 6px;
+          padding: 4px 5px;
           border-left: 1px solid #000;
           vertical-align: top;
-          height: 22px;
+          height: 20px;
+          line-height: 1.3;
         }
         .ts-table tbody td:last-child {
           border-right: 1px solid #000;
@@ -122,57 +137,61 @@ export const TripSheetPrintCopy: React.FC<Props> = ({ sheet }) => {
         .total-row td {
           border-top: 1px solid #000;
           border-bottom: 1px solid #000;
-          padding: 8px 6px;
+          padding: 6px 5px;
           font-weight: 800;
         }
         .total-label { text-align: right; }
         .total-amt { text-align: right; white-space: nowrap; }
 
         .footer {
-          margin-top: 6px;
-          font-size: 12px;
-          line-height: 1.4;
-        }
-
-        .dash {
-          display:inline-block;
-          border-bottom:1px dashed #000;
-          padding: 0 6px;
-          min-width: 120px;
-        }
-
-        .trip-footer-grid {
-          margin-top: 8px;
-          display: grid;
-          grid-template-columns: 1fr 1fr 1fr;
-          gap: 10px;
-          font-size: 12px;
-        }
-        .col-line {
-          border-bottom:1px dashed #000;
-          padding-bottom:3px; 
-          display:inline-block;
-          min-width:140px;
-        }
-
-        .legal {
-          margin-top: 10px;
+          margin-top: 5px;
           font-size: 11px;
-          text-align: left;
           line-height: 1.35;
         }
 
-        .sigs {
-          display:flex;
-          justify-content:space-between;
-          margin-top: 14px;
+        .dash {
+          display: inline-block;
+          border-bottom: 1px dashed #000;
+          padding: 0 5px;
+          min-width: 100px;
         }
-        .sig-box { width:45%; text-align:center; }
+
+        .trip-footer-grid {
+          margin-top: 6px;
+          display: grid;
+          grid-template-columns: 1fr 1fr 1fr;
+          gap: 6px;
+          font-size: 11px;
+        }
+        .col-line {
+          border-bottom: 1px dashed #000;
+          padding-bottom: 2px; 
+          display: inline-block;
+          min-width: 110px;
+        }
+
+        .legal {
+          margin-top: 6px;
+          font-size: 10px;
+          text-align: left;
+          line-height: 1.3;
+        }
+
+        .sigs {
+          display: flex;
+          justify-content: space-between;
+          margin-top: 10px;
+          font-size: 11px;
+        }
+        .sig-box { 
+          width: 45%; 
+          text-align: center; 
+        }
         .sig-line {
-          display:block;
+          display: block;
           width: 70%;
           height: 2px;
-          margin: 0 auto 6px;
+          margin: 0 auto 4px;
           border-top: 1px solid #000;
         }
       `}
@@ -184,8 +203,7 @@ export const TripSheetPrintCopy: React.FC<Props> = ({ sheet }) => {
         {/* Header */}
         <div className="header-flex">
           <div className="company-block">
-            <div style={{  }}>
-
+            <div>
               <div style={{ fontSize: 11 }}>
                 <div>{label.fixedGstinLabel} {label.fixedGstinValue} </div> 
                 <div>{label.mobileLabel} {label.mobileNumberValue}</div>
@@ -234,12 +252,10 @@ export const TripSheetPrintCopy: React.FC<Props> = ({ sheet }) => {
 
           <tbody>
             {items.map((it, idx) => {
-              // Check if previous item's GC No is same as current one
               const isRepeatedGc = idx > 0 && items[idx - 1].gcNo === it.gcNo;
               
               return (
                 <tr key={idx}>
-                  {/* Conditionally render GC No */}
                   <td style={{ fontWeight: isRepeatedGc ? 'normal' : 'bold' }}>
                     {isRepeatedGc ? "" : it.gcNo}
                   </td>
@@ -283,41 +299,40 @@ export const TripSheetPrintCopy: React.FC<Props> = ({ sheet }) => {
         </div>
 
         {/* Driver / Owner / Lorry */}
-        <div style={{ borderTop: "1px solid #000", marginTop: 8, paddingTop: 8 }}>
+        <div style={{ borderTop: "1px solid #000", marginTop: 6, paddingTop: 6 }}>
           <div className="trip-footer-grid font-thin">
           <div>
-            <div><strong>{label.driverNameLabel}</strong> <span className="col-line font-semibold">{(sheet.driverName    ?? "").toUpperCase()}</span></div>
-            <div style={{ marginTop: 6 }}>
+            <div><strong>{label.driverNameLabel}</strong> <span className="col-line font-semibold">{(sheet.driverName ?? "").toUpperCase()}</span></div>
+            <div style={{ marginTop: 4 }}>
               <strong>{label.dlNoLabel}</strong> <span className="col-line font-semibold">{(sheet.dlNo ?? "").toUpperCase()}</span>
             </div>
-            <div style={{ marginTop: 6 }}>
+            <div style={{ marginTop: 4 }}>
               <strong>{label.driverMobileLabel}</strong> <span className="col-line font-semibold">{(sheet.driverMobile ?? "").toUpperCase()}</span>
             </div>
           </div>
 
           <div>
             <div><strong>{label.ownerNameLabel}</strong> <span className="col-line font-semibold">{(sheet.ownerName ?? "").toUpperCase()}</span></div>
-            <div style={{ marginTop: 6 }}>
+            <div style={{ marginTop: 4 }}>
               <strong>{label.ownerMobileLabel}</strong> <span className="col-line font-semibold">{(sheet.ownerMobile ?? "").toUpperCase()}</span>
             </div>
           </div>
 
           <div>
             <div><strong>{label.lorryNoLabel}</strong> <span className="col-line font-semibold">{(sheet.lorryNo ?? "").toUpperCase()}</span></div>
-            <div style={{ marginTop: 6 }}>
-              <strong>{label.lorryNameLabel}</strong> <span className="col-line font-semibold">{(sheet.lorryName ?? "").toUpperCase()}</span>
-            </div>
+            <div style={{ marginTop: 4 }}>
+              <strong>{label.lorryNameLabel}</strong> <span className="col-line font-semibold">{(sheet.lorryName ?? "").toUpperCase()}</span></div>
           </div>
         </div>
         </div>
 
         {/* Legal + Signature */}
-        <div style={{ borderTop: "1px solid #000", marginTop: 8, paddingTop: 8 }}>
-          <div className="legal mb-3 whitespace-pre-wrap">
+        <div style={{ borderTop: "1px solid #000", marginTop: 6, paddingTop: 6 }}>
+          <div className="legal mb-2 whitespace-pre-wrap">
             {label.legalNote}
           </div>
 
-          <div style={{ height: "25px" }}></div>
+          <div style={{ height: "18px" }}></div>
 
           <div className="sigs">
             <div className="sig-box">

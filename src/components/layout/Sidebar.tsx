@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { 
   Truck,
@@ -12,12 +12,13 @@ import {
   Package, 
   ClipboardList, 
   ShieldCheck,
-  ChevronDown,
   Car, 
   UserCircle, 
-  Settings,
   History,
-  LogOut
+  LogOut,
+  ScrollText,
+  Printer,
+  ChevronRight
 } from 'lucide-react'; 
 import { useAuth } from '../../hooks/useAuth';
 
@@ -30,13 +31,10 @@ export const Sidebar = ({ isSidebarOpen, setIsSidebarOpen }: SidebarProps) => {
   const location = useLocation();
   const { user, logout } = useAuth(); 
   
-  const [isMasterOpen, setIsMasterOpen] = useState(false);
-
-  useEffect(() => {
-    if (location.pathname.startsWith('/master') || location.pathname === '/users' || location.pathname === '/settings' || location.pathname === '/audit-logs') {
-      setIsMasterOpen(true);
-    }
-  }, [location.pathname]);
+  // State for collapsible sections
+  const [isMastersExpanded, setIsMastersExpanded] = useState(true);
+  const [isReportsExpanded, setIsReportsExpanded] = useState(true);
+  const [isAdminExpanded, setIsAdminExpanded] = useState(true);
 
   // --- MENU DEFINITIONS ---
   
@@ -59,19 +57,8 @@ export const Sidebar = ({ isSidebarOpen, setIsSidebarOpen }: SidebarProps) => {
     { name: 'Contents', href: '/master/contents', icon: FileText },
   ];
 
+  // 🟢 Moved User Management here (Admin Only)
   if (user?.role === 'admin') {
-    masterLinks.unshift({ 
-      name: 'Print Template Editor', 
-      href: '/settings', 
-      icon: Settings 
-    });
-
-    masterLinks.push({ 
-      name: 'Audit Logs', 
-      href: '/audit-logs', 
-      icon: History 
-    });
-
     masterLinks.push({ 
       name: 'User Management', 
       href: '/users', 
@@ -79,18 +66,25 @@ export const Sidebar = ({ isSidebarOpen, setIsSidebarOpen }: SidebarProps) => {
     });
   }
 
-  const isMasterActive = location.pathname.startsWith('/master') || location.pathname === '/users' || location.pathname === '/settings' || location.pathname === '/audit-logs';
+  // Admin Specific Groups
+  const monitoringLinks = user?.role === 'admin' ? [
+    { name: 'Audit Logs', href: '/audit-logs', icon: History },
+    { name: 'Terms Logs', href: '/terms-logs', icon: ScrollText },
+  ] : [];
 
-  // Helper to check if a route is active (including nested routes like /trip-sheet/new)
+  const configLinks = user?.role === 'admin' ? [
+    { name: 'Print Templates', href: '/settings', icon: Printer },
+    // User Management removed from here
+  ] : [];
+
+  // Helper to check if a route is active
   const isRouteActive = (href: string, pathname: string): boolean => {
-    if (href === '/') {
-      return pathname === '/';
-    }
+    if (href === '/') return pathname === '/';
     return pathname === href || pathname.startsWith(`${href}/`);
   };
 
-  // Reusable NavItem component
-  const NavItem = ({ item }: { item: typeof operationLinks[0] }) => {
+  // Reusable NavItem Component
+  const NavItem = ({ item }: { item: { name: string; href: string; icon: any } }) => {
     const active = isRouteActive(item.href, location.pathname);
     
     return (
@@ -117,6 +111,21 @@ export const Sidebar = ({ isSidebarOpen, setIsSidebarOpen }: SidebarProps) => {
     );
   };
 
+  // Section Header Component
+  const SectionHeader = ({ title, isOpen, onToggle }: { title: string, isOpen: boolean, onToggle: () => void }) => (
+    <button
+      onClick={onToggle}
+      className="w-full flex items-center justify-between px-3 pt-4 pb-2 group"
+    >
+      <span className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest group-hover:text-primary transition-colors">
+        {title}
+      </span>
+      <ChevronRight 
+        className={`w-3 h-3 text-muted-foreground/40 transition-transform duration-200 ${isOpen ? 'rotate-90' : ''}`} 
+      />
+    </button>
+  );
+
   return (
     <>
       {/* Mobile Sidebar Overlay */}
@@ -136,7 +145,7 @@ export const Sidebar = ({ isSidebarOpen, setIsSidebarOpen }: SidebarProps) => {
         <div className="flex flex-col h-full">
           
           {/* Header */}
-          <div className="flex items-center justify-between h-16 px-4 border-b border-border">
+          <div className="flex items-center justify-between h-16 px-4 border-b border-border shrink-0">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
                 <Truck className="w-5 h-5 text-primary" />
@@ -154,57 +163,71 @@ export const Sidebar = ({ isSidebarOpen, setIsSidebarOpen }: SidebarProps) => {
             </button>
           </div>
 
-          {/* Navigation Links */}
-          <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+          {/* Scrollable Navigation */}
+          <nav className="flex-1 px-3 py-2 overflow-y-auto custom-scrollbar">
             
-            {/* --- OPERATIONS SECTION --- */}
-            <div className="px-3 mb-2">
-              <span className="text-[10px] font-semibold text-muted-foreground/70 uppercase tracking-widest">
-                Operations
-              </span>
-            </div>
-            
-            {operationLinks.map((item) => (
-              <NavItem key={item.name} item={item} />
-            ))}
-
-            {/* --- MASTER SECTION (Collapsible) --- */}
-            <button
-              onClick={() => setIsMasterOpen(!isMasterOpen)}
-              className="w-full flex items-center justify-between px-3 pt-5 pb-2 group"
-            >
-              <span className={`text-[10px] font-semibold uppercase tracking-widest transition-colors ${
-                isMasterActive 
-                  ? 'text-primary' 
-                  : 'text-muted-foreground/70 group-hover:text-muted-foreground'
-              }`}>
-                Master
-              </span>
-              <ChevronDown 
-                className={`w-3.5 h-3.5 transition-all duration-200 ${
-                  isMasterActive 
-                    ? 'text-primary' 
-                    : 'text-muted-foreground/50 group-hover:text-muted-foreground'
-                } ${isMasterOpen ? 'rotate-0' : '-rotate-90'}`} 
-              />
-            </button>
-
-            {/* Master Sub-menu items */}
-            <div className={`overflow-hidden transition-all duration-300 ease-out ${
-              isMasterOpen ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'
-            }`}>
-              <div className="space-y-1">
-                {masterLinks.map((item) => (
+            {/* 1. OPERATIONS (Always Open) */}
+            <div className="mb-2">
+              <div className="px-3 pt-3 pb-2">
+                <span className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest">
+                  Operations
+                </span>
+              </div>
+              <div className="space-y-0.5">
+                {operationLinks.map((item) => (
                   <NavItem key={item.name} item={item} />
                 ))}
               </div>
             </div>
 
+            {/* 2. MASTER DATA */}
+            <SectionHeader 
+              title="Master Data" 
+              isOpen={isMastersExpanded} 
+              onToggle={() => setIsMastersExpanded(!isMastersExpanded)} 
+            />
+            <div className={`space-y-0.5 overflow-hidden transition-all duration-300 ${isMastersExpanded ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'}`}>
+              {masterLinks.map((item) => (
+                <NavItem key={item.name} item={item} />
+              ))}
+            </div>
+
+            {/* 3. ADMIN SECTIONS (Only if Admin) */}
+            {user?.role === 'admin' && (
+              <>
+                {/* LOGS & MONITORING */}
+                <SectionHeader 
+                  title="Monitoring & Logs" 
+                  isOpen={isReportsExpanded} 
+                  onToggle={() => setIsReportsExpanded(!isReportsExpanded)} 
+                />
+                <div className={`space-y-0.5 overflow-hidden transition-all duration-300 ${isReportsExpanded ? 'max-h-[200px] opacity-100' : 'max-h-0 opacity-0'}`}>
+                  {monitoringLinks.map((item) => (
+                    <NavItem key={item.name} item={item} />
+                  ))}
+                </div>
+
+                {/* SETTINGS & CONFIG */}
+                <SectionHeader 
+                  title="Configuration" 
+                  isOpen={isAdminExpanded} 
+                  onToggle={() => setIsAdminExpanded(!isAdminExpanded)} 
+                />
+                <div className={`space-y-0.5 overflow-hidden transition-all duration-300 ${isAdminExpanded ? 'max-h-[200px] opacity-100' : 'max-h-0 opacity-0'}`}>
+                  {configLinks.map((item) => (
+                    <NavItem key={item.name} item={item} />
+                  ))}
+                </div>
+              </>
+            )}
+
+            {/* Bottom Padding for scroll */}
+            <div className="h-6" />
           </nav>
           
           {/* Footer - User Profile */}
-          <div className="p-3 border-t border-border">
-            <div className="p-2.5 rounded-xl bg-muted/50">
+          <div className="p-3 border-t border-border mt-auto shrink-0 bg-card">
+            <div className="p-2.5 rounded-xl bg-muted/50 border border-border/50">
               <div className="flex items-center gap-2.5">
                 {/* Avatar */}
                 <div className={`w-9 h-9 shrink-0 rounded-lg flex items-center justify-center text-white text-sm font-bold shadow-sm ${

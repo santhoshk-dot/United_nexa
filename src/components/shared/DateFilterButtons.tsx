@@ -37,6 +37,7 @@ interface DateFilterButtonsProps {
   setCustomStart: (date: string) => void;
   customEnd: string;
   setCustomEnd: (date: string) => void;
+  hideInputs?: boolean; // 🟢 Added this prop
 }
 
 export const DateFilterButtons = ({
@@ -45,7 +46,8 @@ export const DateFilterButtons = ({
   customStart,
   setCustomStart,
   customEnd,
-  setCustomEnd
+  setCustomEnd,
+  hideInputs = false // 🟢 Default to false
 }: DateFilterButtonsProps) => {
 
   return (
@@ -89,8 +91,8 @@ export const DateFilterButtons = ({
         </FilterButton>
       </div>
       
-      {/* Custom Date Range Panel */}
-      {filterType === 'custom' && (
+      {/* Custom Date Range Panel - 🟢 Conditionally rendered based on hideInputs */}
+      {filterType === 'custom' && !hideInputs && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-muted/30 border border-border rounded-xl animate-in slide-in-from-top-2 duration-200">
           <Input 
             label="Start Date" 

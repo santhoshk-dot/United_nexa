@@ -39,8 +39,10 @@ const MainScreen = lazy(() => load(import('../features/master/admin/templates/Ma
 
 // Features -> Admin
 const UserList = lazy(() => load(import('../features/master/admin/users/UserList'), 'UserList'));
-// 🟢 NEW: Audit Logs
+// 🟢 Audit Logs
 const AuditLogPage = lazy(() => load(import('../features/master/admin/audit-logs/AuditLogPage'), 'default'));
+// 🟢 NEW: Terms Logs
+const TermsLogPage = lazy(() => load(import('../features/master/admin/terms-logs/TermsLogPage'), 'default'));
 
 const ProtectedRoute = ({ requireAdmin = false }: { requireAdmin?: boolean }) => {
   const { user, loading } = useAuth();
@@ -111,8 +113,9 @@ const AppRouter = () => {
         {/* Moved Settings here */}
         <Route path="/settings" element={<MainScreen />} />
         <Route path="/users" element={<UserList />} />
-        {/* 🟢 NEW: Audit Log Route */}
         <Route path="/audit-logs" element={<AuditLogPage />} />
+        {/* 🟢 NEW: Terms Log Route */}
+        <Route path="/terms-logs" element={<TermsLogPage />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />
