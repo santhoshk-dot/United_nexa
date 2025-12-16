@@ -379,12 +379,12 @@ export const QtySelectionDialog = ({
                                     {isCurrentViewAllSelected ? (
                                         <>
                                             <Square className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5" />
-                                            <span className="hidden xs:inline">Uncheck</span> All
+                                            <span className="hidden xs:inline">Uncheck</span> Deselect All
                                         </>
                                     ) : (
                                         <>
                                             <CheckSquare className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5" />
-                                            <span className="hidden xs:inline">Check</span> All
+                                            <span className="hidden xs:inline">Check</span> Select All
                                         </>
                                     )}
                                 </Button>
@@ -438,7 +438,7 @@ export const QtySelectionDialog = ({
                                 <Hash className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                                 <span>Range: <span className="font-medium text-foreground">{currentStartNo} - {currentStartNo + currentMaxQty - 1}</span></span>
                             </div>
-                            <span className="hidden sm:block text-[10px] sm:text-xs text-muted-foreground">Click or drag to select</span>
+                            <span className="hidden sm:block text-[10px] sm:text-xs text-muted-foreground">Click or drag to select and unselect</span>
                         </div>
                         
                         {/* Grid */}

@@ -792,12 +792,13 @@ export const GcEntryForm = () => {
                             <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-4 items-end">
                                 <div className="col-span-1">
                                     <Input
-                                        label="Qty *"
+                                        label="Qty"
                                         type="number"
                                         value={currentQty}
                                         onChange={(e) => setCurrentQty(e.target.value)}
                                         placeholder="Qty"
                                         min="1"
+                                        required
                                         className="bg-background text-foreground border-border"
                                     />
                                 </div>
@@ -813,7 +814,7 @@ export const GcEntryForm = () => {
                                     />
                                 </div>
                                 <div className="col-span-2 sm:col-span-2 lg:col-span-2">
-                                    <label className="block text-sm font-medium text-muted-foreground mb-1">Packing *</label>
+                                    <label className="block text-sm font-medium text-muted-foreground mb-1">Packing <span className='text-red-500'>*</span></label>
                                     <AsyncAutocomplete
                                         loadOptions={loadPackingOptions}
                                         value={currentPackingOption}
@@ -827,7 +828,7 @@ export const GcEntryForm = () => {
                                     />
                                 </div>
                                 <div className="col-span-2 sm:col-span-2 lg:col-span-2">
-                                    <label className="block text-sm font-medium text-muted-foreground mb-1">Contents *</label>
+                                    <label className="block text-sm font-medium text-muted-foreground mb-1">Contents <span className='text-red-500'>*</span></label>
                                     <AsyncAutocomplete
                                         loadOptions={loadContentOptions}
                                         value={currentContentOption}

@@ -511,61 +511,61 @@ export const GcEntryList = () => {
       {/* ===== CONTROL BAR ===== */}
       <div className="bg-card border border-border rounded-xl p-4 shadow-sm">
         {/* Desktop - Single Row (xl and above) */}
-       <div className="hidden xl:flex items-center gap-3">
-  {/* Search Bar (Stays on Left) */}
-  <div className="relative flex-1 max-w-md">
-    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-    <input
-      type="text"
-      placeholder="Search GC entries..."
-      value={filters.search || ""}
-      onChange={handleSearchChange}
-      className="w-full h-10 pl-10 pr-4 bg-secondary/50 text-foreground rounded-lg border-0 focus:outline-none focus:ring-2 focus:ring-primary/20 placeholder:text-muted-foreground/60 text-sm"
-    />
-  </div>
+        <div className="hidden xl:flex items-center gap-3">
+          {/* Search Bar (Stays on Left) */}
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <input
+              type="text"
+              placeholder="Search GC entries..."
+              value={filters.search || ""}
+              onChange={handleSearchChange}
+              className="w-full h-10 pl-10 pr-4 bg-secondary/50 text-foreground rounded-lg border-0 focus:outline-none focus:ring-2 focus:ring-primary/20 placeholder:text-muted-foreground/60 text-sm"
+            />
+          </div>
 
-  {/* Button Group (Moved to Right using ml-auto) */}
-  <div className="flex items-center gap-3 ml-auto">
-    <Button 
-      variant={hasActiveFilters ? "primary" : "outline"} 
-      onClick={() => setShowFilters(!showFilters)} 
-      className="h-10 px-4 shrink-0"
-    >
-      <Filter className="w-4 h-4" />
-      Filters
-      {hasActiveFilters && <span className="ml-1.5 w-1.5 h-1.5 bg-white rounded-full animate-pulse" />}
-    </Button>
+          {/* Button Group (Moved to Right using ml-auto) */}
+          <div className="flex items-center gap-3 ml-auto">
+            <Button
+              variant={hasActiveFilters ? "primary" : "outline"}
+              onClick={() => setShowFilters(!showFilters)}
+              className="h-10 px-4 shrink-0"
+            >
+              <Filter className="w-4 h-4" />
+              Filters
+              {hasActiveFilters && <span className="ml-1.5 w-1.5 h-1.5 bg-white rounded-full animate-pulse" />}
+            </Button>
 
-    <Button 
-      variant="secondary" 
-      onClick={handlePrintSelected} 
-      disabled={finalCount === 0} 
-      className="h-10"
-    >
-      <Printer className="w-4 h-4" />
-      {printButtonText}
-    </Button>
+            <Button
+              variant="secondary"
+              onClick={handlePrintSelected}
+              disabled={finalCount === 0}
+              className="h-10"
+            >
+              <Printer className="w-4 h-4" />
+              {printButtonText}
+            </Button>
 
-    <Button 
-      variant={bulkButtonVariant} 
-      onClick={isAllSelected ? handleCombinedBulkDeselect : handleCombinedBulkSelect} 
-      disabled={!selectAllMode && selectedGcNos.length === 0 && totalItems === 0} 
-      className="h-10"
-    >
-      <BulkIconComponent className="w-4 h-4" />
-      {bulkButtonText}
-    </Button>
+            <Button
+              variant={bulkButtonVariant}
+              onClick={isAllSelected ? handleCombinedBulkDeselect : handleCombinedBulkSelect}
+              disabled={!selectAllMode && selectedGcNos.length === 0 && totalItems === 0}
+              className="h-10"
+            >
+              <BulkIconComponent className="w-4 h-4" />
+              {bulkButtonText}
+            </Button>
 
-    <Button 
-      variant="primary" 
-      onClick={() => navigate("/gc-entry/new")} 
-      className="h-10"
-    >
-      <Plus className="w-4 h-4" />
-      Add New GC
-    </Button>
-  </div>
-</div>
+            <Button
+              variant="primary"
+              onClick={() => navigate("/gc-entry/new")}
+              className="h-10"
+            >
+              <Plus className="w-4 h-4" />
+              Add New GC
+            </Button>
+          </div>
+        </div>
 
         {/* Tablet & Mobile - Two Rows (below xl) */}
         <div className="flex xl:hidden flex-col gap-3">
@@ -643,7 +643,7 @@ export const GcEntryList = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
             <AsyncAutocomplete label="Destination" placeholder="Search destination..." value={destinationOption} onChange={(val) => { setDestinationOption(val); setFilters({ destination: (val as any)?.value || "" }); }} loadOptions={loadDestinationOptions} defaultOptions />
             <AsyncAutocomplete label="Consignor" placeholder="Search consignor..." value={consignorOption} onChange={(val) => { setConsignorOption(val); setFilters({ consignor: (val as any)?.value || "" }); }} loadOptions={loadConsignorOptions} defaultOptions />
-            <AsyncAutocomplete label="Consignee (Multi-select)" loadOptions={loadConsigneeOptions} value={consigneeOptions} onChange={(val: any) => { const arr = Array.isArray(val) ? val : val ? [val] : []; setConsigneeOptions(arr); setFilters({ consignee: arr.map((v: any) => v.value) }); }} placeholder="Select consignees..." isMulti={true} defaultOptions />
+            <AsyncAutocomplete label="Consignee (Multi-select)" loadOptions={loadConsigneeOptions} value={consigneeOptions} onChange={(val: any) => { const arr = Array.isArray(val) ? val : val ? [val] : []; setConsigneeOptions(arr); setFilters({ consignee: arr.map((v: any) => v.value) }); }} placeholder="Select consignees..." isMulti={true} defaultOptions closeMenuOnSelect={false} showAllSelected={true} />
           </div>
 
           <DateFilterButtons filterType={filters.filterType || "all"} setFilterType={handleFilterTypeChange} customStart={filters.customStart || ""} setCustomStart={(val) => handleCustomDateChange(val, filters.customEnd)} customEnd={filters.customEnd || ""} setCustomEnd={(val) => handleCustomDateChange(filters.customStart, val)} />

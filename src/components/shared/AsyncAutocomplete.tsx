@@ -35,6 +35,8 @@ interface AsyncAutocompleteProps {
   className?: string;
   menuPortalTarget?: HTMLElement | null;
   maxMenuHeight?: number;
+  closeMenuOnSelect?: boolean;
+  showAllSelected?: boolean;
 }
 
 // --- CUSTOM COMPONENTS ---
@@ -84,34 +86,39 @@ const CustomOption = (props: OptionProps<OptionType, boolean>) => {
   );
 };
 
-// Custom Value Container to handle "+ N more" logic
-const CustomValueContainer = ({ children, ...props }: ValueContainerProps<OptionType, boolean>) => {
-  const { isMulti, getValue } = props;
-  const selected = getValue();
-  const MAX_VISIBLE_TAGS = 2;
+// Custom Value Container factory to handle "+ N more" logic
+// Using a factory function to pass showAllSelected without module augmentation
+const createCustomValueContainer = (showAllSelected: boolean) => {
+  const CustomValueContainer = ({ children, ...props }: ValueContainerProps<OptionType, boolean>) => {
+    const { isMulti, getValue } = props;
+    const selected = getValue();
+    const MAX_VISIBLE_TAGS = 2;
 
-  if (!isMulti || selected.length <= MAX_VISIBLE_TAGS) {
+    if (!isMulti || showAllSelected || selected.length <= MAX_VISIBLE_TAGS) {
+      return (
+        <components.ValueContainer {...props}>
+          {children}
+        </components.ValueContainer>
+      );
+    }
+
+    const childrenArray = React.Children.toArray(children);
+    const inputComponent = childrenArray[childrenArray.length - 1];
+    const visibleChips = childrenArray.slice(0, MAX_VISIBLE_TAGS);
+    const hiddenCount = selected.length - MAX_VISIBLE_TAGS;
+
     return (
       <components.ValueContainer {...props}>
-        {children}
+        {visibleChips}
+        <div className="inline-flex items-center justify-center px-2 py-0.5 ml-1 text-[10px] font-semibold bg-primary/10 text-primary rounded-md whitespace-nowrap h-[22px]">
+          +{hiddenCount} more
+        </div>
+        {inputComponent}
       </components.ValueContainer>
     );
-  }
+  };
 
-  const childrenArray = React.Children.toArray(children);
-  const inputComponent = childrenArray[childrenArray.length - 1];
-  const visibleChips = childrenArray.slice(0, MAX_VISIBLE_TAGS);
-  const hiddenCount = selected.length - MAX_VISIBLE_TAGS;
-
-  return (
-    <components.ValueContainer {...props}>
-      {visibleChips}
-      <div className="inline-flex items-center justify-center px-2 py-0.5 ml-1 text-[10px] font-semibold bg-primary/10 text-primary rounded-md whitespace-nowrap h-[22px]">
-        +{hiddenCount} more
-      </div>
-      {inputComponent}
-    </components.ValueContainer>
-  );
+  return CustomValueContainer;
 };
 
 // --- MAIN COMPONENT ---
@@ -130,6 +137,8 @@ export const AsyncAutocomplete = ({
   isMulti = false,
   menuPortalTarget,
   maxMenuHeight = 220,
+  closeMenuOnSelect,
+  showAllSelected = false,
 }: AsyncAutocompleteProps) => {
 
   const showAsterisk = required && !hideRequiredIndicator;
@@ -137,6 +146,12 @@ export const AsyncAutocomplete = ({
 
   // Cache to store the default list (page 1) loaded when search is empty
   const defaultOptionsCache = useRef<OptionType[]>([]);
+
+  // Memoize the custom value container based on showAllSelected
+  const CustomValueContainer = React.useMemo(
+    () => createCustomValueContainer(showAllSelected),
+    [showAllSelected]
+  );
 
   const handleMenuOpen = () => {
     if (!shouldLoad) {
@@ -179,8 +194,8 @@ export const AsyncAutocomplete = ({
   const customStyles: StylesConfig<OptionType, boolean, GroupBase<OptionType>> = {
     control: (provided, state) => ({
       ...provided,
-      backgroundColor: state.isDisabled 
-        ? 'hsl(var(--muted) / 0.5)' 
+      backgroundColor: state.isDisabled
+        ? 'hsl(var(--muted) / 0.5)'
         : 'hsl(var(--background))',
       borderColor: state.isFocused
         ? 'hsl(var(--primary))'
@@ -230,8 +245,8 @@ export const AsyncAutocomplete = ({
         : state.isSelected
           ? 'hsl(var(--primary) / 0.08)'
           : 'transparent',
-      color: state.isSelected 
-        ? 'hsl(var(--primary))' 
+      color: state.isSelected
+        ? 'hsl(var(--primary))'
         : 'hsl(var(--foreground))',
       cursor: 'pointer',
       fontSize: '0.875rem',
@@ -344,6 +359,7 @@ export const AsyncAutocomplete = ({
         menuPortalTarget={menuPortalTarget}
         menuPosition={menuPortalTarget ? 'fixed' : undefined}
         maxMenuHeight={maxMenuHeight}
+        closeMenuOnSelect={closeMenuOnSelect}
       />
     </div>
   );

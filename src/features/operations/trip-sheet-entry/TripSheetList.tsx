@@ -25,7 +25,7 @@ import { Button } from "../../../components/shared/Button";
 import { AsyncAutocomplete } from "../../../components/shared/AsyncAutocomplete";
 import { useData } from "../../../hooks/useData";
 import { useServerPagination } from "../../../hooks/useServerPagination";
-import type { TripSheetEntry, ToPlace, Consignor, Consignee ,TripSheetFilter,ExclusionFilterState} from "../../../types";
+import type { TripSheetEntry, ToPlace, Consignor, Consignee, TripSheetFilter, ExclusionFilterState } from "../../../types";
 import { Pagination } from "../../../components/shared/Pagination";
 import { TripSheetPrintManager } from "./TripSheetPrintManager";
 import { TripSheetReportPrint } from "./TripSheetReportView";
@@ -469,7 +469,7 @@ export const TripSheetList = () => {
       if (sheets && sheets.length > 0) {
         setPrintingSheets(sheets);
 
-        
+
 
         toast.success(`Prepared ${sheets.length} print job(s).`);
       } else {
@@ -536,71 +536,71 @@ export const TripSheetList = () => {
     <div className="space-y-4">
       {/* ===== CONTROL BAR ===== */}
       <div className="bg-card border border-border rounded-xl p-4 shadow-sm">
-{/* Desktop - Single Row (xl and above) */}
-<div className="hidden xl:flex items-center gap-3">
-  {/* Search Bar (Stays on Left) */}
-  <div className="relative flex-1 max-w-md">
-    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-    <input 
-      type="text" 
-      placeholder="Search TS No, Place, Driver..." 
-      value={filters.search || ""} 
-      onChange={handleSearchChange} 
-      className="w-full h-10 pl-10 pr-4 bg-secondary/50 text-foreground rounded-lg border-0 focus:outline-none focus:ring-2 focus:ring-primary/20 placeholder:text-muted-foreground/60 text-sm" 
-    />
-  </div>
+        {/* Desktop - Single Row (xl and above) */}
+        <div className="hidden xl:flex items-center gap-3">
+          {/* Search Bar (Stays on Left) */}
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <input
+              type="text"
+              placeholder="Search TS No, Place, Driver..."
+              value={filters.search || ""}
+              onChange={handleSearchChange}
+              className="w-full h-10 pl-10 pr-4 bg-secondary/50 text-foreground rounded-lg border-0 focus:outline-none focus:ring-2 focus:ring-primary/20 placeholder:text-muted-foreground/60 text-sm"
+            />
+          </div>
 
-  {/* Button Group (Moved to Right using ml-auto) */}
-  <div className="flex items-center gap-3 ml-auto">
-    <Button 
-      variant={hasActiveFilters ? "primary" : "outline"} 
-      onClick={() => setShowFilters(!showFilters)} 
-      className="h-10 px-4 shrink-0"
-    >
-      <Filter className="w-4 h-4" />
-      Filters
-      {hasActiveFilters && <span className="ml-1.5 w-1.5 h-1.5 bg-white rounded-full animate-pulse" />}
-    </Button>
+          {/* Button Group (Moved to Right using ml-auto) */}
+          <div className="flex items-center gap-3 ml-auto">
+            <Button
+              variant={hasActiveFilters ? "primary" : "outline"}
+              onClick={() => setShowFilters(!showFilters)}
+              className="h-10 px-4 shrink-0"
+            >
+              <Filter className="w-4 h-4" />
+              Filters
+              {hasActiveFilters && <span className="ml-1.5 w-1.5 h-1.5 bg-white rounded-full animate-pulse" />}
+            </Button>
 
-    <Button 
-      variant="secondary" 
-      onClick={handleShowReport} 
-      className="h-10"
-    >
-      <FileText className="w-4 h-4" />
-      Report
-    </Button>
+            <Button
+              variant="secondary"
+              onClick={handleShowReport}
+              className="h-10"
+            >
+              <FileText className="w-4 h-4" />
+              Report
+            </Button>
 
-    <Button 
-      variant="secondary" 
-      onClick={handlePrintSelected} 
-      disabled={finalCount === 0} 
-      className="h-10"
-    >
-      <Printer className="w-4 h-4" />
-      {printButtonText}
-    </Button>
+            <Button
+              variant="secondary"
+              onClick={handlePrintSelected}
+              disabled={finalCount === 0}
+              className="h-10"
+            >
+              <Printer className="w-4 h-4" />
+              {printButtonText}
+            </Button>
 
-    <Button 
-      variant={bulkButtonVariant} 
-      onClick={handleBulkAction} 
-      disabled={!selectAllMode && selectedMfNos.length === 0 && totalItems === 0} 
-      className="h-10"
-    >
-      <BulkIconComponent className="w-4 h-4" />
-      {bulkButtonText}
-    </Button>
+            <Button
+              variant={bulkButtonVariant}
+              onClick={handleBulkAction}
+              disabled={!selectAllMode && selectedMfNos.length === 0 && totalItems === 0}
+              className="h-10"
+            >
+              <BulkIconComponent className="w-4 h-4" />
+              {bulkButtonText}
+            </Button>
 
-    <Button 
-      variant="primary" 
-      onClick={() => navigate("/tripsheet/new")} 
-      className="h-10"
-    >
-      <Plus className="w-4 h-4" />
-      Add New TS
-    </Button>
-  </div>
-</div>
+            <Button
+              variant="primary"
+              onClick={() => navigate("/tripsheet/new")}
+              className="h-10"
+            >
+              <Plus className="w-4 h-4" />
+              Add New TS
+            </Button>
+          </div>
+        </div>
         {/* Tablet & Mobile - Two Rows (below xl) */}
         <div className="flex xl:hidden flex-col gap-3">
           <div className="flex items-center gap-2">
@@ -676,7 +676,7 @@ export const TripSheetList = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
             <AsyncAutocomplete label="Destination" loadOptions={loadDestinationOptions} value={destinationOption} onChange={(val: any) => { setDestinationOption(val); setFilters({ toPlace: val?.value || "" }); }} placeholder="Search destination..." defaultOptions />
             <AsyncAutocomplete label="Consignor" loadOptions={loadConsignorOptions} value={consignorOption} onChange={(val: any) => { setConsignorOption(val); setFilters({ consignor: val?.value || "" }); }} placeholder="Search consignor..." defaultOptions />
-            <AsyncAutocomplete label="Consignee (Multi-select)" loadOptions={loadConsigneeOptions} value={consigneeOptions} onChange={(val: any) => { const arr = Array.isArray(val) ? val : val ? [val] : []; setConsigneeOptions(arr); setFilters({ consignee: arr.map((v: any) => v.value) }); }} placeholder="Select consignees..." isMulti={true} defaultOptions />
+            <AsyncAutocomplete label="Consignee (Multi-select)" loadOptions={loadConsigneeOptions} value={consigneeOptions} onChange={(val: any) => { const arr = Array.isArray(val) ? val : val ? [val] : []; setConsigneeOptions(arr); setFilters({ consignee: arr.map((v: any) => v.value) }); }} placeholder="Select consignees..." isMulti={true} defaultOptions closeMenuOnSelect={false} showAllSelected={true} />
           </div>
 
           <DateFilterButtons filterType={filters.filterType || "all"} setFilterType={handleFilterTypeChange} customStart={filters.customStart || ""} setCustomStart={(val) => handleCustomDateChange(val, filters.customEnd)} customEnd={filters.customEnd || ""} setCustomEnd={(val) => handleCustomDateChange(filters.customStart, val)} />

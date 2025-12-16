@@ -348,7 +348,7 @@ export const PendingStockHistory = () => {
       );
       setSelectedGcNos(prev => prev.filter(id => !selectedVisible.includes(id)));
       setExclusionFilter({ isActive: true, filterKey: "Manual Selection" });
-      
+
       return;
     }
 
@@ -491,84 +491,84 @@ export const PendingStockHistory = () => {
       toast.error('Failed to generate report.');
     }
   };
-  
+
   const printButtonText = `Print (${finalCount})`;
 
   return (
     <div className="space-y-4">
       {/* ===== CONTROL BAR ===== */}
       <div className="bg-card border border-border rounded-xl p-4 shadow-sm">
-      {/* Desktop - Single Row (xl and above) */}
-<div className="hidden xl:flex items-center gap-3">
-  {/* Search Bar (Stays on Left) */}
-  <div className="relative flex-1 max-w-md">
-    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-    <input 
-      type="text" 
-      placeholder="Search pending stock..." 
-      value={filters.search || ''} 
-      onChange={handleSearchChange} 
-      className="w-full h-10 pl-10 pr-4 bg-secondary/50 text-foreground rounded-lg border-0 focus:outline-none focus:ring-2 focus:ring-primary/20 placeholder:text-muted-foreground/60 text-sm" 
-    />
-  </div>
+        {/* Desktop - Single Row (xl and above) */}
+        <div className="hidden xl:flex items-center gap-3">
+          {/* Search Bar (Stays on Left) */}
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <input
+              type="text"
+              placeholder="Search pending stock..."
+              value={filters.search || ''}
+              onChange={handleSearchChange}
+              className="w-full h-10 pl-10 pr-4 bg-secondary/50 text-foreground rounded-lg border-0 focus:outline-none focus:ring-2 focus:ring-primary/20 placeholder:text-muted-foreground/60 text-sm"
+            />
+          </div>
 
-  {/* Button Group (Moved to Right using ml-auto) */}
-  <div className="flex items-center gap-3 ml-auto">
-    <Button 
-      variant={hasActiveFilters ? "primary" : "outline"} 
-      onClick={() => setShowFilters(!showFilters)} 
-      className="h-10 px-4 shrink-0"
-    >
-      <Filter className="w-4 h-4" />
-      Filters
-      {hasActiveFilters && <span className="ml-1.5 w-1.5 h-1.5 bg-white rounded-full animate-pulse" />}
-    </Button>
+          {/* Button Group (Moved to Right using ml-auto) */}
+          <div className="flex items-center gap-3 ml-auto">
+            <Button
+              variant={hasActiveFilters ? "primary" : "outline"}
+              onClick={() => setShowFilters(!showFilters)}
+              className="h-10 px-4 shrink-0"
+            >
+              <Filter className="w-4 h-4" />
+              Filters
+              {hasActiveFilters && <span className="ml-1.5 w-1.5 h-1.5 bg-white rounded-full animate-pulse" />}
+            </Button>
 
-    <Button 
-      variant="secondary" 
-      onClick={handleShowReport} 
-      className="h-10"
-    >
-      <FileText className="w-4 h-4" />
-      Report
-    </Button>
+            <Button
+              variant="secondary"
+              onClick={handleShowReport}
+              className="h-10"
+            >
+              <FileText className="w-4 h-4" />
+              Report
+            </Button>
 
-    <Button 
-      variant="secondary" 
-      onClick={handlePrintSelected} 
-      disabled={finalCount === 0} 
-      className="h-10"
-    >
-      <Printer className="w-4 h-4" />
-      {printButtonText}
-    </Button>
+            <Button
+              variant="secondary"
+              onClick={handlePrintSelected}
+              disabled={finalCount === 0}
+              className="h-10"
+            >
+              <Printer className="w-4 h-4" />
+              {printButtonText}
+            </Button>
 
-    <Button 
-variant={bulkButtonVariant}
-            onClick={handleBulkAction}
-            disabled={!selectAllMode && selectedGcNos.length === 0 && totalItems === 0}
-            title={
-              bulkButtonText === 'Clear Selection'
-                ? 'Click to remove all items from selection'
-                : 'Select all filtered items'
-            }
+            <Button
+              variant={bulkButtonVariant}
+              onClick={handleBulkAction}
+              disabled={!selectAllMode && selectedGcNos.length === 0 && totalItems === 0}
+              title={
+                bulkButtonText === 'Clear Selection'
+                  ? 'Click to remove all items from selection'
+                  : 'Select all filtered items'
+              }
 
-      className="h-10"
-    >
-      <BulkIconComponent className="w-4 h-4" />
-      {bulkButtonText}
-    </Button>
+              className="h-10"
+            >
+              <BulkIconComponent className="w-4 h-4" />
+              {bulkButtonText}
+            </Button>
 
-    <Button 
-      variant="primary" 
-      onClick={() => navigate('/gc-entry/new')} 
-      className="h-10"
-    >
-      <Plus className="w-4 h-4" />
-      Add New GC
-    </Button>
-  </div>
-</div>
+            <Button
+              variant="primary"
+              onClick={() => navigate('/gc-entry/new')}
+              className="h-10"
+            >
+              <Plus className="w-4 h-4" />
+              Add New GC
+            </Button>
+          </div>
+        </div>
 
         {/* Tablet & Mobile - Two Rows (below xl) */}
         <div className="flex xl:hidden flex-col gap-3">
@@ -596,14 +596,14 @@ variant={bulkButtonVariant}
             </Button>
 
             <Button variant={bulkButtonVariant}
-            onClick={handleBulkAction}
-            disabled={!selectAllMode && selectedGcNos.length === 0 && totalItems === 0}
-            title={
-              bulkButtonText === 'Clear Selection'
-                ? 'Click to remove all items from selection'
-                : 'Select all filtered items'
-            }
- className="flex-1 h-9 text-xs sm:text-sm">
+              onClick={handleBulkAction}
+              disabled={!selectAllMode && selectedGcNos.length === 0 && totalItems === 0}
+              title={
+                bulkButtonText === 'Clear Selection'
+                  ? 'Click to remove all items from selection'
+                  : 'Select all filtered items'
+              }
+              className="flex-1 h-9 text-xs sm:text-sm">
               <BulkIconComponent className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               <span className="hidden sm:inline ml-1">{isAllSelected ? "Clear" : "Select All"}</span>
               <span className="sm:hidden ml-1">{isAllSelected ? "Clear" : "All"}</span>
@@ -653,7 +653,7 @@ variant={bulkButtonVariant}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
             <AsyncAutocomplete label="Destination" loadOptions={loadDestinationOptions} value={destinationOption} onChange={(val) => { setDestinationOption(val); setFilters({ destination: (val as any)?.value || '' }); }} placeholder="Search destination..." defaultOptions />
             <AsyncAutocomplete label="Consignor" loadOptions={loadConsignorOptions} value={consignorOption} onChange={(val) => { setConsignorOption(val); setFilters({ consignor: (val as any)?.value || '' }); }} placeholder="Search consignor..." defaultOptions />
-            <AsyncAutocomplete label="Consignee (Multi-select)" loadOptions={loadConsigneeOptions} value={consigneeOptions} onChange={(val: any) => { const arr = Array.isArray(val) ? val : val ? [val] : []; setConsigneeOptions(arr); setFilters({ consignee: arr.map((v: any) => v.value) }); }} placeholder="Select consignees..." isMulti={true} defaultOptions />
+            <AsyncAutocomplete label="Consignee (Multi-select)" loadOptions={loadConsigneeOptions} value={consigneeOptions} onChange={(val: any) => { const arr = Array.isArray(val) ? val : val ? [val] : []; setConsigneeOptions(arr); setFilters({ consignee: arr.map((v: any) => v.value) }); }} placeholder="Select consignees..." isMulti={true} defaultOptions closeMenuOnSelect={false} showAllSelected={true} />
           </div>
 
           <DateFilterButtons filterType={filters.filterType || 'all'} setFilterType={handleFilterTypeChange} customStart={filters.customStart || ''} setCustomStart={(val) => handleCustomDateChange(val, filters.customEnd)} customEnd={filters.customEnd || ''} setCustomEnd={(val) => handleCustomDateChange(filters.customStart, val)} />

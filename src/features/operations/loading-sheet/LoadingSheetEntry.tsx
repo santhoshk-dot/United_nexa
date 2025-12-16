@@ -392,7 +392,7 @@ export const LoadingSheetEntry = () => {
       filters: completeFilters,
     });
 
-    
+
   };
 
   // ---------------------------------------------------------------------------
@@ -716,7 +716,7 @@ export const LoadingSheetEntry = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
             <AsyncAutocomplete label="Destination" loadOptions={loadDestinationOptions} value={destinationOption} onChange={(val: any) => { setDestinationOption(val); setFilters({ destination: val?.value || '' }); }} placeholder="Search destination..." defaultOptions />
             <AsyncAutocomplete label="Consignor" loadOptions={loadConsignorOptions} value={consignorOption} onChange={(val: any) => { setConsignorOption(val); setFilters({ consignor: val?.value || '' }); }} placeholder="Search consignor..." defaultOptions />
-            <AsyncAutocomplete label="Consignee (Multi-select)" loadOptions={loadConsigneeOptions} value={consigneeOptions} onChange={(val: any) => { const arr = Array.isArray(val) ? val : (val ? [val] : []); setConsigneeOptions(arr); setFilters({ consignee: arr.map((v: any) => v.value) }); }} placeholder="Select consignees..." isMulti={true} defaultOptions />
+            <AsyncAutocomplete label="Consignee (Multi-select)" loadOptions={loadConsigneeOptions} value={consigneeOptions} onChange={(val: any) => { const arr = Array.isArray(val) ? val : (val ? [val] : []); setConsigneeOptions(arr); setFilters({ consignee: arr.map((v: any) => v.value) }); }} placeholder="Select consignees..." isMulti={true} defaultOptions closeMenuOnSelect={false} showAllSelected={true} />
             <AsyncAutocomplete label="Godown" loadOptions={loadGodownOptions} value={godownOption} onChange={(val: any) => { setGodownOption(val); setFilters({ godown: val?.value || '' }); }} placeholder="Search godown..." defaultOptions />
           </div>
 

@@ -119,11 +119,11 @@ export const TripReportTemplate: React.FC<TripReportTemplateProps> = (props) => 
                     <div className="w-[70%] border-r border-black p-1 md:p-2">
                         <div className="flex justify-between gap-1 items-baseline text-[9px] md:text-xs font-bold mb-1 lining-nums leading-none">
                             <span className="flex gap-1 w-1/2">
-                                <EditableText value={localLabels.fixedGstinLabel} className="text-right w-auto" placeholder="GSTIN:" onChange={handleTextChange("fixedGstinLabel")} />
+                                <EditableText value={localLabels.fixedGstinLabel} className="text-left w-auto" placeholder="GSTIN:" onChange={handleTextChange("fixedGstinLabel")} />
                                 <EditableText value={localLabels.fixedGstinValue} className="w-auto" onChange={handleTextChange("fixedGstinValue")} />
                             </span>
                             <span className="flex gap-1 w-1/2 justify-end">
-                                <EditableText value={localLabels.mobileLabel} className="text-right w-auto" placeholder="Mobile:" onChange={handleTextChange("mobileLabel")} />
+                                <EditableText value={localLabels.mobileLabel} className="text-left w-auto" placeholder="Mobile:" onChange={handleTextChange("mobileLabel")} />
                                 <EditableText value={localLabels.mobileNumberValue} className="w-auto" onChange={handleTextChange("mobileNumberValue")} />
                             </span>
                         </div>

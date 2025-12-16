@@ -119,11 +119,11 @@ const StockReportCoreTemplate: React.FC<StockReportTemplateProps> = ({ initialDa
                     <div className="w-[70%] border-r border-black p-1 md:p-2">
                         <div className="flex flex-wrap justify-between gap-1 items-baseline text-[9px] md:text-xs font-bold mb-1 lining-nums leading-none">
                             <span className="flex gap-1">
-                                <EditableText value={localLabels.fixedGstinLabel} className="font-bold w-auto text-right" placeholder="GSTIN:" onChange={handleTextChange("fixedGstinLabel")} />
+                                <EditableText value={localLabels.fixedGstinLabel} className="font-bold w-auto text-left" placeholder="GSTIN:" onChange={handleTextChange("fixedGstinLabel")} />
                                 <EditableText value={localLabels.fixedGstinValue} className="font-bold w-auto" onChange={handleTextChange("fixedGstinValue")} />
                             </span>
                             <span className="flex gap-1">
-                                <EditableText value={localLabels.mobileLabel} className="font-bold w-auto text-right" placeholder="Mobile:" onChange={handleTextChange("mobileLabel")} />
+                                <EditableText value={localLabels.mobileLabel} className="font-bold w-auto text-left" placeholder="Mobile:" onChange={handleTextChange("mobileLabel")} />
                                 <EditableText value={localLabels.mobileNumberValue} className="font-bold w-auto" onChange={handleTextChange("mobileNumberValue")} />
                             </span>
                         </div>
