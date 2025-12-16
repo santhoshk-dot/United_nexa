@@ -302,7 +302,7 @@ export const ConsigneeList = () => {
             }}
           />
             <Button variant="primary" onClick={handleCreateNew} className="flex-1 h-9 text-xs sm:text-sm">
-              <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />Add New
+              <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />Add
               {/* <span className="hidden xs:inline">Add</span>
               <span className="hidden sm:inline ml-1">Consignee</span> */}
             </Button>
@@ -460,12 +460,12 @@ export const ConsigneeList = () => {
                     </td>
                     <td className="px-3 py-3">
                       <div>
-                        <span className="font-medium text-foreground block">{consignee.name}</span>
-                        <span className="text-xs text-muted-foreground mt-0.5 block">{consignee.phone}</span>
+                        <span className="text-sm text-foreground block font-medium">{consignee.name}</span>
+                        <span className="text-xs text-foreground mt-0.5 block font-medium">{consignee.phone}</span>
                       </div>
                     </td>
                     <td className="px-3 py-3">
-                      <span className="text-sm text-muted-foreground">{consignee.destination}</span>
+                      <span className="text-sm text-foreground font-medium">{consignee.destination}</span>
                     </td>
                     <td className="px-3 py-3">
                       <div className="flex items-center justify-end gap-1">
@@ -518,12 +518,12 @@ export const ConsigneeList = () => {
                   <div className="flex-1 min-w-0">
                     {/* Header */}
                     <div className="mb-2">
-                      <h3 className="font-semibold text-foreground truncate">{consignee.name}</h3>
-                      <div className="flex items-center gap-1.5 mt-1 text-muted-foreground">
+                      <h3 className="text-md text-foreground truncate font-medium">{consignee.name}</h3>
+                      <div className="flex items-center gap-1.5 mt-1 text-foreground font-medium">
                         <Phone className="w-3.5 h-3.5 flex-shrink-0" />
                         <span className="text-sm">{consignee.phone}</span>
                       </div>
-                      <div className="flex items-center gap-1.5 mt-1 text-muted-foreground">
+                      <div className="flex items-center gap-1.5 mt-1 text-foreground font-medium">
                         <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
                         <span className="text-sm truncate">{consignee.destination}</span>
                       </div>

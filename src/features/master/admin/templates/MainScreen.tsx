@@ -308,8 +308,8 @@ const MainScreen: React.FC = () => {
                 "
               >
                 <X className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-0.5 sm:mr-1 shrink-0" />
-                <span className="hidden sm:inline">Discard</span>
-                <span className="sm:hidden">Del</span>
+                <span className="inline">Discard</span>
+                {/* <span className="sm:hidden">Del</span> */}
               </Button>
             </div>
           )}

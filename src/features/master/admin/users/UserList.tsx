@@ -240,7 +240,7 @@ export const UserList = () => {
             }}
           />
             <Button variant="primary" onClick={handleCreateNew} className="flex-1 h-9 text-xs sm:text-sm">
-              <UserPlus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />Add New
+              <UserPlus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />Add
               {/* <span className="hidden xs:inline">Add</span>
               <span className="hidden sm:inline ml-1">User</span> */}
             </Button>
@@ -300,7 +300,7 @@ export const UserList = () => {
                         </div>
                         <div className="min-w-0">
                           <div className="text-sm text-foreground font-medium">{u.name}</div>
-                          <div className="text-xs text-muted-foreground flex items-center gap-1">
+                          <div className="text-xs text-foreground flex items-center gap-1">
                             <Mail className="w-3 h-3" />
                             {u.email}
                           </div>
@@ -384,12 +384,15 @@ export const UserList = () => {
                     </td>
                     <td className="px-3 py-3">
                       <div className="flex items-center gap-2">
-                        <div className="flex-shrink-0 h-8 w-8 bg-primary/10 rounded-full flex items-center justify-center text-primary">
+                        <div className={`flex-shrink-0 h-8 w-8 bg-primary/10 rounded-full flex items-center justify-center text-primary ${u.role === 'admin'
+                          ? 'bg-purple-100 text-purple-700 border-purple-200'
+                          : 'bg-emerald-100 text-emerald-700 border-emerald-200'
+                          }`}>
                           {u.role === 'admin' ? <Shield size={16} /> : <UserIcon size={16} />}
                         </div>
                         <div className="min-w-0">
-                          <span className="font-medium text-foreground block truncate">{u.name}</span>
-                          <span className="text-xs text-muted-foreground block truncate">{u.email}</span>
+                          <span className="text-sm font-medium text-foreground block truncate">{u.name}</span>
+                          <span className="text-xs font-medium text-foreground block truncate">{u.email}</span>
                         </div>
                       </div>
                     </td>
@@ -401,7 +404,7 @@ export const UserList = () => {
                           }`}>
                           {u.role.toUpperCase()}
                         </span>
-                        <span className="text-xs text-muted-foreground block mt-1">{u.mobile || '-'}</span>
+                        <span className="text-xs font-medium text-foreground block mt-1">{u.mobile || '-'}</span>
                       </div>
                     </td>
                     <td className="px-3 py-3">
@@ -453,15 +456,15 @@ export const UserList = () => {
                       {u.role === 'admin' ? <Shield size={18} /> : <UserIcon size={18} />}
                     </div>
                     <div>
-                      <h3 className="font-semibold text-foreground text-base">{u.name}</h3>
-                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-0.5">
+                      <h3 className="text-md font-medium text-foreground text-base">{u.name}</h3>
+                      <div className="flex font-medium items-center gap-1.5 text-xs text-foreground mt-0.5">
                         <span className="truncate max-w-[150px] text-sm">{u.email}</span>
                       </div>
                     </div>
                   </div>
 
                   {/* Role Badge - Top Right */}
-                  <span className={`flex-shrink-0 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full border ${u.role === 'admin'
+                  <span className={`flex-shrink-0 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded border ${u.role === 'admin'
                     ? 'bg-purple-50 text-purple-700 border-purple-200'
                     : 'bg-emerald-50 text-emerald-700 border-emerald-200'
                     }`}>
@@ -471,7 +474,7 @@ export const UserList = () => {
 
                 {/* Content: Contact Details */}
                 <div className="pl-[3.25rem] mb-4 space-y-1.5">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <div className="flex items-center gap-2 text-sm text-foreground font-medium">
                     <Phone className="w-3.5 h-3.5" />
                     <span className="text-sm">{u.mobile || 'No mobile'}</span>
                   </div>

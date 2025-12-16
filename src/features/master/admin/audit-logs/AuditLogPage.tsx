@@ -658,13 +658,13 @@ const AuditLogPage = () => {
                         <td className="px-3 py-3">
                           <div>
                             <span className="font-mono font-semibold text-primary block">{log.documentId}</span>
-                            <span className="text-xs text-muted-foreground mt-0.5 block">{getModuleLabel(log.collectionName)}</span>
+                            <span className="text-xs text-foreground mt-0.5 block font-medium">{getModuleLabel(log.collectionName)}</span>
                           </div>
                         </td>
                         <td className="px-3 py-3">
                           <div>
-                            <span className="text-sm text-foreground block">{log.changedBy}</span>
-                            <span className="text-xs text-muted-foreground font-medium mt-0.5 block">{formatDateTime(log.timestamp)}</span>
+                            <span className="text-sm text-foreground block font-medium">{log.changedBy}</span>
+                            <span className="text-xs text-foreground mt-0.5 block font-medium">{formatDateTime(log.timestamp)}</span>
                           </div>
                         </td>
                         <td className="px-3 py-3">
@@ -713,15 +713,15 @@ const AuditLogPage = () => {
                           {getModuleIcon(log.collectionName)}
                         </div>
                         <div>
-                          <h3 className="font-mono font-semibold text-foreground text-sm">{log.documentId}</h3>
-                          <div className="text-sm text-muted-foreground mt-0.5">{getModuleLabel(log.collectionName)}</div>
+                          <h3 className="font-medium text-foreground text-sm">{log.documentId}</h3>
+                          <div className="text-sm text-foreground mt-0.5 font-medium">{getModuleLabel(log.collectionName)}</div>
                         </div>
                       </div>
-                      <span className={`flex-shrink-0 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full border ${getActionColor(log.action)}`}>{log.action}</span>
+                      <span className={`flex-shrink-0 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded border ${getActionColor(log.action)}`}>{log.action}</span>
                     </div>
                     <div className="pl-[3.25rem] mb-4 space-y-1.5">
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground"><User className="w-3.5 h-3.5" /><span>{log.changedBy}</span></div>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground"><Clock className="w-3.5 h-3.5" /> <span className="font-medium">{formatDateTime(log.timestamp)}</span></div>
+                      <div className="flex items-center gap-2 text-sm text-foreground font-medium"><User className="w-3.5 h-3.5" /><span>{log.changedBy}</span></div>
+                      <div className="flex items-center gap-2 text-xs text-foreground font-medium"><Clock className="w-3.5 h-3.5" /> <span className="font-medium">{formatDateTime(log.timestamp)}</span></div>
                     </div>
                     <div className="pt-3 border-t border-border">
                       <button onClick={() => setSelectedLog(log)} className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium bg-secondary hover:bg-secondary/80 text-foreground transition-colors border border-border/50">

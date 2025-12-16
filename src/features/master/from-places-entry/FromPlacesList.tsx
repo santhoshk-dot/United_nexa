@@ -280,7 +280,7 @@ export const FromPlaceList = () => {
             }}
           />
             <Button variant="primary" onClick={handleCreateNew} className="flex-1 h-9 text-xs sm:text-sm">
-              <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />Add New
+              <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />Add
               {/* <span className="hidden xs:inline">Add</span>
               <span className="hidden sm:inline ml-1">Place</span> */}
             </Button>
@@ -430,8 +430,8 @@ export const FromPlaceList = () => {
                     </td>
                     <td className="px-3 py-3">
                       <div>
-                        <span className="font-medium text-foreground block">{fromPlace.placeName}</span>
-                        <span className="text-xs text-muted-foreground mt-0.5 block">{fromPlace.shortName}</span>
+                        <span className="text-sm font-medium text-foreground block">{fromPlace.placeName}</span>
+                        <span className="text-xs font-medium text-foreground mt-0.5 block">{fromPlace.shortName}</span>
                       </div>
                     </td>
                     <td className="px-3 py-3">
@@ -485,8 +485,8 @@ export const FromPlaceList = () => {
                   <div className="flex-1 min-w-0">
                     {/* Header */}
                     <div className="mb-2">
-                      <h3 className="font-semibold text-foreground truncate">{fromPlace.placeName}</h3>
-                      <div className="flex items-center gap-1.5 mt-1 text-muted-foreground">
+                      <h3 className="text-md font-medium text-foreground truncate">{fromPlace.placeName}</h3>
+                      <div className="flex font-medium items-center gap-1.5 mt-1 text-foreground">
                         <Tag className="w-3.5 h-3.5 flex-shrink-0" />
                         <span className="text-sm truncate">{fromPlace.shortName}</span>
                       </div>

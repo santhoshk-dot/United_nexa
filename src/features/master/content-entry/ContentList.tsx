@@ -241,7 +241,7 @@ export const ContentList = () => {
             }}
           />
             <Button variant="primary" onClick={handleCreateNew} className="flex-1 h-9 text-xs sm:text-sm">
-              <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />Add New
+              <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />Add
               {/* <span className="hidden xs:inline">Add</span>
               <span className="hidden sm:inline ml-1">Content</span> */}
             </Button>
@@ -357,8 +357,8 @@ export const ContentList = () => {
                     </td>
                     <td className="px-3 py-3">
                       <div>
-                        <span className="font-medium text-foreground block">{entry.contentName}</span>
-                        <span className="text-xs text-muted-foreground mt-0.5 block">{entry.shortName}</span>
+                        <span className="text-sm font-mediumtext-foreground block">{entry.contentName}</span>
+                        <span className="text-xs font-medium text-foreground mt-0.5 block">{entry.shortName}</span>
                       </div>
                     </td>
                     <td className="px-3 py-3">
@@ -412,8 +412,8 @@ export const ContentList = () => {
                   <div className="flex-1 min-w-0">
                     {/* Header */}
                     <div className="mb-2">
-                      <h3 className="font-semibold text-foreground truncate">{entry.contentName}</h3>
-                      <div className="flex items-center gap-1.5 mt-1 text-muted-foreground">
+                      <h3 className="text-sm font-medium text-foreground truncate">{entry.contentName}</h3>
+                      <div className="flex font-medium items-center gap-1.5 mt-1 text-foreground">
                         <Tag className="w-3.5 h-3.5 flex-shrink-0" />
                         <span className="text-sm truncate">{entry.shortName}</span>
                       </div>

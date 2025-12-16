@@ -359,30 +359,30 @@ const TermsLogPage = () => {
                           <FileText size={18} />
                         </div>
                         <div>
-                          <h3 className="font-mono font-semibold text-foreground text-sm">{log.gcNo}</h3>
-                          <div className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
+                          <h3 className="font-semibold text-foreground text-sm text-primary">{log.gcNo}</h3>
+                          <div className="font-medium text-xs mt-0.5 flex items-center gap-1">
                              <Clock size={10} />
                              {formatDateTime(log.viewedAt)}
                           </div>
                         </div>
                       </div>
-                      <span className={`flex-shrink-0 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full border ${getRoleBadgeColor(log.role)}`}>
+                      <span className={`flex-shrink-0 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded border ${getRoleBadgeColor(log.role)}`}>
                           {log.role}
                       </span>
                     </div>
                     
                     <div className="pl-[3.25rem] space-y-1.5">
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <div className="font-medium flex items-center gap-2 text-sm text-foreground">
                             <User className="w-3.5 h-3.5" />
                             <span>{formatViewerName(log.viewerName)}</span>
                         </div>
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground" title={log.userAgent}>
+                        <div className="font-medium flex items-center gap-2 text-sm text-foreground" title={log.userAgent}>
                              {formatUserAgent(log.userAgent) === 'iPhone' || formatUserAgent(log.userAgent) === 'Android Device' ? (
                                 <Smartphone className="w-3.5 h-3.5" />
                               ) : (
                                 <Monitor className="w-3.5 h-3.5" />
                               )}
-                             <span className="truncate max-w-[200px] font-medium">{formatUserAgent(log.userAgent)}</span>
+                             <span className="truncate max-w-[200px]">{formatUserAgent(log.userAgent)}</span>
                         </div>
                     </div>
                   </div>

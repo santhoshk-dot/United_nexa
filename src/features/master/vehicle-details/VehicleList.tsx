@@ -251,7 +251,7 @@ export const VehicleList = () => {
             }}
           />
             <Button variant="primary" onClick={handleCreateNew} className="flex-1 h-9 text-xs sm:text-sm">
-              <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />Add New
+              <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />Add
               {/* <span className="hidden xs:inline">Add</span>
               <span className="hidden sm:inline ml-1">Vehicle</span> */}
             </Button>
@@ -382,14 +382,14 @@ export const VehicleList = () => {
                     </td>
                     <td className="px-3 py-3">
                       <div>
-                        <span className="font-medium text-foreground block">{entry.vehicleNo}</span>
-                        <span className="text-xs text-muted-foreground mt-0.5 block">{entry.vehicleName}</span>
+                        <span className="text-sm font-medium text-foreground block">{entry.vehicleNo}</span>
+                        <span className="text-xs font-medium text-foreground mt-0.5 block">{entry.vehicleName}</span>
                       </div>
                     </td>
                     <td className="px-3 py-3">
                       <div>
-                        <span className="text-sm text-foreground block">{entry.ownerName || "-"}</span>
-                        <span className="text-xs text-muted-foreground mt-0.5 block">{entry.ownerMobile || "-"}</span>
+                        <span className="text-sm font-medium text-foreground block">{entry.ownerName || "-"}</span>
+                        <span className="text-xs font-medium text-foreground mt-0.5 block">{entry.ownerMobile || "-"}</span>
                       </div>
                     </td>
                     <td className="px-3 py-3">
@@ -443,8 +443,8 @@ export const VehicleList = () => {
                   <div className="flex-1 min-w-0">
                     {/* Header */}
                     <div className="mb-2">
-                      <h3 className="font-semibold text-foreground truncate">{entry.vehicleNo}</h3>
-                      <div className="flex items-center gap-1.5 mt-1 text-muted-foreground">
+                      <h3 className="text-md font-medium text-foreground truncate">{entry.vehicleNo}</h3>
+                      <div className="flex font-medium items-center gap-1.5 mt-1 text-foreground">
                         <Truck className="w-3.5 h-3.5 flex-shrink-0" />
                         <span className="text-sm truncate">{entry.vehicleName}</span>
                       </div>
@@ -453,14 +453,14 @@ export const VehicleList = () => {
                     {/* Owner Details */}
                     <div className="space-y-1 text-sm mb-3">
                       <div className="flex items-center gap-2 text-foreground">
-                        <User className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
-                        <span className="text-muted-foreground">Owner:</span>
-                        <span className="truncate text-muted-foreground">{entry.ownerName || "-"}</span>
+                        <User className="w-3.5 h-3.5 text-foreground font-medium flex-shrink-0" />
+                        <span className="text-foreground font-medium">Owner:</span>
+                        <span className="truncate text-foreground font-medium">{entry.ownerName || "-"}</span>
                       </div>
                       <div className="flex items-center gap-2 text-foreground">
-                        <Phone className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
-                        <span className="text-muted-foreground">Mobile:</span>
-                        <span className="truncate text-muted-foreground">{entry.ownerMobile || "-"}</span>
+                        <Phone className="w-3.5 h-3.5 text-foreground font-medium flex-shrink-0" />
+                        <span className="text-foreground font-medium">Mobile:</span>
+                        <span className="truncate text-foreground font-medium">{entry.ownerMobile || "-"}</span>
                       </div>
                     </div>
 
