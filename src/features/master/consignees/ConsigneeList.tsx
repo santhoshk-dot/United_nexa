@@ -302,9 +302,9 @@ export const ConsigneeList = () => {
             }}
           />
             <Button variant="primary" onClick={handleCreateNew} className="flex-1 h-9 text-xs sm:text-sm">
-              <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              <span className="hidden xs:inline">Add</span>
-              <span className="hidden sm:inline ml-1">Consignee</span>
+              <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />Add New
+              {/* <span className="hidden xs:inline">Add</span>
+              <span className="hidden sm:inline ml-1">Consignee</span> */}
             </Button>
           </div>
         </div>
@@ -388,13 +388,13 @@ export const ConsigneeList = () => {
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      <span className="font-medium text-foreground">{consignee.name}</span>
+                      <span className="text-sm text-foreground font-medium">{consignee.name}</span>
                     </td>
                     <td className="px-4 py-3">
-                      <span className="text-sm text-muted-foreground">{consignee.phone}</span>
+                      <span className="text-sm text-foreground font-medium">{consignee.phone}</span>
                     </td>
                     <td className="px-4 py-3">
-                      <span className="text-sm text-muted-foreground">{consignee.destination}</span>
+                      <span className="text-sm text-foreground font-medium">{consignee.destination}</span>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-1">

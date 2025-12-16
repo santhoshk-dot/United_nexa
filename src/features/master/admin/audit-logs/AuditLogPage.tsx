@@ -612,9 +612,9 @@ const AuditLogPage = () => {
                     logs.map((log, index) => (
                       <tr key={log._id || index} className="hover:bg-muted/30 transition-colors">
                         <td className="px-4 py-3"><span className="font-mono font-semibold text-primary">{log.documentId}</span></td>
-                        <td className="px-4 py-3"><span className="text-sm text-foreground">{getModuleLabel(log.collectionName)}</span></td>
-                        <td className="px-4 py-3"><span className="text-sm text-foreground">{log.changedBy}</span></td>
-                        <td className="px-4 py-3"><span className="text-xs text-muted-foreground font-mono">{formatDateTime(log.timestamp)}</span></td>
+                        <td className="px-4 py-3"><span className="text-sm text-foreground font-medium">{getModuleLabel(log.collectionName)}</span></td>
+                        <td className="px-4 py-3"><span className="text-sm text-foreground font-medium">{log.changedBy}</span></td>
+                        <td className="px-4 py-3"><span className="text-sm text-foreground font-medium">{formatDateTime(log.timestamp)}</span></td>
                         <td className="px-4 py-3"><span className={`inline-flex px-2 py-1 rounded text-xs font-semibold border ${getActionColor(log.action)}`}>{log.action}</span></td>
                         <td className="px-4 py-3">
                           <div className="flex items-center justify-end">
@@ -664,7 +664,7 @@ const AuditLogPage = () => {
                         <td className="px-3 py-3">
                           <div>
                             <span className="text-sm text-foreground block">{log.changedBy}</span>
-                            <span className="text-xs text-muted-foreground font-mono mt-0.5 block">{formatDateTime(log.timestamp)}</span>
+                            <span className="text-xs text-muted-foreground font-medium mt-0.5 block">{formatDateTime(log.timestamp)}</span>
                           </div>
                         </td>
                         <td className="px-3 py-3">
@@ -714,14 +714,14 @@ const AuditLogPage = () => {
                         </div>
                         <div>
                           <h3 className="font-mono font-semibold text-foreground text-sm">{log.documentId}</h3>
-                          <div className="text-xs text-muted-foreground mt-0.5">{getModuleLabel(log.collectionName)}</div>
+                          <div className="text-sm text-muted-foreground mt-0.5">{getModuleLabel(log.collectionName)}</div>
                         </div>
                       </div>
                       <span className={`flex-shrink-0 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full border ${getActionColor(log.action)}`}>{log.action}</span>
                     </div>
                     <div className="pl-[3.25rem] mb-4 space-y-1.5">
-                      <div className="flex items-center gap-2 text-sm text-foreground"><User className="w-3.5 h-3.5 text-muted-foreground" /><span>{log.changedBy}</span></div>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground"><Clock className="w-3.5 h-3.5" /> <span className="font-mono">{formatDateTime(log.timestamp)}</span></div>
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground"><User className="w-3.5 h-3.5" /><span>{log.changedBy}</span></div>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground"><Clock className="w-3.5 h-3.5" /> <span className="font-medium">{formatDateTime(log.timestamp)}</span></div>
                     </div>
                     <div className="pt-3 border-t border-border">
                       <button onClick={() => setSelectedLog(log)} className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium bg-secondary hover:bg-secondary/80 text-foreground transition-colors border border-border/50">

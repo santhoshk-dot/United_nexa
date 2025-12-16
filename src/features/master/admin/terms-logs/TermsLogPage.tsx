@@ -315,7 +315,7 @@ const TermsLogPage = () => {
                           <span className="font-mono font-semibold text-primary">{log.gcNo}</span>
                         </td>
                         <td className="px-4 py-3">
-                            <span className="text-sm text-foreground">{formatViewerName(log.viewerName)}</span>
+                            <span className="text-sm text-foreground font-medium">{formatViewerName(log.viewerName)}</span>
                         </td>
                         <td className="px-4 py-3">
                           <span className={`inline-flex px-2 py-1 rounded text-xs font-semibold border capitalize ${getRoleBadgeColor(log.role)}`}>
@@ -323,14 +323,14 @@ const TermsLogPage = () => {
                           </span>
                         </td>
                         <td className="px-4 py-3">
-                            <span className="text-xs text-muted-foreground font-mono">{formatDateTime(log.viewedAt)}</span>
+                            <span className="text-sm text-foreground font-medium">{formatDateTime(log.viewedAt)}</span>
                         </td>
                          <td className="px-4 py-3">
-                            <div className="text-xs text-foreground font-medium flex items-center gap-2" title={log.userAgent}>
+                            <div className="text-sm text-foreground font-medium flex items-center gap-2" title={log.userAgent}>
                               {formatUserAgent(log.userAgent) === 'iPhone' || formatUserAgent(log.userAgent) === 'Android Device' ? (
-                                <Smartphone size={14} className="text-muted-foreground" />
+                                <Smartphone size={14} className="text-sm text-foreground font-medium" />
                               ) : (
-                                <Monitor size={14} className="text-muted-foreground" />
+                                <Monitor size={14} className="text-sm text-foreground font-medium" />
                               )}
                               {formatUserAgent(log.userAgent)}
                             </div>
@@ -372,11 +372,11 @@ const TermsLogPage = () => {
                     </div>
                     
                     <div className="pl-[3.25rem] space-y-1.5">
-                        <div className="flex items-center gap-2 text-sm text-foreground">
-                            <User className="w-3.5 h-3.5 text-muted-foreground" />
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <User className="w-3.5 h-3.5" />
                             <span>{formatViewerName(log.viewerName)}</span>
                         </div>
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground" title={log.userAgent}>
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground" title={log.userAgent}>
                              {formatUserAgent(log.userAgent) === 'iPhone' || formatUserAgent(log.userAgent) === 'Android Device' ? (
                                 <Smartphone className="w-3.5 h-3.5" />
                               ) : (

@@ -251,9 +251,9 @@ export const ToPlacesList = () => {
             }}
           />
             <Button variant="primary" onClick={handleCreateNew} className="flex-1 h-9 text-xs sm:text-sm">
-              <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              <span className="hidden xs:inline">Add</span>
-              <span className="hidden sm:inline ml-1">Place</span>
+              <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />Add New
+              {/* <span className="hidden xs:inline">Add</span>
+              <span className="hidden sm:inline ml-1">Place</span> */}
             </Button>
           </div>
         </div>
@@ -301,10 +301,10 @@ export const ToPlacesList = () => {
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      <span className="font-medium text-foreground">{toPlace.placeName}</span>
+                      <span className="text-sm text-foreground font-medium">{toPlace.placeName}</span>
                     </td>
                     <td className="px-4 py-3">
-                      <span className="text-sm text-muted-foreground">{toPlace.shortName}</span>
+                      <span className="text-sm text-foreground font-medium">{toPlace.shortName}</span>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-1">
@@ -425,7 +425,7 @@ export const ToPlacesList = () => {
                       <h3 className="font-semibold text-foreground truncate">{toPlace.placeName}</h3>
                       <div className="flex items-center gap-1.5 mt-1 text-muted-foreground">
                         <Tag className="w-3.5 h-3.5 flex-shrink-0" />
-                        <span className="text-xs truncate">{toPlace.shortName}</span>
+                        <span className="text-sm truncate">{toPlace.shortName}</span>
                       </div>
                     </div>
 

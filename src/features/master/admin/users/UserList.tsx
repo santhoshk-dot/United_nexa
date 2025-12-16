@@ -240,9 +240,9 @@ export const UserList = () => {
             }}
           />
             <Button variant="primary" onClick={handleCreateNew} className="flex-1 h-9 text-xs sm:text-sm">
-              <UserPlus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              <span className="hidden xs:inline">Add</span>
-              <span className="hidden sm:inline ml-1">User</span>
+              <UserPlus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />Add New
+              {/* <span className="hidden xs:inline">Add</span>
+              <span className="hidden sm:inline ml-1">User</span> */}
             </Button>
           </div>
         </div>
@@ -299,7 +299,7 @@ export const UserList = () => {
                           {u.role === 'admin' ? <Shield size={18} /> : <UserIcon size={18} />}
                         </div>
                         <div className="min-w-0">
-                          <div className="font-medium text-foreground">{u.name}</div>
+                          <div className="text-sm text-foreground font-medium">{u.name}</div>
                           <div className="text-xs text-muted-foreground flex items-center gap-1">
                             <Mail className="w-3 h-3" />
                             {u.email}
@@ -316,7 +316,7 @@ export const UserList = () => {
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      <span className="text-sm text-foreground">{u.mobile || '-'}</span>
+                      <span className="text-sm text-foreground font-medium">{u.mobile || '-'}</span>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-1">
@@ -455,7 +455,7 @@ export const UserList = () => {
                     <div>
                       <h3 className="font-semibold text-foreground text-base">{u.name}</h3>
                       <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-0.5">
-                        <span className="truncate max-w-[150px]">{u.email}</span>
+                        <span className="truncate max-w-[150px] text-sm">{u.email}</span>
                       </div>
                     </div>
                   </div>
@@ -471,9 +471,9 @@ export const UserList = () => {
 
                 {/* Content: Contact Details */}
                 <div className="pl-[3.25rem] mb-4 space-y-1.5">
-                  <div className="flex items-center gap-2 text-sm text-foreground">
-                    <Phone className="w-3.5 h-3.5 text-muted-foreground" />
-                    <span className="font-mono">{u.mobile || 'No mobile'}</span>
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Phone className="w-3.5 h-3.5" />
+                    <span className="text-sm">{u.mobile || 'No mobile'}</span>
                   </div>
                 </div>
 
