@@ -36,7 +36,7 @@ export const Header = ({ setIsSidebarOpen }: HeaderProps) => {
     // Settings
     if (pathname === '/settings') return { title: 'Print Template Editor', breadcrumb: 'Settings' };
     if (pathname === '/audit-logs') return { title: 'Audit Logs', breadcrumb: 'Settings' };
-
+    if (pathname === '/terms-logs') return { title: 'Terms Log Monitoring', breadcrumb: 'Settings' };
     // Masters
     if (pathname === '/master') return { title: 'Master Dashboard' };
     if (pathname.startsWith('/master/consignors')) return { title: 'Consignors', breadcrumb: 'Master' };

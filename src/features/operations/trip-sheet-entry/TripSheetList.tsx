@@ -650,7 +650,7 @@ export const TripSheetList = () => {
               {multipleSelected && (
                 <button onClick={handleExcludeFilteredData} disabled={paginatedData.length === 0} className="inline-flex items-center gap-1 text-xs text-destructive hover:text-destructive/80 font-medium">
                   <XCircle className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Exclude Visible</span>
+                  <span className="hidden sm:inline">Exclude</span>
                 </button>
               )}
               <button onClick={clearAllFilters} className="inline-flex items-center gap-1 text-xs text-primary hover:text-primary/80 font-medium">
