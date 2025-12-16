@@ -12,14 +12,14 @@ import {
   Package,
   ClipboardList,
   ShieldCheck,
-  Car, 
-  UserCircle, 
+  Car,
+  UserCircle,
   History,
   LogOut,
   ScrollText,
   Printer,
   ChevronRight
-} from 'lucide-react'; 
+} from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 
 interface SidebarProps {
@@ -29,8 +29,8 @@ interface SidebarProps {
 
 export const Sidebar = ({ isSidebarOpen, setIsSidebarOpen }: SidebarProps) => {
   const location = useLocation();
-  const { user, logout } = useAuth(); 
-  
+  const { user, logout } = useAuth();
+
   // State for collapsible sections
   const [isMastersExpanded, setIsMastersExpanded] = useState(true);
   const [isReportsExpanded, setIsReportsExpanded] = useState(true);
@@ -59,10 +59,10 @@ export const Sidebar = ({ isSidebarOpen, setIsSidebarOpen }: SidebarProps) => {
 
   // 🟢 Moved User Management here (Admin Only)
   if (user?.role === 'admin') {
-    masterLinks.push({ 
-      name: 'User Management', 
-      href: '/users', 
-      icon: ShieldCheck 
+    masterLinks.push({
+      name: 'User Management',
+      href: '/users',
+      icon: ShieldCheck
     });
   }
 
@@ -83,6 +83,14 @@ export const Sidebar = ({ isSidebarOpen, setIsSidebarOpen }: SidebarProps) => {
     return pathname === href || pathname.startsWith(`${href}/`);
   };
 
+  // Helper to check if any link in a group is active
+  const checkGroupActive = (links: { href: string }[]) => links.some(link => isRouteActive(link.href, location.pathname));
+
+  const isOperationsActive = checkGroupActive(operationLinks);
+  const isMastersActive = checkGroupActive(masterLinks);
+  const isMonitoringActive = checkGroupActive(monitoringLinks);
+  const isConfigActive = checkGroupActive(configLinks);
+
   // Reusable NavItem Component
   const NavItem = ({ item }: { item: { name: string; href: string; icon: any } }) => {
     const active = isRouteActive(item.href, location.pathname);
@@ -92,15 +100,15 @@ export const Sidebar = ({ isSidebarOpen, setIsSidebarOpen }: SidebarProps) => {
         to={item.href}
         end={item.href === '/'}
         className={`group flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${active
-            ? 'bg-primary text-primary-foreground shadow-sm'
-            : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+          ? 'bg-primary text-primary-foreground shadow-sm'
+          : 'text-muted-foreground hover:bg-muted hover:text-foreground'
           }`}
         onClick={() => setIsSidebarOpen(false)}
         title={item.name}
       >
         <div className={`w-7 h-7 shrink-0 rounded flex items-center justify-center transition-colors ${active
-            ? 'bg-primary-foreground/20'
-            : 'bg-muted group-hover:bg-secondary'
+          ? 'bg-primary-foreground/20'
+          : 'bg-muted group-hover:bg-secondary'
           }`}>
           <item.icon className="w-4 h-4" />
         </div>
@@ -110,16 +118,16 @@ export const Sidebar = ({ isSidebarOpen, setIsSidebarOpen }: SidebarProps) => {
   };
 
   // Section Header Component
-  const SectionHeader = ({ title, isOpen, onToggle }: { title: string, isOpen: boolean, onToggle: () => void }) => (
+  const SectionHeader = ({ title, isOpen, onToggle, active }: { title: string, isOpen: boolean, onToggle: () => void, active?: boolean }) => (
     <button
       onClick={onToggle}
       className="w-full flex items-center justify-between px-3 pt-4 pb-2 group"
     >
-      <span className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest group-hover:text-primary transition-colors">
+      <span className={`text-[10px] font-bold uppercase tracking-widest transition-colors ${active ? 'text-primary' : 'text-muted-foreground/60'}`}>
         {title}
       </span>
-      <ChevronRight 
-        className={`w-3 h-3 text-muted-foreground/40 transition-transform duration-200 ${isOpen ? 'rotate-90' : ''}`} 
+      <ChevronRight
+        className={`w-3 h-3 text-muted-foreground/40 transition-transform duration-200 ${isOpen ? 'rotate-90' : ''}`}
       />
     </button>
   );
@@ -161,11 +169,11 @@ export const Sidebar = ({ isSidebarOpen, setIsSidebarOpen }: SidebarProps) => {
 
           {/* Scrollable Navigation */}
           <nav className="flex-1 px-3 py-2 overflow-y-auto custom-scrollbar">
-            
+
             {/* 1. OPERATIONS (Always Open) */}
             <div className="mb-2">
               <div className="px-3 pt-3 pb-2">
-                <span className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest">
+                <span className={`text-[10px] font-bold uppercase tracking-widest ${isOperationsActive ? 'text-primary' : 'text-muted-foreground/60'}`}>
                   Operations
                 </span>
               </div>
@@ -177,10 +185,11 @@ export const Sidebar = ({ isSidebarOpen, setIsSidebarOpen }: SidebarProps) => {
             </div>
 
             {/* 2. MASTER DATA */}
-            <SectionHeader 
-              title="Master Data" 
-              isOpen={isMastersExpanded} 
-              onToggle={() => setIsMastersExpanded(!isMastersExpanded)} 
+            <SectionHeader
+              title="Master Data"
+              isOpen={isMastersExpanded}
+              onToggle={() => setIsMastersExpanded(!isMastersExpanded)}
+              active={isMastersActive}
             />
             <div className={`space-y-0.5 overflow-hidden transition-all duration-300 ${isMastersExpanded ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'}`}>
               {masterLinks.map((item) => (
@@ -192,10 +201,11 @@ export const Sidebar = ({ isSidebarOpen, setIsSidebarOpen }: SidebarProps) => {
             {user?.role === 'admin' && (
               <>
                 {/* LOGS & MONITORING */}
-                <SectionHeader 
-                  title="Monitoring & Logs" 
-                  isOpen={isReportsExpanded} 
-                  onToggle={() => setIsReportsExpanded(!isReportsExpanded)} 
+                <SectionHeader
+                  title="Monitoring & Logs"
+                  isOpen={isReportsExpanded}
+                  onToggle={() => setIsReportsExpanded(!isReportsExpanded)}
+                  active={isMonitoringActive}
                 />
                 <div className={`space-y-0.5 overflow-hidden transition-all duration-300 ${isReportsExpanded ? 'max-h-[200px] opacity-100' : 'max-h-0 opacity-0'}`}>
                   {monitoringLinks.map((item) => (
@@ -204,10 +214,11 @@ export const Sidebar = ({ isSidebarOpen, setIsSidebarOpen }: SidebarProps) => {
                 </div>
 
                 {/* SETTINGS & CONFIG */}
-                <SectionHeader 
-                  title="Configuration" 
-                  isOpen={isAdminExpanded} 
-                  onToggle={() => setIsAdminExpanded(!isAdminExpanded)} 
+                <SectionHeader
+                  title="Configuration"
+                  isOpen={isAdminExpanded}
+                  onToggle={() => setIsAdminExpanded(!isAdminExpanded)}
+                  active={isConfigActive}
                 />
                 <div className={`space-y-0.5 overflow-hidden transition-all duration-300 ${isAdminExpanded ? 'max-h-[200px] opacity-100' : 'max-h-0 opacity-0'}`}>
                   {configLinks.map((item) => (
@@ -227,8 +238,8 @@ export const Sidebar = ({ isSidebarOpen, setIsSidebarOpen }: SidebarProps) => {
               <div className="flex items-center gap-2.5">
                 {/* Avatar */}
                 <div className={`w-9 h-9 shrink-0 rounded-lg flex items-center justify-center text-white text-sm font-bold shadow-sm ${user?.role === 'admin'
-                    ? 'bg-gradient-to-br from-purple-500 to-purple-700'
-                    : 'bg-gradient-to-br from-primary to-primary/80'
+                  ? 'bg-gradient-to-br from-purple-500 to-purple-700'
+                  : 'bg-gradient-to-br from-primary to-primary/80'
                   }`}>
                   {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
                 </div>
