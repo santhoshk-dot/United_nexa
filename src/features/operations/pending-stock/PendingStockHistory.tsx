@@ -30,6 +30,7 @@ import type { GcEntry, Consignor, Consignee, PendingStockFilter, ExclusionFilter
 import { useServerPagination } from '../../../hooks/useServerPagination';
 import { Pagination } from '../../../components/shared/Pagination';
 import { useToast } from '../../../contexts/ToastContext';
+import { deleteSchema } from '../../../schemas';
 
 
 type SelectAllSnapshot = {
@@ -83,6 +84,7 @@ export const PendingStockHistory = () => {
   const [destinationOption, setDestinationOption] = useState<any>(null);
   const [consignorOption, setConsignorOption] = useState<any>(null);
   const [consigneeOptions, setConsigneeOptions] = useState<any[]>([]);
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
   const [selectedGcNos, setSelectedGcNos] = useState<string[]>([]);
   const [selectAllMode, setSelectAllMode] = useState(false);
@@ -107,6 +109,7 @@ export const PendingStockHistory = () => {
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deleteMessage, setDeleteMessage] = useState('');
+  const [deleteReason, setDeleteReason] = useState('');
 
   const [reportPrintingData, setReportPrintingData] = useState<any[] | null>(null);
   const [gcPrintingJobs, setGcPrintingJobs] = useState<GcPrintJob[] | null>(null);
@@ -388,18 +391,35 @@ export const PendingStockHistory = () => {
   const handleDelete = (gcNo: string) => {
     setDeletingId(gcNo);
     setDeleteMessage(`Are you sure you want to delete GC #${gcNo}?`);
+    setDeleteReason('');
+    setFormErrors({});
     setIsConfirmOpen(true);
   };
 
   const handleConfirmDelete = async () => {
+    const data = deleteReason.trim();
+    const validationResult = deleteSchema.safeParse({ data });
+
+    if (!validationResult.success) {
+      const newErrors: Record<string, string> = {};
+      validationResult.error.issues.forEach((err: any) => {
+        if (err.path[0]) newErrors[err.path[0].toString()] = err.message;
+      });
+      setFormErrors(newErrors);
+      return;
+    }
+
     if (deletingId) {
-      await deleteGcEntry(deletingId);
+      await deleteGcEntry(deletingId, deleteReason);
       refresh();
       setSelectedGcNos((prev) => prev.filter((id) => id !== deletingId));
       setExcludedGcNos((prev) => prev.filter((id) => id !== deletingId));
+
+      setIsConfirmOpen(false);
+      setDeletingId(null);
+      setDeleteReason('');
+      setFormErrors({});
     }
-    setIsConfirmOpen(false);
-    setDeletingId(null);
   };
 
   const handlePrintSingle = async (gcNo: string) => {
@@ -805,7 +825,41 @@ export const PendingStockHistory = () => {
       </div>
 
       {/* Modals */}
-      <ConfirmationDialog open={isConfirmOpen} onClose={() => setIsConfirmOpen(false)} onConfirm={handleConfirmDelete} title="Delete GC" description={deleteMessage} />
+      <ConfirmationDialog
+        open={isConfirmOpen}
+        onClose={() => setIsConfirmOpen(false)}
+        onConfirm={handleConfirmDelete}
+        title="Delete GC"
+        description={deleteMessage}
+      >
+        <div className="space-y-2">
+          <label className="block text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            Reason for Delete <span className="text-destructive">*</span>
+          </label>
+          <textarea
+            value={deleteReason}
+            onChange={(e) => {
+              setDeleteReason(e.target.value);
+              if (formErrors.data) {
+                setFormErrors(prev => {
+                  const next = { ...prev };
+                  delete next.data;
+                  return next;
+                });
+              }
+            }}
+            className={`w-full min-h-[80px] p-3 text-sm bg-secondary/30 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 placeholder:text-muted-foreground/50 resize-none ${formErrors.data ? "border-destructive ring-1 ring-destructive/20" : "border-border"
+              }`}
+            placeholder="Please enter the reason for deletion..."
+            autoFocus
+          />
+          {formErrors.data && (
+            <p className="text-[11px] font-medium text-destructive animate-in fade-in slide-in-from-top-1 duration-200">
+              {formErrors.data}
+            </p>
+          )}
+        </div>
+      </ConfirmationDialog>
       {reportPrintingData && <StockReportPrint data={reportPrintingData} onClose={() => setReportPrintingData(null)} />}
       {gcPrintingJobs && <GcPrintManager jobs={gcPrintingJobs} onClose={() => setGcPrintingJobs(null)} />}
     </div>

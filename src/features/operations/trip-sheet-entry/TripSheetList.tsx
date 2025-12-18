@@ -115,6 +115,7 @@ export const TripSheetList = () => {
   const [delId, setDelId] = useState<string | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleteMessage, setDeleteMessage] = useState("");
+  const [deleteReason, setDeleteReason] = useState("");
 
   // Async loaders
   const loadDestinationOptions = useCallback(
@@ -401,6 +402,7 @@ export const TripSheetList = () => {
   const onDelete = (mfNo: string) => {
     setDelId(mfNo);
     setDeleteMessage(`Are you sure you want to delete TS #${mfNo}?`);
+    setDeleteReason("");
     setConfirmOpen(true);
   };
 
@@ -408,8 +410,8 @@ export const TripSheetList = () => {
     if (!delId) return;
     setConfirmOpen(false);
     try {
-      await deleteTripSheet(delId);
-      toast.success(`TS #${delId} deleted successfully.`);
+      await deleteTripSheet(delId, deleteReason);
+      // toast.success(`TS #${delId} deleted successfully.`);
       refresh();
       setSelectedMfNos((prev) => prev.filter((id) => id !== delId));
       setExcludedMfNos((prev) => prev.filter((id) => id !== delId));
@@ -816,7 +818,26 @@ export const TripSheetList = () => {
       </div>
 
       {/* Modals */}
-      <ConfirmationDialog open={confirmOpen} onClose={() => setConfirmOpen(false)} onConfirm={confirmDelete} title="Delete Trip Sheet" description={deleteMessage} />
+      <ConfirmationDialog
+        open={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        onConfirm={confirmDelete}
+        title="Delete Trip Sheet"
+        description={deleteMessage}
+      >
+        <div className="mt-4">
+          <label htmlFor="deleteReason" className="block text-sm font-medium text-muted-foreground mb-1">
+            Reason for Delete
+          </label>
+          <textarea
+            id="deleteReason"
+            value={deleteReason}
+            onChange={(e) => setDeleteReason(e.target.value)}
+            className="w-full h-20 p-2 bg-secondary/50 text-foreground rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm resize-none"
+            placeholder="Please enter reason for deletion..."
+          />
+        </div>
+      </ConfirmationDialog>
       {printingSheets && <TripSheetPrintManager sheets={printingSheets} onClose={() => setPrintingSheets(null)} />}
       {reportPrintingJobs && <TripSheetReportPrint sheets={reportPrintingJobs} onClose={() => setReportPrintingJobs(null)} />}
     </div>

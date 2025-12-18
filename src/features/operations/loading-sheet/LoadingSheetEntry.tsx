@@ -27,6 +27,7 @@ import { StockReportPrint } from '../pending-stock/StockReportView';
 import { LoadListPrintManager, type LoadListJob } from './LoadListPrintManager';
 import { QtySelectionDialog } from './QtySelectionDialog';
 import { useToast } from '../../../contexts/ToastContext';
+import { deleteSchema } from '../../../schemas';
 
 type ExclusionFilterState = {
   isActive: boolean;
@@ -93,6 +94,7 @@ export const LoadingSheetEntry = () => {
   const [consignorOption, setConsignorOption] = useState<any>(null);
   const [godownOption, setGodownOption] = useState<any>(null);
   const [consigneeOptions, setConsigneeOptions] = useState<any[]>([]);
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
   // Selection State - FIXED: Proper typed snapshot
   const [selectedGcIds, setSelectedGcIds] = useState<string[]>([]);
@@ -125,6 +127,7 @@ export const LoadingSheetEntry = () => {
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deleteMessage, setDeleteMessage] = useState('');
+  const [deleteReason, setDeleteReason] = useState('');
   const [isQtySelectOpen, setIsQtySelectOpen] = useState(false);
 
   const [currentQtySelection, setCurrentQtySelection] = useState<{
@@ -453,18 +456,35 @@ export const LoadingSheetEntry = () => {
   const handleDelete = (gcNo: string) => {
     setDeletingId(gcNo);
     setDeleteMessage(`Are you sure you want to delete GC #${gcNo}?`);
+    setDeleteReason('');
+    setFormErrors({});
     setIsConfirmOpen(true);
   };
 
   const handleConfirmDelete = async () => {
+    const data = deleteReason.trim();
+    const validationResult = deleteSchema.safeParse({ data });
+
+    if (!validationResult.success) {
+      const newErrors: Record<string, string> = {};
+      validationResult.error.issues.forEach((err: any) => {
+        if (err.path[0]) newErrors[err.path[0].toString()] = err.message;
+      });
+      setFormErrors(newErrors);
+      return;
+    }
+
     if (deletingId) {
-      await deleteGcEntry(deletingId);
+      await deleteGcEntry(deletingId, deleteReason);
       refresh();
       setSelectedGcIds((prev) => prev.filter((id) => id !== deletingId));
       setExcludedGcIds((prev) => prev.filter((id) => id !== deletingId));
+
+      setIsConfirmOpen(false);
+      setDeletingId(null);
+      setDeleteReason('');
+      setFormErrors({});
     }
-    setIsConfirmOpen(false);
-    setDeletingId(null);
   };
 
   const handlePrintSingle = async (gcNo: string) => {
@@ -893,7 +913,41 @@ export const LoadingSheetEntry = () => {
       </div>
 
       {/* Modals */}
-      <ConfirmationDialog open={isConfirmOpen} onClose={() => setIsConfirmOpen(false)} onConfirm={handleConfirmDelete} title="Delete GC Entry" description={deleteMessage} />
+      <ConfirmationDialog
+        open={isConfirmOpen}
+        onClose={() => setIsConfirmOpen(false)}
+        onConfirm={handleConfirmDelete}
+        title="Delete GC Entry"
+        description={deleteMessage}
+      >
+        <div className="space-y-2">
+          <label className="block text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            Reason for Delete <span className="text-destructive">*</span>
+          </label>
+          <textarea
+            value={deleteReason}
+            onChange={(e) => {
+              setDeleteReason(e.target.value);
+              if (formErrors.data) {
+                setFormErrors(prev => {
+                  const next = { ...prev };
+                  delete next.data;
+                  return next;
+                });
+              }
+            }}
+            className={`w-full min-h-[80px] p-3 text-sm bg-secondary/30 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 placeholder:text-muted-foreground/50 resize-none ${formErrors.data ? "border-destructive ring-1 ring-destructive/20" : "border-border"
+              }`}
+            placeholder="Please enter the reason for deletion..."
+            autoFocus
+          />
+          {formErrors.data && (
+            <p className="text-[11px] font-medium text-destructive animate-in fade-in slide-in-from-top-1 duration-200">
+              {formErrors.data}
+            </p>
+          )}
+        </div>
+      </ConfirmationDialog>
       {reportPrintingJobs && <StockReportPrint data={reportPrintingJobs} onClose={() => setReportPrintingJobs(null)} />}
       {gcPrintingJobs && <GcPrintManager jobs={gcPrintingJobs} onClose={() => setGcPrintingJobs(null)} />}
       {loadListPrintingJobs && <LoadListPrintManager jobs={loadListPrintingJobs} onClose={() => setLoadListPrintingJobs(null)} />}

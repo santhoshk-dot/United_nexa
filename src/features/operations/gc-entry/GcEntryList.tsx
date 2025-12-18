@@ -32,6 +32,7 @@ import { GcPrintManager, type GcPrintJob } from "./GcPrintManager";
 import { Pagination } from "../../../components/shared/Pagination";
 import type { GcEntry, Consignor, Consignee, GcFilter, ExclusionFilterState, SelectAllSnapshot } from "../../../types";
 import { useToast } from "../../../contexts/ToastContext";
+import { deleteSchema } from "../../../schemas";
 
 
 export const GcEntryList = () => {
@@ -85,6 +86,8 @@ export const GcEntryList = () => {
   const [destinationOption, setDestinationOption] = useState<any>(null);
   const [consignorOption, setConsignorOption] = useState<any>(null);
   const [consigneeOptions, setConsigneeOptions] = useState<any[]>([]);
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+
 
   // ---------------------------------------------------------------------------
   // Selection state - FIXED: Proper typed snapshot
@@ -119,6 +122,7 @@ export const GcEntryList = () => {
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deleteMessage, setDeleteMessage] = useState("");
+  const [deleteReason, setDeleteReason] = useState("");
   const [printingJobs, setPrintingJobs] = useState<GcPrintJob[] | null>(null);
 
   // ---------------------------------------------------------------------------
@@ -489,20 +493,39 @@ export const GcEntryList = () => {
   const handleEdit = (gcNo: string) => navigate(`/gc-entry/edit/${gcNo}`);
 
   const handleDelete = (gcNo: string) => {
+    const gc = paginatedData.find((g) => g.gcNo === gcNo);    const tripSheetId = gc?.tripSheetId;
+    const message = tripSheetId && tripSheetId !== "" ? `Deleting this GC will also remove it from Trip Sheet. Are you sure you want to delete GC #${gcNo}?` : `Are you sure you want to delete GC #${gcNo}?`;
     setDeletingId(gcNo);
-    setDeleteMessage(`Are you sure you want to delete GC #${gcNo}?`);
+    setDeleteMessage(message);
+    setDeleteReason("");
+    setFormErrors({});
     setIsConfirmOpen(true);
   };
 
   const handleConfirmDelete = async () => {
+    setFormErrors({});
+    const data = deleteReason.trim();
+    const validationResult = deleteSchema.safeParse({ data });
+
+    if (!validationResult.success) {
+      const newErrors: Record<string, string> = {};
+      validationResult.error.issues.forEach((err: any) => {
+        if (err.path[0]) newErrors[err.path[0].toString()] = err.message;
+      });
+      setFormErrors(newErrors);
+      return;
+    }
+
     if (deletingId) {
-      await deleteGcEntry(deletingId);
+      await deleteGcEntry(deletingId, deleteReason);
       refresh();
       setSelectedGcNos((prev) => prev.filter((id) => id !== deletingId));
       setExcludedGcNos((prev) => prev.filter((id) => id !== deletingId));
+
+      setIsConfirmOpen(false);
+      setDeletingId(null);
+      setDeleteReason("");
     }
-    setIsConfirmOpen(false);
-    setDeletingId(null);
   };
 
 
@@ -690,7 +713,7 @@ export const GcEntryList = () => {
                       <td className="px-4 py-3"><span className="text-sm text-foreground">{gc.totalQty}</span></td>
                       <td className="px-4 py-3">
                         {isAssigned ? (
-                          <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium bg-emerald-500/10 text-emerald-600"><Truck className="w-3 h-3" />TS# {tripSheetId}</span>
+                          <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium bg-emerald-500/10 text-emerald-600"><Truck className="w-3 h-3" />TS #{tripSheetId}</span>
                         ) : (
                           <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium bg-muted text-muted-foreground">Pending</span>
                         )}
@@ -786,7 +809,7 @@ export const GcEntryList = () => {
                       <div className="flex items-start justify-between gap-2 mb-2">
                         <div className="flex items-center gap-1.5"><span className="font-bold text-primary">GC #{gc.gcNo}</span></div>
                         {isAssigned ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-emerald-500/10 text-emerald-600"><Truck className="w-3 h-3" />TS# {tripSheetId}</span>
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-emerald-500/10 text-emerald-600"><Truck className="w-3 h-3" />TS #{tripSheetId}</span>
                         ) : (
                           <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-muted text-muted-foreground">Pending</span>
                         )}
@@ -794,7 +817,7 @@ export const GcEntryList = () => {
                       <div className="space-y-1.5 text-sm mb-3">
                         <div className="flex items-center gap-2 text-foreground"><User className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" /><span className="text-muted-foreground">From:</span><span className="truncate">{consignorName}</span></div>
                         <div className="flex items-center gap-2 text-foreground"><ChevronRight className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" /><span className="text-muted-foreground">To:</span><span className="truncate">{consigneeName}</span></div>
-                       {/* Modified Destination and Qty Row */}
+                        {/* Modified Destination and Qty Row */}
                         <div className="flex items-center justify-between gap-2 mt-1">
                           <div className="flex items-center gap-2 text-foreground min-w-0">
                             <MapPin className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
@@ -828,7 +851,41 @@ export const GcEntryList = () => {
       </div>
 
       {/* Modals */}
-      <ConfirmationDialog open={isConfirmOpen} onClose={() => setIsConfirmOpen(false)} onConfirm={handleConfirmDelete} title="Delete GC" description={deleteMessage} />
+      <ConfirmationDialog
+        open={isConfirmOpen}
+        onClose={() => setIsConfirmOpen(false)}
+        onConfirm={handleConfirmDelete}
+        title="Delete GC"
+        description={deleteMessage}
+      >
+        <div className="space-y-2">
+          <label className="block text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            Reason for Delete <span className="text-destructive">*</span>
+          </label>
+          <textarea
+            value={deleteReason}
+            onChange={(e) => {
+              setDeleteReason(e.target.value);
+              if (formErrors.data) {
+                setFormErrors(prev => {
+                  const next = { ...prev };
+                  delete next.data;
+                  return next;
+                });
+              }
+            }}
+            className={`w-full min-h-[80px] p-3 text-sm bg-secondary/30 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 placeholder:text-muted-foreground/50 resize-none ${formErrors.data ? "border-destructive ring-1 ring-destructive/20" : "border-border"
+              }`}
+            placeholder="Please enter the reason for deletion..."
+            autoFocus
+          />
+          {formErrors.data && (
+            <p className="text-[11px] font-medium text-destructive animate-in fade-in slide-in-from-top-1 duration-200">
+              {formErrors.data}
+            </p>
+          )}
+        </div>
+      </ConfirmationDialog>
       {printingJobs && <GcPrintManager jobs={printingJobs} onClose={() => setPrintingJobs(null)} />}
     </div>
   );
