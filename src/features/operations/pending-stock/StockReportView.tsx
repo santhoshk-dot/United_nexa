@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef } from 'react';
 import ReactDOM from 'react-dom';
-import type { StockLabels } from '../../../types';
+import type { StockLabels } from '../../types';
 import { X, Printer } from 'lucide-react';
-import { useDataContext } from '../../../contexts/DataContext';
+import { useDataContext } from '../../contexts/DataContext';
 
 // --- Date Formatter ---
 const formatDate = (dateString?: string) => {
@@ -57,7 +57,7 @@ const ReportHeader = ({ label }: { label: StockLabels }) => (
 interface StockReportRow {
   uniqueId: string;
   gcNo: string;
-  gcNoNumeric: number; // For sorting
+  gcNoNumeric: number;
   date: string;
   consignorName: string;
   consigneeName: string;
@@ -86,75 +86,61 @@ const ReportPage = ({
 }: ReportPageProps) => {
   return (
     <div 
-      className="report-page bg-white text-black relative"
+      className="report-page bg-white text-black"
       style={{ 
         width: "210mm", 
         height: "297mm",
         maxHeight: "297mm", 
-        padding: "8mm 10mm",
+        padding: "8mm 8mm 12mm 8mm",
         boxSizing: "border-box",
         fontFamily: '"Times New Roman", Times, serif',
-        overflow: "hidden"
+        overflow: "hidden",
+        position: "relative"
       }}
     >
       <ReportHeader label={labels} />
 
-      {/* Table Container - Fixed height to prevent overflow */}
-      <div className="table-container" style={{ maxHeight: 'calc(297mm - 65mm)', overflow: 'hidden' }}>
-        <table className="w-full table-fixed border-collapse border-x border-b border-black text-[11px] leading-tight mt-0">
+      {/* Table Container */}
+      <div style={{ overflow: 'hidden' }}>
+        <table className="w-full table-fixed border-collapse border-x border-b border-black text-xs leading-normal mt-0">
           <thead>
-            <tr className="h-7">
-              <th className="border border-black w-[8%] p-1 text-left font-bold text-xs">{labels.gcLabel}</th>
-              <th className="border border-black w-[8%] p-1 text-left font-bold text-xs">{labels.stockCountLabel}</th>
-              <th className="border border-black w-[15%] p-1 text-center font-bold text-xs">{labels.contentLabel}</th>
-              <th className="border border-black w-[30%] p-1 text-center font-bold text-xs">{labels.consignorLabel}</th>
-              <th className="border border-black w-[30%] p-1 text-center font-bold text-xs">{labels.consigneeLabel}</th>
-              <th className="border border-black w-[12%] p-1 text-center font-bold text-xs">{labels.dateLabel}</th>
+            <tr style={{ height: '28px' }}>
+              <th className="border border-black w-[8%] p-1 text-left font-bold">{labels.gcLabel}</th>
+              <th className="border border-black w-[6%] p-1 text-left font-bold">{labels.stockCountLabel}</th>
+              <th className="border border-black w-[18%] p-1 text-center font-bold">{labels.contentLabel}</th>
+              <th className="border border-black w-[26%] p-1 text-center font-bold">{labels.consignorLabel}</th>
+              <th className="border border-black w-[26%] p-1 text-center font-bold">{labels.consigneeLabel}</th>
+              <th className="border border-black w-[12%] p-1 text-center font-bold">{labels.dateLabel}</th>
             </tr>
           </thead>
           <tbody>
             {rows.map((row, idx) => {
-              // Check Previous (for hiding text and top border)
               const isSameAsPrevious = idx > 0 && rows[idx - 1].gcNo === row.gcNo;
-              
-              // Check Next (for hiding bottom border)
               const isSameAsNext = idx < rows.length - 1 && rows[idx + 1].gcNo === row.gcNo;
 
-              // Common Merge Style Logic
               const getMergedCellClass = (align: 'left' | 'center' | 'right' = 'left', isBold = false) => {
-                  const base = `p-1 px-2 text-${align} border-l border-r border-black`;
-                  const top = isSameAsPrevious ? 'border-t-0' : 'border-t border-black';
-                  const bottom = isSameAsNext ? 'border-b-0' : 'border-b border-black';
-                  const font = isBold ? 'font-bold' : '';
-                  return `${base} ${top} ${bottom} ${font}`;
+                const base = `p-1 px-2 text-${align} border-l border-r border-black`;
+                const top = isSameAsPrevious ? 'border-t-0' : 'border-t border-black';
+                const bottom = isSameAsNext ? 'border-b-0' : 'border-b border-black';
+                const font = isBold ? 'font-bold' : '';
+                return `${base} ${top} ${bottom} ${font}`;
               };
 
               return (
-                <tr key={row.uniqueId} className="h-6">
-                  {/* 1. GC NO (Merged) */}
+                <tr key={row.uniqueId} style={{ height: '24px' }}>
                   <td className={getMergedCellClass('left', true)}>
                     {isSameAsPrevious ? "" : row.gcNo}
                   </td>
-
-                  {/* 2. QTY (Always Individual Borders) */}
                   <td className="border border-black p-1 px-2 text-left">{row.quantity}</td>
-
-                  {/* 3. CONTENT (Always Individual Borders) */}
                   <td className="border border-black p-1 px-2 text-left">
                     {`${row.packing} - ${row.content}`}
                   </td>
-
-                  {/* 4. CONSIGNOR (Merged) */}
                   <td className={`${getMergedCellClass('left')} uppercase whitespace-nowrap overflow-hidden text-ellipsis`}>
                     {isSameAsPrevious ? "" : row.consignorName}
                   </td>
-
-                  {/* 5. CONSIGNEE (Merged) */}
                   <td className={`${getMergedCellClass('left')} uppercase whitespace-nowrap overflow-hidden text-ellipsis`}>
                     {isSameAsPrevious ? "" : row.consigneeName}
                   </td>
-
-                  {/* 6. DATE (Merged) */}
                   <td className={getMergedCellClass('center')}>
                     {isSameAsPrevious ? "" : formatDate(row.date)}
                   </td>
@@ -164,7 +150,7 @@ const ReportPage = ({
 
             {/* TOTAL ROW - Only show on the last page */}
             {isLastPage && (
-              <tr className="h-7 font-bold bg-gray-50">
+              <tr style={{ height: '28px' }} className="font-bold bg-gray-50">
                 <td className="border border-black p-1 px-2 text-right">{labels.totalLabel}</td>
                 <td className="border border-black p-1 px-2 text-left">{grandTotal}</td>
                 <td className="border border-black p-1"></td>
@@ -177,7 +163,7 @@ const ReportPage = ({
         </table>
       </div>
 
-      {/* Compact Footer */}
+      {/* Footer */}
       <div 
         className="text-center text-[9px] font-sans text-black"
         style={{
@@ -212,11 +198,11 @@ export const StockReportPrint = ({ data, onClose }: StockReportPrintProps) => {
     return [...data].sort((a, b) => {
       const numA = typeof a.gcNo === 'string' ? parseInt(a.gcNo, 10) : (a.gcNo ?? 0);
       const numB = typeof b.gcNo === 'string' ? parseInt(b.gcNo, 10) : (b.gcNo ?? 0);
-      return numB - numA; // Descending order (latest first: 3, 2, 1...)
+      return numB - numA;
     });
   }, [data]);
   
-  // 2. Flatten Data (using sorted data)
+  // 2. Flatten Data
   const flattenedRows = useMemo(() => {
     const rows: StockReportRow[] = [];
     
@@ -277,19 +263,16 @@ export const StockReportPrint = ({ data, onClose }: StockReportPrintProps) => {
 
     flattenedRows.forEach((row) => {
       if (row.gcNo !== currentGcNo) {
-        // Start a new group
         if (currentGroup.length > 0) {
           groups.push(currentGroup);
         }
         currentGroup = [row];
         currentGcNo = row.gcNo;
       } else {
-        // Add to current group
         currentGroup.push(row);
       }
     });
 
-    // Push the last group
     if (currentGroup.length > 0) {
       groups.push(currentGroup);
     }
@@ -297,10 +280,10 @@ export const StockReportPrint = ({ data, onClose }: StockReportPrintProps) => {
     return groups;
   }, [flattenedRows]);
 
-  // 5. Smart Pagination - keeps GC groups together, creates new pages when needed
+  // 5. Smart Pagination - Reduced rows for larger text
   const pages = useMemo(() => {
-    const MAX_ROWS_PER_PAGE = 28; // Increased rows per page for compact look
-    const MAX_ROWS_LAST_PAGE = 26; // Leave room for total row on last page
+    const MAX_ROWS_PER_PAGE = 25; // Reduced for larger text size
+    const MAX_ROWS_LAST_PAGE = 23; // Leave room for total row
     
     const allPages: StockReportRow[][] = [];
     let currentPage: StockReportRow[] = [];
@@ -310,21 +293,16 @@ export const StockReportPrint = ({ data, onClose }: StockReportPrintProps) => {
       const remainingGroups = gcGroups.slice(groupIndex + 1);
       const remainingRowsCount = remainingGroups.reduce((sum, g) => sum + g.length, 0);
       
-      // Calculate if this could be part of the last page
       const couldBeLastPage = remainingRowsCount + group.length <= MAX_ROWS_LAST_PAGE;
       const effectiveMax = couldBeLastPage ? MAX_ROWS_LAST_PAGE : MAX_ROWS_PER_PAGE;
       
-      // Check if adding this group would exceed the page limit
       if (currentPage.length + group.length > effectiveMax) {
-        // If group is too large to fit on any page, we need to split it
         if (group.length > MAX_ROWS_PER_PAGE) {
-          // First, push current page if it has content
           if (currentPage.length > 0) {
             allPages.push(currentPage);
             currentPage = [];
           }
           
-          // Split the large group across multiple pages
           let remainingGroup = [...group];
           while (remainingGroup.length > 0) {
             const rowsToTake = Math.min(remainingGroup.length, MAX_ROWS_PER_PAGE);
@@ -332,34 +310,28 @@ export const StockReportPrint = ({ data, onClose }: StockReportPrintProps) => {
             remainingGroup = remainingGroup.slice(rowsToTake);
             
             if (remainingGroup.length === 0 && !isLastGroup) {
-              // This is the last chunk of a split group, add to current page
               currentPage = chunk;
             } else if (remainingGroup.length === 0 && isLastGroup) {
-              // Last chunk of last group
               allPages.push(chunk);
             } else {
               allPages.push(chunk);
             }
           }
         } else {
-          // Group fits on a page, but not current page - start new page
           if (currentPage.length > 0) {
             allPages.push(currentPage);
           }
           currentPage = [...group];
         }
       } else {
-        // Group fits on current page
         currentPage.push(...group);
       }
     });
     
-    // Push the last page if it has content
     if (currentPage.length > 0) {
       allPages.push(currentPage);
     }
     
-    // Handle empty data case
     if (allPages.length === 0) {
       allPages.push([]);
     }
@@ -398,6 +370,11 @@ export const StockReportPrint = ({ data, onClose }: StockReportPrintProps) => {
             margin: 0; 
           }
           
+          * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+          
           body > *:not(.stock-report-print-wrapper) { 
             display: none !important; 
           }
@@ -407,31 +384,25 @@ export const StockReportPrint = ({ data, onClose }: StockReportPrintProps) => {
           }
           
           html, body { 
-            height: 100%; 
+            height: auto !important;
+            width: 210mm !important;
             margin: 0 !important; 
             padding: 0 !important; 
             overflow: visible !important; 
             background: white !important;
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
           }
           
           .stock-report-print-wrapper { 
             display: block !important; 
-            position: absolute; 
-            top: 0; 
-            left: 0; 
-            width: 100%; 
-            margin: 0; 
-            padding: 0; 
-            background: white; 
-            z-index: 9999; 
+            position: static !important;
+            width: 210mm !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            background: white !important;
           }
           
           .stock-report-print-wrapper * { 
             color: black !important; 
-            print-color-adjust: exact !important; 
-            -webkit-print-color-adjust: exact !important; 
           }
           
           .print-actions { 
@@ -439,32 +410,35 @@ export const StockReportPrint = ({ data, onClose }: StockReportPrintProps) => {
           }
           
           .report-page { 
-            break-after: page; 
-            page-break-after: always; 
+            width: 210mm !important;
+            height: 297mm !important;
+            max-height: 297mm !important;
+            min-height: 297mm !important;
+            page-break-after: always;
             page-break-inside: avoid;
-            width: 210mm; 
-            height: 297mm;
-            max-height: 297mm;
-            overflow: hidden; 
-            position: relative;
+            break-after: page;
+            break-inside: avoid;
+            overflow: hidden !important;
+            position: relative !important;
             background: white !important;
+            margin: 0 !important;
+            padding: 8mm 8mm 12mm 8mm !important;
+            box-sizing: border-box !important;
           }
           
           .report-page:last-child { 
-            break-after: auto; 
-            page-break-after: auto; 
-          }
-          
-          .table-container { 
-            overflow: hidden !important; 
+            page-break-after: auto;
+            break-after: auto;
           }
           
           table { 
-            page-break-inside: avoid; 
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
           }
           
           tr { 
-            page-break-inside: avoid; 
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
           }
           
           thead {
@@ -512,10 +486,6 @@ export const StockReportPrint = ({ data, onClose }: StockReportPrintProps) => {
             max-height: 297mm; 
             position: relative; 
             flex-shrink: 0; 
-            overflow: hidden; 
-          }
-          
-          .table-container { 
             overflow: hidden; 
           }
         }
