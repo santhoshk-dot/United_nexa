@@ -438,7 +438,7 @@ export const QtySelectionDialog = ({
                                 <Hash className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                                 <span>Range: <span className="font-medium text-foreground">{currentStartNo} - {currentStartNo + currentMaxQty - 1}</span></span>
                             </div>
-                            <span className="hidden sm:block text-[10px] sm:text-xs text-muted-foreground">Click or drag to select and unselect</span>
+                            <span className="hidden sm:block text-[10px] sm:text-xs text-muted-foreground">Click or drag to select and deselect</span>
                         </div>
                         
                         {/* Grid */}

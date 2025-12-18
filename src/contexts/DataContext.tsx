@@ -164,7 +164,7 @@ interface DataContextType {
   fetchTripSheetById: (id: string) => Promise<TripSheetEntry | null>;
   addGcEntry: (gcEntry: GcEntry) => Promise<any>;
   updateGcEntry: (gcEntry: GcEntry) => Promise<any>;
-  deleteGcEntry: (identifier: string) => Promise<void>;
+  deleteGcEntry: (identifier: string, reason?: string) => Promise<void>;
   saveLoadingProgress: (gcId: string, selectedQuantities: number[]) => Promise<void>;
   fetchGcPrintData: (gcNos: string[], selectAll?: boolean, filters?: any) => Promise<any[]>;
   fetchLoadingSheetPrintData: (gcNos: string[], selectAll?: boolean, filters?: any) => Promise<any[]>;
@@ -173,7 +173,7 @@ interface DataContextType {
   fetchTripSheetReport: (filters: any) => Promise<any[]>;
   // 🟢 NEW: Fetch Audit Logs
   fetchHistoryLogs: (filters: any) => Promise<any>;
-  
+
   fetchGcDetailsForTripSheet: (gcNo: string) => Promise<any>;
   addFromPlace: (fromPlace: FromPlace) => Promise<void>;
   updateFromPlace: (fromPlace: FromPlace) => Promise<void>;
@@ -191,7 +191,7 @@ interface DataContextType {
   addTripSheet: (sheet: TripSheetEntry) => Promise<any>;
   updateTripSheet: (sheet: TripSheetEntry) => Promise<any>;
 
-  deleteTripSheet: (id: string) => Promise<void>;
+  deleteTripSheet: (id: string, reason?: string) => Promise<void>;
   addVehicleEntry: (entry: VehicleEntry) => Promise<void>;
   updateVehicleEntry: (entry: VehicleEntry) => Promise<void>;
   deleteVehicleEntry: (id: string) => Promise<void>;
@@ -441,16 +441,16 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const fetchGcDetailsForTripSheet = async (gcNo: string) => {
-    try { 
+    try {
       // 泙 Update: Added { skipLoader: true } to the config object
-      const { data } = await api.get(`/operations/gc/details/${gcNo}`, { 
-        skipLoader: true 
-      } as any); 
-      return data; 
+      const { data } = await api.get(`/operations/gc/details/${gcNo}`, {
+        skipLoader: true
+      } as any);
+      return data;
     }
-    catch (e: any) { 
-      toast.error(e.response?.data?.message || "Error fetching GC details"); 
-      return null; 
+    catch (e: any) {
+      toast.error(e.response?.data?.message || "Error fetching GC details");
+      return null;
     }
   };
 
@@ -495,8 +495,8 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
     catch (e) { handleError(e, "Failed to update GC"); }
   };
 
-  const deleteGcEntry = async (identifier: string) => {
-    try { await api.delete(`/operations/gc/${identifier}`); toast.success("GC Entry deleted successfully"); }
+  const deleteGcEntry = async (identifier: string, reason?: string) => {
+    try { await api.delete(`/operations/gc/${identifier}`, { data: { reason } }); toast.success("GC Entry deleted successfully"); }
     catch (e) { handleError(e, "Failed to delete GC"); }
   };
 
@@ -525,8 +525,8 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
     } catch (e) { handleError(e, "Failed to update Trip Sheet"); }
   };
 
-  const deleteTripSheet = async (id: string) => {
-    try { await api.delete(`/operations/tripsheet/${id}`); toast.success("Trip Sheet deleted successfully"); } catch (e) { handleError(e, "Failed to delete Trip Sheet"); }
+  const deleteTripSheet = async (id: string,reason?: string) => {
+    try { await api.delete(`/operations/tripsheet/${id}`,{ data: { reason } }); toast.success("Trip Sheet deleted successfully"); } catch (e) { handleError(e, "Failed to delete Trip Sheet"); }
   };
 
   // BULK IMPORT FUNCTIONS
@@ -608,7 +608,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
     addPackingEntry, updatePackingEntry, deletePackingEntry, addContentEntry, updateContentEntry, deleteContentEntry,
     addTripSheet, updateTripSheet, deleteTripSheet, addVehicleEntry, updateVehicleEntry, deleteVehicleEntry,
     addDriverEntry, updateDriverEntry, deleteDriverEntry, getUniqueDests, getPackingTypes, getContentsTypes,
-    refreshData: fetchAllData,searchGodowns,
+    refreshData: fetchAllData, searchGodowns,
     fetchConsignors, fetchConsignees, fetchFromPlaces, fetchToPlaces, fetchPackingEntries, fetchContentEntries, fetchVehicleEntries, fetchDriverEntries,
     searchConsignors, searchConsignees, searchVehicles, searchDrivers, searchFromPlaces, searchToPlaces, searchPackings, searchContents,
     importConsignors, importConsignees, importFromPlaces, importToPlaces, importPackings, importContents, importVehicles, importDrivers,

@@ -20,7 +20,7 @@ export const Header = ({ setIsSidebarOpen }: HeaderProps) => {
     if (pathname.startsWith('/gc-entry/edit')) {
       const segments = pathname.split('/');
       const id = segments[segments.length - 1];
-      return { title: `Edit #${id}`, breadcrumb: 'GC Entry' };
+      return { title: `Edit GC #${id}`, breadcrumb: 'GC Entry' };
     }
     if (pathname.startsWith('/gc-entry')) return { title: 'GC Entry' };
     if (pathname.startsWith('/loading-sheet')) return { title: 'Loading Sheet' };
@@ -28,7 +28,7 @@ export const Header = ({ setIsSidebarOpen }: HeaderProps) => {
     if (pathname.startsWith('/tripsheet/edit')) {
       const segments = pathname.split('/');
       const id = segments[segments.length - 1];
-      return { title: `Edit #${id}`, breadcrumb: 'Trip Sheet' };
+      return { title: `Edit TS #${id}`, breadcrumb: 'Trip Sheet' };
     }
     if (pathname.startsWith('/tripsheet')) return { title: 'Trip Sheet' };
     if (pathname.startsWith('/pending-stock')) return { title: 'Pending Stock' };

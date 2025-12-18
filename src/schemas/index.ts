@@ -89,6 +89,10 @@ export const placeSchema = z.object({
   shortName: z.string().min(1, "Short Name is required"),
 });
 
+export const deleteSchema = z.object({
+  data: z.string().min(1, "Reason is required")
+});
+
 export const packingSchema = z.object({
   packingName: z.string().min(1, "Packing Name is required"),
   shortName: z.string().min(1, "Short Name is required"),
