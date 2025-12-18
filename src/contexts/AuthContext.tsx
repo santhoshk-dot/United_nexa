@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { AppUser } from '../types';
 import api from '../utils/api';
@@ -11,7 +11,8 @@ interface AuthContextType {
   loading: boolean;
   error: string | null;
   login: (email: string, password: string, year: string) => Promise<void>;
-  logout: () => void;
+  // 🟢 UPDATED: logout now accepts an optional boolean
+  logout: (isAutomatic?: boolean) => void;
   addUser: (user: AppUser) => Promise<void>;
   updateUser: (user: AppUser) => Promise<void>;
   deleteUser: (id: string) => Promise<void>;
@@ -30,6 +31,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
   const toast = useToast();
+  
+  // 🟢 FIXED: Changed 'NodeJS.Timeout' to 'ReturnType<typeof setTimeout>'
+  const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fetchUsers = useCallback(async () => {
     try {
@@ -77,7 +81,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const logout = async () => {
+  // 🟢 UPDATED: Accepts isAutomatic parameter for dynamic toast message
+  const logout = useCallback(async (isAutomatic: boolean = false) => {
     try {
       await api.post('/auth/logout');
     } catch (error) {
@@ -88,10 +93,50 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setUsers([]);
       localStorage.removeItem('authUser');
       localStorage.removeItem('authYear');
-      toast.success("Logged out successfully");
+      
+      // 🟢 DYNAMIC MESSAGE LOGIC
+      if (isAutomatic) {
+        toast.success("Logged out due to inactivity");
+      } else {
+        toast.success("Logged out successfully");
+      }
+      
       navigate('/login');
     }
-  };
+  }, [navigate, toast]);
+
+  // 🟢 AUTO LOGOUT LOGIC (10 Minutes)
+  useEffect(() => {
+    const IDLE_TIMEOUT = 10 * 60 * 1000; // 10 minutes
+
+    const resetTimer = () => {
+      if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
+      
+      if (user) {
+        idleTimerRef.current = setTimeout(() => {
+          // 🟢 PASSING TRUE: Triggers the "inactivity" message
+          logout(true);
+        }, IDLE_TIMEOUT);
+      }
+    };
+
+    if (user) {
+      resetTimer();
+
+      const activityEvents = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
+      
+      activityEvents.forEach(event => {
+        window.addEventListener(event, resetTimer);
+      });
+
+      return () => {
+        if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
+        activityEvents.forEach(event => {
+          window.removeEventListener(event, resetTimer);
+        });
+      };
+    }
+  }, [user, logout]);
 
   const addUser = async (userData: AppUser) => {
     try {
@@ -103,20 +148,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  // 🟢 FIXED: Import Users implementation with Data Merging
+  // 🟢 PRESERVED: Import Users implementation with Data Merging
   const importUsers = async (data: AppUser[]) => {
     try {
-      // Calls the bulk API
       const { data: response } = await api.post('/users/bulk', data);
       
       if (response.importedUsers && response.importedUsers.length > 0) {
-          // 🛑 FIX: Merge backend response with input data to ensure 'mobile' is preserved
-          // if the backend response schema is incomplete.
           const mergedUsers = response.importedUsers.map((backendUser: AppUser) => {
              const inputUser = data.find(d => d.email === backendUser.email);
              return {
                  ...backendUser,
-                 // Prefer backend data, fallback to input data if backend field is missing/empty
                  mobile: backendUser.mobile || inputUser?.mobile || '',
                  role: backendUser.role || inputUser?.role || 'user',
                  name: backendUser.name || inputUser?.name || '',

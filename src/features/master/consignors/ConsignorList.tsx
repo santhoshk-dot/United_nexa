@@ -135,7 +135,7 @@ export const ConsignorList = () => {
       ...filteredConsignors.map(c => [
         `"${c.name.replace(/"/g, '""')}"`,
         `"${c.gst.replace(/"/g, '""')}"`,
-        `"${c.address.replace(/"/g, '""')}"`,
+        `"${(c.address || '').replace(/"/g, '""')}"`, // Handle optional address
         `"${(c.mobile || '').replace(/"/g, '""')}"`,
         `"${c.from.replace(/"/g, '""')}"`,
         `"${c.pan || ''}"`,
@@ -160,7 +160,7 @@ export const ConsignorList = () => {
   const hasActiveFilters = filterType !== 'all' || search !== '';
 
   const csvMapRow = (row: any) => {
-    if (!row.name || !row.gst || !row.address) return null;
+    if (!row.name || !row.gst) return null; // Address check removed
     if (!GST_REGEX.test(row.gst)) return null;
     if (row.mobile && !MOBILE_REGEX.test(row.mobile)) return null;
     if (row.pan && !PAN_REGEX.test(row.pan)) return null;
@@ -170,7 +170,7 @@ export const ConsignorList = () => {
       id: `cn-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
       name: row.name,
       gst: row.gst,
-      address: row.address,
+      address: row.address || '', // Default to empty string if missing
       from: row.from || 'Sivakasi',
       filingDate: row.filingdate || getTodayDate(),
       mobile: row.mobile || '',

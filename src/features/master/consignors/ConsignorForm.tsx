@@ -151,7 +151,7 @@ export const ConsignorForm = ({ initialData, onClose, onSave }: ConsignorFormPro
         pan: existing.pan || '',
         aadhar: existing.aadhar || '',
         mobile: existing.mobile || '',
-        address: existing.address,
+        address: existing.address || '',
       });
       setDuplicateMessage(`Consignor "${existing.name}" found! Switched to Update mode.`);
     }
@@ -338,7 +338,7 @@ export const ConsignorForm = ({ initialData, onClose, onSave }: ConsignorFormPro
             
             <div className="md:col-span-2">
               <label htmlFor="address" className="block text-sm font-medium text-muted-foreground">
-                Address <span className="text-destructive">*</span>
+                Address {/* Removed * indicator */}
               </label>
               <textarea 
                 id="address" 
@@ -347,7 +347,7 @@ export const ConsignorForm = ({ initialData, onClose, onSave }: ConsignorFormPro
                 onChange={handleConsignorChange} 
                 rows={3} 
                 className="w-full mt-1 px-3 py-2 bg-transparent text-foreground border border-muted-foreground/30 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary" 
-                required 
+                /* Removed required attribute */
               />
               {formErrors.address && <p className="text-xs text-red-500 mt-1">{formErrors.address}</p>}
             </div>

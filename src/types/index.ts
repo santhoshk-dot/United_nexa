@@ -18,7 +18,7 @@ export interface Consignor {
   pan?: string;
   aadhar?: string;
   mobile?: string;
-  address: string;
+  address?: string;
   createdBy?: string;
   updatedBy?: string;
 }

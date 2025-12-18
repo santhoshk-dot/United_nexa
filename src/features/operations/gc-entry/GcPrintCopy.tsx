@@ -11,7 +11,6 @@ const formatCurrency = (amount: number | string | undefined) => {
   return num > 0 ? `${num.toLocaleString("en-IN")}` : "";
 };
 
-// Helper to determine role for URL based on copy type
 const getRoleSlug = (copyType: string) => {
   const lower = copyType.toLowerCase();
   if (lower.includes('consignor')) return 'consignor';
@@ -37,17 +36,9 @@ export const GcPrintCopy: React.FC<Props> = ({
   const { printSettings } = useDataContext();
   const label = printSettings.gc;
 
-  // --- QR Code Logic (Backend Direct) ---
   const roleSlug = getRoleSlug(copyType);
-
-  // 2. Build Backend API URL (Direct Redirect)
-  // Example: http://localhost:5000/api/public/view-terms?gcNo=1050&role=consignor
   const directApiUrl = `${API_URL}/public/view-terms?gcNo=${gc.gcNo}&role=${roleSlug}`;
 
-  // 3. Generate QR Code Image URL
-  //const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&margin=0&data=${encodeURIComponent(directApiUrl)}`;
-
-  // Calculate totals from contentItems
   const quantityNum = gc.contentItems?.reduce((sum, item) => sum + (parseFloat(String(item.qty)) || 0), 0) || gc.netQty || 0;
   const billValueNum = parseFloat(String(gc.billValue)) || 0;
 
@@ -65,20 +56,17 @@ export const GcPrintCopy: React.FC<Props> = ({
   const isPaid = gc.paymentType?.toLowerCase() === 'paid';
   const paymentStatusLabel = isPaid ? "PAID" : (label as any).paymentTypeToPay || "TO PAY";
 
-  // Calculate marks from all content items
   const marks = gc.contentItems
     ?.map(item => {
       const itemFromNo = parseFloat(String(item.fromNo)) || 0;
       const itemQty = parseFloat(String(item.qty)) || 0;
       const toNo = (itemFromNo > 0 && itemQty > 0) ? (itemFromNo + itemQty - 1) : '';
-      // Show "prefix fromNo to toNo" or just "fromNo to toNo" if no prefix
       return item.prefix
         ? `${item.prefix} ${itemFromNo} to ${toNo}`
         : `${itemFromNo} to ${toNo}`;
     })
     .join(', ') || '';
 
-  // Build description lines from contentItems array (each item on new line)
   const descriptionLines: string[] = [];
   if (gc.contentItems && gc.contentItems.length > 0) {
     gc.contentItems.forEach(item => {
@@ -88,7 +76,6 @@ export const GcPrintCopy: React.FC<Props> = ({
       }
     });
   }
-  // Fallback for legacy single-item data
   if (descriptionLines.length === 0) {
     descriptionLines.push(`${numberToWords(quantityNum)} packages`);
   }
@@ -120,83 +107,85 @@ export const GcPrintCopy: React.FC<Props> = ({
     <div
       className="print-page font-sans text-black bg-white"
       style={{
-        width: "210mm",
-        minHeight: "297mm",
-        padding: "5mm",
+        width: "100%",
+        height: "auto", /* Changed from 100% to auto */
+        padding: "4mm 4mm 0 4mm", /* Removed bottom padding */
         boxSizing: "border-box",
       }}
     >
+      <style dangerouslySetInnerHTML={{ __html: `
+        @media print {
+          @page {
+            size: A5;
+            margin: 0mm !important;
+          }
+        }
+      `}} />
+
       {/* --- HEADER --- */}
-      <div className="flex justify-between items-end mb-2 font-bold text-sm">
-        <div className="uppercase text-base">{copyType}</div>
-        <div className="flex gap-8">
-          <div>{label.fixedGstinLabel}:{label.fixedGstinValue}</div>
-          <div>{label.mobileLabel} : {label.mobileNumberValue}</div>
-        </div>
-      </div>
-
-      <div className="flex justify-between items-start mb-1">
-        <div className="font-bold text-sm leading-relaxed">
-          <div className="flex gap-2">
-            <span className="w-20">{label.gcNoLabel}</span>
-            <span>{gc.gcNo}</span>
+      <div className="relative mb-1 flex min-h-[85px]">
+        <div className="flex flex-col justify-start w-1/4">
+          <div className="uppercase text-[12px] font-bold w-fit mb-1">
+            {copyType}
           </div>
-          <div className="flex gap-2">
-            <span className="w-20">{label.dateLabel} :</span>
-            <span>{gc.gcDate}</span>
+          <div className="font-bold text-[11px] leading-tight">
+            <div className="whitespace-nowrap">{label.gcNoLabel} : {gc.gcNo}</div>
+            <div className="whitespace-nowrap">{label.dateLabel} : {gc.gcDate}</div>
           </div>
         </div>
 
-        <div className="text-right flex-1 ml-4">
-          <h1 className="text-3xl font-bold uppercase tracking-tight">
+        <div className="flex flex-col items-center flex-1 px-2 text-center">
+          <div className="text-[10px] font-bold flex gap-3 mb-0.5">
+            <span>{label.fixedGstinLabel}:{label.fixedGstinValue}</span>
+            <span>{label.mobileLabel} : {label.mobileNumberValue}</span>
+          </div>
+          <h1 className="text-xl font-extrabold uppercase tracking-tight leading-none">
             {label.companyName}
           </h1>
-          <div className="font-bold text-sm uppercase">
+          <div className="font-bold text-[9px] uppercase leading-tight mt-0.5">
             {label.tagLine}
           </div>
-          <div className="font-bold text-xs mt-0.5 whitespace-pre-wrap">
+          <div className="font-bold text-[7px] whitespace-pre-wrap leading-tight">
             {label.companyAddress}
           </div>
         </div>
+
+        <div className="flex flex-col items-center w-1/4">
+          <QRCodeSVG value={directApiUrl} size={60} level="M" />
+          <span className="text-[8px] font-bold mt-0.5 uppercase">
+            {label.scanLabel}
+          </span>
+        </div>
       </div>
 
-      <div className="border border-black flex font-bold text-lg uppercase mb-2">
-        <div className="flex-none px-2 py-1 border-r border-black">
+      <div className="border border-black flex font-bold text-[11px] uppercase mb-1">
+        <div className="flex-none px-2 py-0.5 border-r border-black">
           {label.fromLabel} <span className="ml-2">{gc.from}</span>
         </div>
-        <div className="flex-1 text-center px-2 py-1 border-r border-black">
+        <div className="flex-1 text-center px-2 py-0.5 border-r border-black">
           {label.ownerRiskText}
         </div>
-        <div className="flex-none px-2 py-1">
+        <div className="flex-none px-2 py-0.5">
           {label.toLabel} <span className="ml-2">{gc.destination}</span>
         </div>
       </div>
 
       {/* --- CONSIGNOR / CONSIGNEE --- */}
-      <div className="flex mb-2">
-        <div className="w-1/2 pr-2">
-          <div className="text-xs mb-1 pl-4">{label.consignorLabel}</div>
-          <div className="pl-8 font-bold text-sm uppercase">
-            {consignor.name}
-          </div>
-          <div className="pl-8 font-bold text-sm uppercase mb-1">
-            {consignor.address}
-          </div>
-          <div className="pl-4 text-sm font-bold">
-            GSTIN : {consignor.gst}
+      <div className="flex mb-2 gap-3">
+        <div className="w-1/2 p-1">
+          <div className="text-[9px] mb-0.5 font-normal uppercase">{label.consignorLabel}</div>
+          <div className="pl-4">
+            <div className="font-extrabold text-[11px] uppercase leading-tight">{consignor.name}</div>
+            <div className="font-bold text-[10px] uppercase mb-1 leading-tight">{consignor.address}</div>
+            <div className="text-[10px] font-bold">GSTIN : {consignor.gst}</div>
           </div>
         </div>
-
-        <div className="w-1/2 pl-2">
-          <div className="text-xs mb-1 pl-4">{label.consigneeLabel}</div>
-          <div className="pl-8 font-bold text-sm uppercase">
-            {consignee.name}
-          </div>
-          <div className="pl-8 font-bold text-sm uppercase mb-1">
-            {consignee.address}
-          </div>
-          <div className="pl-4 text-sm font-bold">
-            {proofLabel} : {proofValue}
+        <div className="w-1/2 p-1">
+          <div className="text-[9px] mb-0.5 font-normal uppercase">{label.consigneeLabel}</div>
+          <div className="pl-4">
+            <div className="font-extrabold text-[11px] uppercase leading-tight">{consignee.name}</div>
+            <div className="font-bold text-[10px] uppercase mb-1 leading-tight">{consignee.address}</div>
+            <div className="text-[10px] font-bold">{proofLabel} : {proofValue}</div>
           </div>
         </div>
       </div>
@@ -205,157 +194,125 @@ export const GcPrintCopy: React.FC<Props> = ({
       <div className="border border-black mb-0">
         <table className="w-full border-collapse">
           <thead>
-            <tr className="text-center text-xs font-normal border-b border-black">
-              <th className="border-r border-black w-[10%] py-1 font-normal leading-tight whitespace-pre-wrap">
-                {label.tableHeaderPackages}
-              </th>
-              <th className="border-r border-black w-[45%] py-1 font-normal leading-tight whitespace-pre-wrap">
-                {label.tableHeaderDescription}
-              </th>
-              <th className="border-r border-black w-[10%] py-1 font-normal leading-tight whitespace-pre-wrap">
-                {label.tableHeaderWeight}
-              </th>
-              <th className="border-r border-black w-[10%] py-1 font-normal leading-tight whitespace-pre-wrap">
-                {label.tableHeaderRate}
-              </th>
-              <th className="w-[25%] py-1 font-normal whitespace-pre-wrap">
-                {label.tableHeaderFreight}
-              </th>
+            <tr className="text-center text-[9px] font-normal border-b border-black bg-gray-50">
+              <th className="border-r border-black w-[12%] py-0.5 font-bold">{label.tableHeaderPackages}</th>
+              <th className="border-r border-black w-[43%] py-0.5 font-bold">{label.tableHeaderDescription}</th>
+              <th className="border-r border-black w-[10%] py-0.5 font-bold">{label.tableHeaderWeight}</th>
+              <th className="border-r border-black w-[10%] py-0.5 font-bold">{label.tableHeaderRate}</th>
+              <th className="w-[25%] py-0.5 font-bold">{label.tableHeaderFreight}</th>
             </tr>
           </thead>
-
-          <tbody className="text-sm font-bold">
-            <tr className="align-top h-32">
-              <td className="border-r border-black text-center pt-2">{quantityNum}</td>
-              <td className="border-r border-black pl-2 pt-2 uppercase">
+          <tbody className="text-[11px] font-bold">
+            <tr className="align-top h-24">
+              <td className="border-r border-black text-center pt-1">{quantityNum}</td>
+              <td className="border-r border-black pl-1 pt-1 uppercase">
                 {descriptionLines.map((line, idx) => (
-                  <div key={idx}>{line}</div>
+                  <div key={idx} className="leading-tight">{line}</div>
                 ))}
               </td>
-              <td className="border-r border-black text-center pt-2"></td>
-              <td className="border-r border-black text-center pt-2"></td>
-
+              <td className="border-r border-black text-center pt-1"></td>
+              <td className="border-r border-black text-center pt-1"></td>
               <td rowSpan={2} className="relative align-top p-0">
                 <div className="flex flex-col h-full">
-                  <div className="flex-1 px-2 pt-2 text-right text-xs leading-loose">
-                    <div className="flex justify-between">
-                      <span className="font-normal">{label.labelFreight} :</span>
+                  <div className="px-1 pt-1 text-right text-[10px] leading-tight">
+                    <div className="flex justify-between mb-0.5">
+                      <span className="font-normal">{label.labelFreight}</span>
                       <span>{formatCurrency(gc.freight)}</span>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="font-normal">{label.labelGodownCharge} :</span>
+                    <div className="flex justify-between mb-0.5">
+                      <span className="font-normal">{label.labelGodownCharge}</span>
                       <span>{formatCurrency(gc.godownCharge)}</span>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="font-normal">{label.labelStatisticalCharge} :</span>
+                    <div className="flex justify-between mb-0.5">
+                      <span className="font-normal">{label.labelStatisticalCharge}</span>
                       <span>{formatCurrency(gc.statisticCharge)}</span>
                     </div>
                     {tollFeeNum > 0 && (
-                      <div className="flex justify-between">
-                        <span className="font-normal">{label.labelTollFee} :</span>
+                      <div className="flex justify-between mb-0.5">
+                        <span className="font-normal">{label.labelTollFee}</span>
                         <span>{formatCurrency(gc.tollFee)}</span>
                       </div>
                     )}
-                    <div className="flex justify-between border-t border-black mt-1 pt-1">
-                      <span className="font-normal">{label.labelTotal} :</span>
+                    <div className="flex justify-between border-t border-black mt-1 pt-0.5 font-extrabold">
+                      <span className="font-bold">{label.labelTotal}</span>
                       <span>{formatCurrency(totalCharges)}</span>
                     </div>
                   </div>
-
-                  <div className="mt-auto text-right text-xs px-2 pb-1">
-                    <div className="flex justify-between items-center mb-1">
-                      <span className="font-normal">{label.labelAdvancePaid} :</span>
+                  <div className="text-right text-[10px] px-1 pb-1 border-t border-black bg-gray-50 mt-1">
+                    <div className="flex justify-between items-center mb-0.5">
+                      <span className="font-normal">{label.labelAdvancePaid}</span>
                       <span className="font-bold">{gc.advanceNone || "NIL"}</span>
                     </div>
-                    <div className="flex justify-between items-center">
-                      <span className="font-normal">{label.labelBalanceToPay} :</span>
-                      <span className="font-bold">{formatCurrency(balanceToPayNum)}</span>
+                    <div className="flex justify-between items-center font-extrabold text-[11px]">
+                      <span className="font-normal">{label.labelBalanceToPay}</span>
+                      <span>{formatCurrency(balanceToPayNum)}</span>
                     </div>
-                  </div >
-                </div >
-              </td >
-            </tr >
-
-            <tr className="border-t border-black h-16">
+                  </div>
+                </div>
+              </td>
+            </tr>
+            <tr className="border-t border-black h-12">
               <td colSpan={2} className="border-r border-black align-top p-1">
-                <div className="flex justify-between text-xs font-bold mb-2">
+                <div className="flex justify-between text-[9px] font-bold mb-1">
                   <span>{label.invoiceNoLabel}: {gc.billNo}</span>
                   <span>{label.invoiceDateLabel} : {gc.billDate}</span>
                 </div>
-                <div className="text-xs font-bold">
-                  {label.marksLabel} : <span className="ml-2">{marks}</span>
+                <div className="text-[9px] font-bold">
+                  {label.marksLabel} : <span className="ml-1 font-normal italic">{marks}</span>
                 </div>
               </td>
-
-              <td colSpan={2} className="border-r border-black align-top p-1">
-                <div className="text-xs font-bold mb-1 whitespace-nowrap">
+              <td colSpan={2} className="border-r border-black align-top p-1 text-center">
+                <div className="text-[10px] font-extrabold mb-0.5 inline-block uppercase">
                   {paymentStatusLabel}
                 </div>
-                <div className="text-xs font-normal mb-1">
+                <div className="text-[8px] font-normal leading-none mb-0.5">
                   {label.labelValueGoods}
                 </div>
-                <div className="text-sm font-bold">
+                <div className="text-[10px] font-extrabold">
                   Rs. {formatCurrency(billValueNum)}
                 </div>
               </td>
-            </tr >
-
+            </tr>
             <tr className="border-t border-black">
-              <td colSpan={2} className="border-r border-black p-1 h-10 align-top">
-                <span className="font-normal text-xs mr-2">{label.deliveryAtLabel} :</span>
-                <span className="font-bold text-sm uppercase">{gc.deliveryAt}</span>
-              </td >
-
-              <td colSpan={3} className="p-1 align-top">
-                <div className="flex items-baseline gap-2">
-                  <span className="text-xs font-normal whitespace-nowrap">{label.toPayRsLabel}</span>
-                  <span className="text-xs font-bold uppercase leading-tight break-words">
+              <td colSpan={2} className="border-r border-black p-1 h-8 align-top">
+                <span className="font-normal text-[9px] mr-1">{label.deliveryAtLabel}:</span>
+                <span className="font-bold text-[10px] uppercase">{gc.deliveryAt}</span>
+              </td>
+              <td colSpan={3} className="p-1 align-top bg-gray-50">
+                <div className="flex items-baseline gap-1">
+                  <span className="text-[9px] font-normal whitespace-nowrap">{label.toPayRsLabel}</span>
+                  <span className="text-[9px] font-extrabold uppercase leading-none italic">
                     {numberToWordsInRupees(balanceToPayNum)}
                   </span>
                 </div>
-              </td >
-            </tr >
-
-          </tbody >
-        </table >
-      </div >
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
 
       {/* --- FOOTER --- */}
-      < div className="border-x border-b border-black p-3 flex justify-between items-end min-h-[6rem] relative" >
-
-        <div className="flex items-end gap-3 w-1/3">
-          <div className="flex flex-col items-center flex-shrink-0">
-           <QRCodeSVG
-              value={directApiUrl}
-              size={80} // Approx 20mm
-              level="M" // Medium error correction
-            />
-            <span className="text-[9px] font-bold mt-0.5 uppercase tracking-wide">
-              {label.scanLabel}
-            </span>
-          </div>
-
-          <div className="text-xs font-bold mb-3 leading-tight">
-            <span className="font-normal block text-[10px] text-gray-600 mb-0.5">{label.freightFixedUptoLabel}</span>
+      <div className="border-x border-b border-black pt-0 pb-2 px-2 flex justify-between items-end min-h-[2rem] relative">
+        <div className="w-1/3">
+          <div className="text-[9px] font-bold leading-tight">
+            <span className="font-normal block text-[8px] text-gray-600 mb-0.5 italic">{label.freightFixedUptoLabel}</span>
             <span className="uppercase">{gc.freightUptoAt}</span>
           </div>
         </div>
-
-        <div className="absolute left-1/2 -translate-x-1/2 bottom-4 text-center text-xs leading-tight pointer-events-none whitespace-pre-wrap">
+        <div className="absolute left-1/2 -translate-x-1/2 bottom-2 text-center text-[8px] leading-tight font-bold w-1/3">
           {label.footerUnloadingNote}
         </div>
-
-        <div className="text-xs mb-1 flex flex-col items-center mr-2 w-1/3 text-right">
-          <div className="h-10"></div>
-          <span className="font-bold uppercase mb-1">{user?.name || 'Admin'}</span>
-          <span className="italic font-bold text-[10px]">{label.footerSignatureLine}</span>
+        <div className="text-[10px] flex flex-col items-center w-1/3 text-right">
+          <div className="h-3"></div>
+          <span className="font-extrabold uppercase">{user?.name || 'Admin'}</span>
+          <span className="italic font-bold text-[8px]  pt-0.5">{label.footerSignatureLine}</span>
         </div>
-      </div >
-
-      <div className="text-center text-[10px] mt-1 whitespace-pre-wrap">
-        {label.footerNote}
       </div>
 
-    </div >
+      {/* FOOTER NOTE - Extra space below this is removed by height:auto and padding-bottom:0 */}
+      <div className="text-center text-[8px] font-bold uppercase tracking-widest mt-1">
+        {label.footerNote}
+      </div>
+    </div>
   );
 };

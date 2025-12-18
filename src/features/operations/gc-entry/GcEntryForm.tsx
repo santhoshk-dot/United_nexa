@@ -67,7 +67,7 @@ export const GcEntryForm = () => {
     const isEditMode = !!gcNo;
     const [loading, setLoading] = useState(isEditMode);
 
-    // 泙 NEW: Validation State & Refs
+    // 🟢 NEW: Validation State & Refs
     const [formErrors, setFormErrors] = useState<Record<string, string>>({});
     const validationTimeouts = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
@@ -125,7 +125,7 @@ export const GcEntryForm = () => {
     const [consignorGstOption, setConsignorGstOption] = useState<any>(null);
     const [consigneeDestDisplay, setConsigneeDestDisplay] = useState('');
 
-    // 泙 NEW: Field Validation Helper
+    // 🟢 NEW: Field Validation Helper
     const validateField = (name: string, value: any) => {
         try {
             const fieldSchema = (gcEntrySchema.shape as any)[name];
@@ -173,8 +173,6 @@ export const GcEntryForm = () => {
                     if (gc.consignorId && (gc as any).consignorName) {
                         const gst = (gc as any).consignorGSTIN || '';
                         const consignorName = (gc as any).consignorName;
-                        // FIX: Use consignorFrom from backend (which is the actual consignor location)
-                        // instead of gc.from (which is the GC origin, usually Sivakasi)
                         const consignorFrom = (gc as any).consignorFrom || '';
 
                         setConsignorOption({
@@ -224,7 +222,7 @@ export const GcEntryForm = () => {
                             contentOption: item.contents ? { value: item.contents, label: item.contents } : null,
                         })));
                     } else if ((gc as any).quantity || (gc as any).packing || (gc as any).contents) {
-                        // Backward compatibility: convert old single-row data to new format
+                        // Backward compatibility
                         setContentItems([{
                             id: generateId(),
                             qty: (gc as any).quantity || '',
@@ -313,32 +311,22 @@ export const GcEntryForm = () => {
         const { name, value } = e.target;
 
         setForm(prev => {
-            // 1. Update the field being typed in
-            // Note: For number fields edited directly, this might temporarily assign a string 
-            // to a number type depending on your TS configuration, which is common in React forms.
             const newData = { ...prev, [name]: value };
-
-            // 2. Auto-update netQty if quantity changes
             if (name === 'quantity') {
-                // Fix: Parse the string 'value' to a number before assigning to netQty
                 const parsedQty = parseFloat(value);
                 newData.netQty = isNaN(parsedQty) ? 0 : parsedQty;
             }
-
             return newData;
         });
 
-        // 3. Clear Immediate Errors
         if (formErrors[name]) {
             setFormErrors(prev => { const n = { ...prev }; delete n[name]; return n; });
         }
 
-        // Clear netQty error if we are auto-updating it
         if (name === 'quantity' && formErrors['netQty']) {
             setFormErrors(prev => { const n = { ...prev }; delete n['netQty']; return n; });
         }
 
-        // 4. Validation Debounce
         if (validationTimeouts.current[name]) {
             clearTimeout(validationTimeouts.current[name]);
         }
@@ -346,22 +334,18 @@ export const GcEntryForm = () => {
         validationTimeouts.current[name] = setTimeout(() => {
             validateField(name, value);
             if (name === 'quantity') {
-                // Validate the numeric value we just assigned
                 validateField('netQty', value === '' ? 0 : Number(value));
             }
         }, 500);
     };
 
     const handleFormValueChange = (name: keyof typeof form, value: string | number) => {
-        // 1. Update State
         setForm(prev => ({ ...prev, [name]: value as string }));
 
-        // 2. Clear Errors
         if (formErrors[name]) {
             setFormErrors(prev => { const n = { ...prev }; delete n[name]; return n; });
         }
 
-        // 3. Debounce Validation
         if (validationTimeouts.current[name]) clearTimeout(validationTimeouts.current[name]);
 
         validationTimeouts.current[name] = setTimeout(() => {
@@ -377,7 +361,6 @@ export const GcEntryForm = () => {
         setDeliveryOption(option);
         setFreightOption(option);
 
-        // Clear errors immediately
         setFormErrors(prev => {
             const next = { ...prev };
             delete next['destination'];
@@ -386,7 +369,6 @@ export const GcEntryForm = () => {
             return next;
         });
 
-        // Validate selection immediately (no delay needed for dropdowns)
         validateField('destination', val);
         validateField('deliveryAt', val);
         validateField('freightUptoAt', val);
@@ -398,7 +380,6 @@ export const GcEntryForm = () => {
 
         if (option) {
             const gst = option.gst || '';
-            // FIX: Removed 'from' update so form.from stays as 'Sivakasi' (or current value)
             setForm(prev => ({ ...prev, consignorId: val }));
             setConsignorGst(gst);
 
@@ -410,7 +391,6 @@ export const GcEntryForm = () => {
                 from: option.from
             } : null);
         } else {
-            // FIX: Removed 'from' update
             setForm(prev => ({ ...prev, consignorId: '' }));
             setConsignorGst('');
             setConsignorGstOption(null);
@@ -437,7 +417,6 @@ export const GcEntryForm = () => {
             });
 
             setConsignorGst(gst);
-            // FIX: Removed 'from' update so form.from stays as 'Sivakasi' (or current value)
             setForm(prev => ({
                 ...prev,
                 consignorId: val,
@@ -446,7 +425,6 @@ export const GcEntryForm = () => {
             setConsignorOption(null);
             setConsignorGst('');
             setConsignorGstOption(null);
-            // FIX: Removed 'from' update
             setForm(prev => ({ ...prev, consignorId: '' }));
         }
 
@@ -497,7 +475,6 @@ export const GcEntryForm = () => {
     const handleProofTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const newProofType = e.target.value as ProofType;
 
-        // 1. Get the correct value based on the selected type from the stored consignee option
         let newProofValue = '';
         if (consigneeOption) {
             if (newProofType === 'gst') {
@@ -509,18 +486,16 @@ export const GcEntryForm = () => {
             }
         }
 
-        // 2. Update the form with the new type AND the new value
         setForm(prev => ({
             ...prev,
             consigneeProofType: newProofType,
             consigneeProofValue: newProofValue
         }));
 
-        // 3. Trigger validation for the value field immediately so errors clear/appear
         validateField('consigneeProofValue', newProofValue);
     };
 
-    // --- Content Items Handlers (Static Form Pattern) ---
+    // --- Content Items Handlers ---
     const resetCurrentContent = () => {
         setCurrentQty('');
         setCurrentPacking('');
@@ -556,14 +531,12 @@ export const GcEntryForm = () => {
         setContentItems(prev => prev.filter(item => item.id !== id));
     };
 
-    // Calculate To No for each content item
     const getToNo = (item: ContentItem) => {
         const fromNoNum = parseFloat(String(item.fromNo)) || 0;
         const qtyNum = parseFloat(String(item.qty)) || 0;
         return (fromNoNum > 0 && qtyNum > 0) ? (fromNoNum + qtyNum) - 1 : 0;
     };
 
-    // Auto-calculate netQty when contentItems change
     useEffect(() => {
         const totalQty = contentItems.reduce((sum, item) => {
             const qty = parseFloat(String(item.qty)) || 0;
@@ -576,7 +549,6 @@ export const GcEntryForm = () => {
     const handleSave = async (andPrint = false) => {
         setFormErrors({});
 
-        // 1. Validate Form Data against Schema
         const validationResult = gcEntrySchema.safeParse(form);
 
         if (!validationResult.success) {
@@ -591,10 +563,8 @@ export const GcEntryForm = () => {
             return;
         }
 
-        // const validatedData = validationResult.data;
         const finalGcNo = isEditMode ? form.gcNo : "";
 
-        // Prepare content items for saving (strip UI-only fields)
         const cleanContentItems = contentItems.map(item => ({
             id: item.id,
             qty: item.qty,
@@ -604,7 +574,6 @@ export const GcEntryForm = () => {
             fromNo: item.fromNo,
         }));
 
-        // For backward compatibility, also set packing/contents from first item
         const firstItem = contentItems[0];
 
         const gcData: any = {
@@ -712,7 +681,6 @@ export const GcEntryForm = () => {
                                     {...getValidationProp(consignorGst)}
                                 />
                             </div>
-                            {/* FIX: Use consignorOption.from instead of form.from to show Consignor's location */}
                             <div className="col-span-1 lg:col-span-3"><Input label="Consignor From" value={consignorOption?.from || ''} disabled required {...getValidationProp(consignorOption?.from || '')} /></div>
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-4">
@@ -824,7 +792,7 @@ export const GcEntryForm = () => {
                                         }}
                                         placeholder="Search packing..."
                                         defaultOptions={false}
-                                        className="text-foreground" // Ensure text is visible in dark mode
+                                        className="text-foreground" 
                                     />
                                 </div>
                                 <div className="col-span-2 sm:col-span-2 lg:col-span-2">
@@ -914,7 +882,9 @@ export const GcEntryForm = () => {
 
                     <div>
                         <h3 className="text-base font-bold text-primary border-b border-border pb-2 mb-4">Billing & Payment</h3>
-                        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-4">
+                        {/* 🟢 UPDATED: Two rows of 5 equal-width columns */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                            {/* Row 1 */}
                             <div className="col-span-1">
                                 <Input label="Bill No" name="billNo" value={form.billNo} onChange={handleChange} required {...getValidationProp(form.billNo)} />
                                 {formErrors.billNo && <p className="text-xs text-red-500 mt-1">{formErrors.billNo}</p>}
@@ -923,25 +893,32 @@ export const GcEntryForm = () => {
                                 <Input label="Bill Value" name="billValue" placeholder='0' value={form.billValue} onChange={handleChange} required {...getValidationProp(form.billValue)} />
                                 {formErrors.billValue && <p className="text-xs text-red-500 mt-1">{formErrors.billValue}</p>}
                             </div>
+                            {/* 🟢 NEW: Bill Date Field */}
+                            <div className="col-span-1">
+                                <Input label="Bill Date" type="date" name="billDate" value={form.billDate} onChange={handleChange} required {...getValidationProp(form.billDate)} />
+                                {formErrors.billDate && <p className="text-xs text-red-500 mt-1">{formErrors.billDate}</p>}
+                            </div>
                             <div className="col-span-1"><Input label="Toll" name="tollFee" value={form.tollFee} onChange={handleChange} /></div>
                             <div className="col-span-1"><Input label="Freight" name="freight" value={form.freight} onChange={handleChange} /></div>
+
+                            {/* Row 2 */}
                             <div className="col-span-1"><Input label="Godown" name="godownCharge" value={form.godownCharge} onChange={handleChange} /></div>
                             <div className="col-span-1"><Input label="Statistic" name="statisticCharge" value={form.statisticCharge} onChange={handleChange} /></div>
                             <div className="col-span-1"><Input label="Advance" name="advanceNone" value={form.advanceNone} onChange={handleChange} /></div>
                             <div className="col-span-1"><Input label="Balance" name="balanceToPay" value={form.balanceToPay} onChange={handleChange} /></div>
+                            {/* 🟢 MOVED: Payment Type into Grid */}
+                            <div className="col-span-1">
+                                <RadioGroup
+                                    label="Payment Type"
+                                    options={[
+                                        { value: 'To Pay', label: 'To Pay' },
+                                        { value: 'Paid', label: 'Paid' }
+                                    ]}
+                                    value={form.paymentType}
+                                    onChange={(value) => handleFormValueChange('paymentType', value)}
+                                />
+                            </div>
                         </div>
-                    </div>
-
-                    <div className="pt-2">
-                        <RadioGroup
-                            label="Payment Type"
-                            options={[
-                                { value: 'To Pay', label: 'To Pay' },
-                                { value: 'Paid', label: 'Paid' }
-                            ]}
-                            value={form.paymentType}
-                            onChange={(value) => handleFormValueChange('paymentType', value)}
-                        />
                     </div>
                 </form>
             </div>

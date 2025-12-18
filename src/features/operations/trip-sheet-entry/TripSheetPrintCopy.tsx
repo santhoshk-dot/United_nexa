@@ -2,6 +2,7 @@ import React from "react";
 import type { TripSheetEntry, TripSheetGCItem } from "../../../types";
 import { numberToWordsInRupees } from "../../../utils/toWords";
 import { useDataContext } from "../../../contexts/DataContext";
+import { useAuth } from '../../../hooks/useAuth';
 
 interface Props {
   sheet: TripSheetEntry;
@@ -10,6 +11,10 @@ interface Props {
 export const TripSheetPrintCopy: React.FC<Props> = ({ sheet }) => {
   const { printSettings } = useDataContext(); 
   const label = printSettings.tripSheet; 
+  const { user } = useAuth();
+
+  const userName = user?.name
+
 
   const fmtDate = (d?: string) => {
     if (!d) return "";
@@ -146,7 +151,7 @@ export const TripSheetPrintCopy: React.FC<Props> = ({ sheet }) => {
         .footer {
           margin-top: 5px;
           font-size: 11px;
-          line-height: 1.35;
+          line-height: 1.4;
         }
 
         .dash {
@@ -180,19 +185,26 @@ export const TripSheetPrintCopy: React.FC<Props> = ({ sheet }) => {
         .sigs {
           display: flex;
           justify-content: space-between;
-          margin-top: 10px;
+          align-items: flex-end;
+          margin-top: 15px;
           font-size: 11px;
+          padding: 0 20px;
         }
-        .sig-box { 
-          width: 45%; 
-          text-align: center; 
+        .sig-box {
+          text-align: center;
+          width: 45%;
         }
         .sig-line {
           display: block;
           width: 70%;
-          height: 2px;
-          margin: 0 auto 4px;
+          height: 1px;
+          margin: 0 auto 5px;
           border-top: 1px solid #000;
+        }
+        .sig-name {
+          font-weight: bold;
+          margin-bottom: 5px;
+          min-height: 16px;
         }
       `}
       </style>
@@ -332,16 +344,18 @@ export const TripSheetPrintCopy: React.FC<Props> = ({ sheet }) => {
             {label.legalNote}
           </div>
 
-          <div style={{ height: "18px" }}></div>
+          <div style={{ height: "5px" }}></div>
 
           <div className="sigs">
             <div className="sig-box">
+              <div className="sig-name">&nbsp;</div>
               <span className="sig-line" />
-              {label.signatureDriverLabel}
+              <div>{label.signatureDriverLabel}</div>
             </div>
             <div className="sig-box">
+              <div className="sig-name">{userName}</div>
               <span className="sig-line" />
-              {label.signatureClerkLabel}
+              <div>{label.signatureClerkLabel}</div>
             </div>
           </div>
         </div>

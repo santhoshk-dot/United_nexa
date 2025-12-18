@@ -34,7 +34,7 @@ export const registerUserSchema = z.object({
 export const consignorSchema = z.object({
   name: z.string().min(1, "Consignor Name is required"),
   gst: z.string().regex(GST_REGEX, "Invalid GST Format"),
-  address: z.string().min(1, "Address is required"),
+  address: z.string().optional(),
   mobile: z.string().optional().refine(val => !val || MOBILE_REGEX.test(val), {
     message: "Invalid Mobile Number"
   }),
