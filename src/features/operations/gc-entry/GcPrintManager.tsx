@@ -48,8 +48,8 @@ export const GcPrintManager = ({ jobs, onClose }: GcPrintManagerProps) => {
       <style>{`
         @media print {
           @page {
-            /* EXPLICIT DIMENSIONS FORCE THE BROWSER TO A5 */
-            size: 148mm 210mm; 
+            /* CHANGED: Landscape A5 Dimensions */
+            size: 210mm 148mm; 
             margin: 0mm !important;
           }
 
@@ -59,8 +59,9 @@ export const GcPrintManager = ({ jobs, onClose }: GcPrintManagerProps) => {
           #root { display: none !important; }
 
           html, body {
-            width: 148mm !important;
-            height: 210mm !important;
+            /* CHANGED: Match Landscape width/height */
+            width: 210mm !important;
+            height: 148mm !important;
             margin: 0 !important;
             padding: 0 !important;
             background: white !important;
@@ -71,7 +72,7 @@ export const GcPrintManager = ({ jobs, onClose }: GcPrintManagerProps) => {
             display: block !important;
             position: absolute;
             top: 0; left: 0; 
-            width: 148mm;
+            width: 210mm; /* CHANGED */
             margin: 0; padding: 0;
             background: white;
             z-index: 9999;
@@ -88,8 +89,8 @@ export const GcPrintManager = ({ jobs, onClose }: GcPrintManagerProps) => {
           .print-page {
             break-after: page;
             page-break-after: always;
-            width: 148mm;
-            height: 209mm !important; /* Slightly less than 210 to prevent spillover */
+            width: 210mm; /* CHANGED */
+            height: 147mm !important; /* Slightly less than 148 to prevent spillover */
             overflow: hidden; 
             position: relative;
             margin: 0;
@@ -123,13 +124,13 @@ export const GcPrintManager = ({ jobs, onClose }: GcPrintManagerProps) => {
             margin-bottom: 24px;
             transform-origin: top center;
             transition: transform 0.2s ease;
-            width: 148mm;
-            height: 210mm;
+            width: 210mm; /* CHANGED */
+            height: 148mm; /* CHANGED */
             overflow: hidden;
           }
         }
 
-        @media screen and (max-width: 800px) {
+        @media screen and (max-width: 850px) { /* Increased breakpoint for landscape width */
           .gc-print-wrapper {
             padding-top: 70px;
             padding-left: 0;
@@ -138,8 +139,8 @@ export const GcPrintManager = ({ jobs, onClose }: GcPrintManagerProps) => {
           }
 
           .print-page {
-            transform: scale(0.6); 
-            margin-bottom: -40mm; 
+            transform: scale(0.45); /* Reduced scale to fit landscape on mobile */
+            margin-bottom: -70mm; 
             margin-top: 10px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.3);
           }
