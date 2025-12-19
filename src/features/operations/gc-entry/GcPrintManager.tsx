@@ -48,8 +48,9 @@ export const GcPrintManager = ({ jobs, onClose }: GcPrintManagerProps) => {
       <style>{`
         @media print {
           @page {
-            size: A5;
-            margin: 0; 
+            /* EXPLICIT DIMENSIONS FORCE THE BROWSER TO A5 */
+            size: 148mm 210mm; 
+            margin: 0mm !important;
           }
 
           body > *:not(.gc-print-wrapper) {
@@ -58,17 +59,19 @@ export const GcPrintManager = ({ jobs, onClose }: GcPrintManagerProps) => {
           #root { display: none !important; }
 
           html, body {
-            height: auto !important;
+            width: 148mm !important;
+            height: 210mm !important;
             margin: 0 !important;
             padding: 0 !important;
-            overflow: visible !important;
             background: white !important;
+            overflow: hidden !important;
           }
 
           .gc-print-wrapper {
             display: block !important;
             position: absolute;
-            top: 0; left: 0; width: 100%;
+            top: 0; left: 0; 
+            width: 148mm;
             margin: 0; padding: 0;
             background: white;
             z-index: 9999;
@@ -86,8 +89,8 @@ export const GcPrintManager = ({ jobs, onClose }: GcPrintManagerProps) => {
             break-after: page;
             page-break-after: always;
             width: 148mm;
-            height: auto !important; /* Changed from 210mm to auto to remove bottom white space */
-            overflow: hidden;
+            height: 209mm !important; /* Slightly less than 210 to prevent spillover */
+            overflow: hidden; 
             position: relative;
             margin: 0;
             padding: 0;
@@ -121,7 +124,8 @@ export const GcPrintManager = ({ jobs, onClose }: GcPrintManagerProps) => {
             transform-origin: top center;
             transition: transform 0.2s ease;
             width: 148mm;
-            min-height: 100px; /* Let preview height be dynamic */
+            height: 210mm;
+            overflow: hidden;
           }
         }
 
