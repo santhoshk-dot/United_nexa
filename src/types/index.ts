@@ -79,7 +79,7 @@ export interface GcEntry {
   billDate: string;
   deliveryAt: string;
   freightUptoAt: string;
-  godown: string;
+  godownId: string;
 
   billNo: string;
   billValue: number;
@@ -156,6 +156,15 @@ export interface DriverEntry {
   driverName: string;
   dlNo: string;
   mobile: string;
+  createdBy?: string;
+  updatedBy?: string;
+}
+
+export interface Godown {
+  id: string;
+  name: string;
+  totalCapacity?: number;
+  availableCapacity?: number;
   createdBy?: string;
   updatedBy?: string;
 }
@@ -371,7 +380,7 @@ export type ExclusionFilterState = {
   isActive: boolean;
   filterKey?: string;
 };
- 
+
 export type SelectAllSnapshot = {
   active: boolean;
   total: number;

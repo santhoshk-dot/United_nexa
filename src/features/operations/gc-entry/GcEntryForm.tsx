@@ -61,6 +61,7 @@ export const GcEntryForm = () => {
         searchToPlaces,
         searchPackings,
         searchContents,
+        searchGodowns,
         fetchGcPrintData
     } = useData();
 
@@ -85,7 +86,7 @@ export const GcEntryForm = () => {
         billDate: getTodayDate(),
         deliveryAt: '',
         freightUptoAt: '',
-        godown: '',
+        godownId: '',
         billNo: '',
         billValue: '' as unknown as number,
         tollFee: 0,
@@ -109,6 +110,7 @@ export const GcEntryForm = () => {
     const [destinationOption, setDestinationOption] = useState<any>(null);
     const [deliveryOption, setDeliveryOption] = useState<any>(null);
     const [freightOption, setFreightOption] = useState<any>(null);
+    const [godownOption, setGodownOption] = useState<any>(null);
 
     // Content Items State (List of added items)
     const [contentItems, setContentItems] = useState<ContentItem[]>([]);
@@ -212,6 +214,9 @@ export const GcEntryForm = () => {
                     if (gc.destination) setDestinationOption({ value: gc.destination, label: gc.destination });
                     if (gc.deliveryAt) setDeliveryOption({ value: gc.deliveryAt, label: gc.deliveryAt });
                     if (gc.freightUptoAt) setFreightOption({ value: gc.freightUptoAt, label: gc.freightUptoAt });
+                    if (gc.godownId && (gc as any).godownName) {
+                        setGodownOption({ value: gc.godownId, label: (gc as any).godownName });
+                    }
 
                     // Load content items from existing GC data
                     if ((gc as any).contentItems && (gc as any).contentItems.length > 0) {
@@ -302,6 +307,15 @@ export const GcEntryForm = () => {
         const result = await searchContents(search, page);
         return {
             options: result.data.map((c: any) => ({ value: c.contentName, label: c.contentName })),
+            hasMore: result.hasMore,
+            additional: { page: page + 1 },
+        };
+    };
+
+    const loadGodownOptions = async (search: string, _prevOptions: any, { page }: any) => {
+        const result = await searchGodowns(search, page);
+        return {
+            options: result.data.map((g: any) => ({ value: g._id || g.id, label: g.name, address: g.address })),
             hasMore: result.hasMore,
             additional: { page: page + 1 },
         };
@@ -747,7 +761,16 @@ export const GcEntryForm = () => {
                                 />
                                 {formErrors.freightUptoAt && <p className="text-xs text-red-500 mt-1">{formErrors.freightUptoAt}</p>}
                             </div>
-                            <div className="col-span-1"><Input label="Godown" name="godown" value={form.godown} onChange={handleChange} /></div>
+                            <div className="col-span-1">
+                                <AsyncAutocomplete
+                                    label="Godown"
+                                    loadOptions={loadGodownOptions}
+                                    value={godownOption}
+                                    onChange={(v: any) => { setGodownOption(v); handleFormValueChange('godownId', v?.value || ''); }}
+                                    placeholder="Search godown..."
+                                    defaultOptions={false}
+                                />
+                            </div>
                         </div>
                     </div>
 
@@ -792,7 +815,7 @@ export const GcEntryForm = () => {
                                         }}
                                         placeholder="Search packing..."
                                         defaultOptions={false}
-                                        className="text-foreground" 
+                                        className="text-foreground"
                                     />
                                 </div>
                                 <div className="col-span-2 sm:col-span-2 lg:col-span-2">

@@ -276,8 +276,8 @@ export const LoadingSheetEntry = () => {
       const result = await searchGodowns(search, page);
       return {
         options: result.data.map((g: any) => ({
-          value: g.godownName || g.name,
-          label: g.godownName || g.name,
+          value: g._id || g.id,
+          label: g.name,
         })),
         hasMore: result.hasMore,
         additional: { page: page + 1 },

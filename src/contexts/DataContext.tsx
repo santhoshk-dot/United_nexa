@@ -1,7 +1,7 @@
 import React, { createContext, useState, useMemo, useCallback, useEffect } from 'react';
 import type {
   Consignor, Consignee, GcEntry, FromPlace, ToPlace, PackingEntry,
-  ContentEntry, TripSheetEntry, VehicleEntry, DriverEntry, PrintTemplateData
+  ContentEntry, TripSheetEntry, VehicleEntry, DriverEntry, PrintTemplateData, Godown
 } from '../types';
 import api from '../utils/api';
 import { useAuth } from '../hooks/useAuth';
@@ -138,6 +138,7 @@ interface DataContextType {
   contentEntries: ContentEntry[];
   vehicleEntries: VehicleEntry[];
   driverEntries: DriverEntry[];
+  godowns: Godown[];
 
   // Print Settings State
   printSettings: PrintTemplateData;
@@ -155,6 +156,7 @@ interface DataContextType {
   importContents: (data: ContentEntry[]) => Promise<void>;
   importVehicles: (data: VehicleEntry[]) => Promise<void>;
   importDrivers: (data: DriverEntry[]) => Promise<void>;
+  importGodowns: (data: Godown[]) => Promise<void>;
 
   addConsignee: (consignee: Consignee) => Promise<void>;
   updateConsignee: (consignee: Consignee) => Promise<void>;
@@ -198,6 +200,9 @@ interface DataContextType {
   addDriverEntry: (entry: DriverEntry) => Promise<void>;
   updateDriverEntry: (entry: DriverEntry) => Promise<void>;
   deleteDriverEntry: (id: string) => Promise<void>;
+  addGodown: (entry: Godown) => Promise<void>;
+  updateGodown: (entry: Godown) => Promise<void>;
+  deleteGodown: (id: string) => Promise<void>;
   getUniqueDests: () => { value: string, label: string }[];
   getPackingTypes: () => { value: string, label: string }[];
   getContentsTypes: () => { value: string, label: string }[];
@@ -212,6 +217,7 @@ interface DataContextType {
   fetchContentEntries: () => Promise<void>;
   fetchVehicleEntries: () => Promise<void>;
   fetchDriverEntries: () => Promise<void>;
+  fetchGodowns: () => Promise<void>;
 
   // Template Fetcher & Updater
   fetchPrintSettings: () => Promise<void>;
@@ -285,6 +291,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
   const [contentEntries, setContentEntries] = useState<ContentEntry[]>([]);
   const [vehicleEntries, setVehicleEntries] = useState<VehicleEntry[]>([]);
   const [driverEntries, setDriverEntries] = useState<DriverEntry[]>([]);
+  const [godowns, setGodowns] = useState<Godown[]>([]);
 
   // Print Settings State
   const [printSettings, setPrintSettings] = useState<PrintTemplateData>(defaultPrintSettings);
@@ -319,6 +326,9 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
   const fetchDriverEntries = useCallback(async () => {
     try { const { data } = await api.get('/master/drivers'); setDriverEntries(data); } catch (e) { console.error(e); }
+  }, []);
+  const fetchGodowns = useCallback(async () => {
+    try { const { data } = await api.get('/master/godowns'); setGodowns(data); } catch (e) { console.error(e); }
   }, []);
   const searchGodowns = async (search: string, page: number) => {
     try {
@@ -525,8 +535,8 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
     } catch (e) { handleError(e, "Failed to update Trip Sheet"); }
   };
 
-  const deleteTripSheet = async (id: string,reason?: string) => {
-    try { await api.delete(`/operations/tripsheet/${id}`,{ data: { reason } }); toast.success("Trip Sheet deleted successfully"); } catch (e) { handleError(e, "Failed to delete Trip Sheet"); }
+  const deleteTripSheet = async (id: string, reason?: string) => {
+    try { await api.delete(`/operations/tripsheet/${id}`, { data: { reason } }); toast.success("Trip Sheet deleted successfully"); } catch (e) { handleError(e, "Failed to delete Trip Sheet"); }
   };
 
   // BULK IMPORT FUNCTIONS
@@ -553,6 +563,9 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
   };
   const importDrivers = async (data: DriverEntry[]) => {
     try { await api.post('/master/drivers/bulk', data); toast.success(`${data.length} Drivers imported successfully`); fetchDriverEntries(); } catch (e) { handleError(e, "Import failed"); }
+  };
+  const importGodowns = async (data: Godown[]) => {
+    try { await api.post('/master/godowns/bulk', data); toast.success(`${data.length} Godowns imported successfully`); fetchGodowns(); } catch (e) { handleError(e, "Import failed"); }
   };
 
   // Masters Actions (Standard)
@@ -588,6 +601,10 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
   const updateDriverEntry = async (d: DriverEntry) => { try { const res = await api.put(`/master/drivers/${d.id}`, d); setDriverEntries(p => p.map(i => i.id === d.id ? res.data : i)); toast.success("Driver updated"); } catch (e) { handleError(e, "Failed to update"); } };
   const deleteDriverEntry = async (id: string) => { try { await api.delete(`/master/drivers/${id}`); setDriverEntries(p => p.filter(i => i.id !== id)); toast.success("Driver deleted"); } catch (e) { handleError(e, "Failed to delete"); } };
 
+  const addGodown = async (d: Godown) => { try { const res = await api.post('/master/godowns', d); setGodowns(p => [res.data, ...p]); toast.success("Godown added"); } catch (e) { handleError(e, "Failed to add"); } };
+  const updateGodown = async (d: Godown) => { try { const res = await api.put(`/master/godowns/${d.id}`, d); setGodowns(p => p.map(i => i.id === d.id ? res.data : i)); toast.success("Godown updated"); } catch (e) { handleError(e, "Failed to update"); } };
+  const deleteGodown = async (id: string) => { try { await api.delete(`/master/godowns/${id}`); setGodowns(p => p.filter(i => i.id !== id)); toast.success("Godown deleted"); } catch (e) { handleError(e, "Failed to delete"); } };
+
   const getUniqueDests = useCallback(() => {
     const dests = new Set([...toPlaces.map(tp => tp.placeName), ...consignees.map(c => c.destination)]);
     return Array.from(dests).map(d => ({ value: d, label: d }));
@@ -597,7 +614,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
   const getContentsTypes = useCallback(() => contentEntries.map(c => ({ value: c.contentName, label: c.contentName })), [contentEntries]);
 
   const value = useMemo(() => ({
-    consignors, consignees, gcEntries: [], tripSheets: [], fromPlaces, toPlaces, packingEntries, contentEntries, vehicleEntries, driverEntries,
+    consignors, consignees, gcEntries: [], tripSheets: [], fromPlaces, toPlaces, packingEntries, contentEntries, vehicleEntries, driverEntries, godowns,
     // EXPORT NEW STATE & FUNCTIONS
     printSettings, fetchPrintSettings, updatePrintSettings,
 
@@ -607,13 +624,13 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
     addFromPlace, updateFromPlace, deleteFromPlace, addToPlace, updateToPlace, deleteToPlace,
     addPackingEntry, updatePackingEntry, deletePackingEntry, addContentEntry, updateContentEntry, deleteContentEntry,
     addTripSheet, updateTripSheet, deleteTripSheet, addVehicleEntry, updateVehicleEntry, deleteVehicleEntry,
-    addDriverEntry, updateDriverEntry, deleteDriverEntry, getUniqueDests, getPackingTypes, getContentsTypes,
+    addDriverEntry, updateDriverEntry, deleteDriverEntry, addGodown, updateGodown, deleteGodown, getUniqueDests, getPackingTypes, getContentsTypes,
     refreshData: fetchAllData, searchGodowns,
-    fetchConsignors, fetchConsignees, fetchFromPlaces, fetchToPlaces, fetchPackingEntries, fetchContentEntries, fetchVehicleEntries, fetchDriverEntries,
+    fetchConsignors, fetchConsignees, fetchFromPlaces, fetchToPlaces, fetchPackingEntries, fetchContentEntries, fetchVehicleEntries, fetchDriverEntries, fetchGodowns,
     searchConsignors, searchConsignees, searchVehicles, searchDrivers, searchFromPlaces, searchToPlaces, searchPackings, searchContents,
-    importConsignors, importConsignees, importFromPlaces, importToPlaces, importPackings, importContents, importVehicles, importDrivers,
+    importConsignors, importConsignees, importFromPlaces, importToPlaces, importPackings, importContents, importVehicles, importDrivers, importGodowns,
     fetchHistoryLogs // 🟢 ADDED TO EXPORT
-  }), [consignors, consignees, fromPlaces, toPlaces, packingEntries, contentEntries, vehicleEntries, driverEntries, printSettings, fetchAllData, fetchConsignors, fetchConsignees, fetchFromPlaces, fetchToPlaces, fetchPackingEntries, fetchContentEntries, fetchVehicleEntries, fetchDriverEntries, fetchPrintSettings]);
+  }), [consignors, consignees, fromPlaces, toPlaces, packingEntries, contentEntries, vehicleEntries, driverEntries, godowns, printSettings, fetchAllData, fetchConsignors, fetchConsignees, fetchFromPlaces, fetchToPlaces, fetchPackingEntries, fetchContentEntries, fetchVehicleEntries, fetchDriverEntries, fetchGodowns, fetchPrintSettings]);
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
 };

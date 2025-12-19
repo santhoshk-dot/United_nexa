@@ -3,8 +3,8 @@ import axios from 'axios';
 import { loadingManager } from './loadingManager';
 
 // Use environment variable or default to localhost
-export const API_URL = 'https://unitedtransportbackend-443415591723.asia-south1.run.app/api';
-//export const API_URL = 'http://localhost:5000/api';
+// export const API_URL = 'https://unitedtransportbackend-443415591723.asia-south1.run.app/api';
+export const API_URL = 'http://localhost:5000/api';
 
 const api = axios.create({
   baseURL: API_URL,
@@ -43,8 +43,8 @@ api.interceptors.request.use(
     // 🟢 CHANGED: Check for 'skipLoader' flag in the config object.
     // If skipLoader is true, we DO NOT show the global loading screen.
     if (!config.url?.includes('/refresh') && !(config as any).skipLoader) {
-        const msg = getLoadingMessage(config.method, config.url);
-        loadingManager.show(msg);
+      const msg = getLoadingMessage(config.method, config.url);
+      loadingManager.show(msg);
     }
 
     const userInfo = localStorage.getItem('authUser');
@@ -66,7 +66,7 @@ api.interceptors.response.use(
     // 🟢 CHANGED: Only hide the loader if we didn't skip showing it.
     // This ensures the active request counter in loadingManager stays accurate.
     if (!(response.config as any).skipLoader) {
-        loadingManager.hide();
+      loadingManager.hide();
     }
 
     if (response.data) response.data = transformId(response.data);
@@ -75,15 +75,15 @@ api.interceptors.response.use(
   async (error) => {
     // 🟢 CHANGED: Only hide loader on error if it wasn't skipped
     if (!error.config?.skipLoader) {
-        loadingManager.hide();
+      loadingManager.hide();
     }
-    
+
     const originalRequest = error.config;
 
     // 🛑 STOP LOOP: If the error comes from Login or Refresh endpoint, REJECT immediately.
     // Do not attempt to refresh token for these specific endpoints.
     if (originalRequest.url?.includes('/auth/login') || originalRequest.url?.includes('/auth/refresh')) {
-        return Promise.reject(error);
+      return Promise.reject(error);
     }
 
     // Check for 401 (Unauthorized) and ensure we haven't already retried
@@ -93,19 +93,19 @@ api.interceptors.response.use(
       try {
         // Attempt to get a new access token using the HTTPOnly cookie
         const { data } = await api.post('/auth/refresh');
-        
+
         // Update LocalStorage with new Access Token
         const userInfo = localStorage.getItem('authUser');
         if (userInfo) {
-            const parsedUser = JSON.parse(userInfo);
-            parsedUser.token = data.token;
-            localStorage.setItem('authUser', JSON.stringify(parsedUser));
+          const parsedUser = JSON.parse(userInfo);
+          parsedUser.token = data.token;
+          localStorage.setItem('authUser', JSON.stringify(parsedUser));
         }
 
         // Update default headers and retry original request
         api.defaults.headers.common['Authorization'] = `Bearer ${data.token}`;
         originalRequest.headers['Authorization'] = `Bearer ${data.token}`;
-        
+
         return api(originalRequest);
 
       } catch (refreshError) {

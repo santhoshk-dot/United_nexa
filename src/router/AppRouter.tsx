@@ -2,11 +2,11 @@ import { Suspense, lazy } from 'react';
 import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { Layout } from '../components/layout/Layout';
 import { useAuth } from '../hooks/useAuth';
-import { DataProvider } from '../contexts/DataContext'; 
+import { DataProvider } from '../contexts/DataContext';
 import { LoadingScreen } from '../components/shared/LoadingScreen';
 import { OfflinePage } from '../features/misc/OfflinePage';
 
-const load = (importPromise: Promise<any>, componentName: string) => 
+const load = (importPromise: Promise<any>, componentName: string) =>
   importPromise.then(module => ({ default: module[componentName] }));
 
 // Features -> Auth
@@ -33,6 +33,7 @@ const PackingEntryList = lazy(() => load(import('../features/master/packing-entr
 const ContentList = lazy(() => load(import('../features/master/content-entry/ContentList'), 'ContentList'));
 const VehicleList = lazy(() => load(import('../features/master/vehicle-details/VehicleList'), 'VehicleList'));
 const DriverList = lazy(() => load(import('../features/master/driver-details copy/DriverList'), 'DriverList'));
+const GodownList = lazy(() => load(import('../features/master/godowns/GodownList'), 'GodownList'));
 
 // Features -> Templates (Settings)
 const MainScreen = lazy(() => load(import('../features/master/admin/templates/MainScreen'), 'default'));
@@ -49,9 +50,9 @@ const ProtectedRoute = ({ requireAdmin = false }: { requireAdmin?: boolean }) =>
 
   if (loading) return <LoadingScreen />;
   if (!user) return <Navigate to="/login" replace />;
-  
+
   if (requireAdmin && user.role !== 'admin') {
-    return <Navigate to="/" replace />; 
+    return <Navigate to="/" replace />;
   }
 
   return (
@@ -69,7 +70,7 @@ const LoginRoute = () => {
   const { user, loading } = useAuth();
   if (loading) return <LoadingScreen />;
   if (user) return <Navigate to="/" replace />;
-  
+
   return (
     <Suspense fallback={<LoadingScreen />}>
       <LoginScreen />
@@ -95,7 +96,7 @@ const AppRouter = () => {
         <Route path="/tripsheet" element={<TripSheetList />} />
         <Route path="/tripsheet/new" element={<TripSheetForm />} />
         <Route path="/tripsheet/edit/:id" element={<TripSheetForm />} />
-        
+
         {/* Master Data Routes */}
         <Route path="/master" element={<MasterDashboardPage />} />
         <Route path="/master/consignors" element={<ConsignorList />} />
@@ -106,6 +107,7 @@ const AppRouter = () => {
         <Route path="/master/contents" element={<ContentList />} />
         <Route path="/master/vehicles" element={<VehicleList />} />
         <Route path="/master/drivers" element={<DriverList />} />
+        <Route path="/master/godowns" element={<GodownList />} />
       </Route>
 
       {/* 🟢 Admin Only Routes */}

@@ -18,7 +18,8 @@ import {
   LogOut,
   ScrollText,
   Printer,
-  ChevronRight
+  ChevronRight,
+  Warehouse
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 
@@ -51,6 +52,7 @@ export const Sidebar = ({ isSidebarOpen, setIsSidebarOpen }: SidebarProps) => {
     { name: 'Consignees', href: '/master/consignees', icon: Users },
     { name: 'Vehicles', href: '/master/vehicles', icon: Car },
     { name: 'Drivers', href: '/master/drivers', icon: UserCircle },
+    { name: 'Godowns', href: '/master/godowns', icon: Warehouse },
     { name: 'From Places', href: '/master/from-places', icon: MapPin },
     { name: 'To Places', href: '/master/to-places', icon: MapPin },
     { name: 'Packings', href: '/master/packings', icon: Package },
@@ -251,7 +253,7 @@ export const Sidebar = ({ isSidebarOpen, setIsSidebarOpen }: SidebarProps) => {
 
                 {/* Logout Button */}
                 <button
-                  onClick={logout}
+                  onClick={() => logout()}
                   className="p-1.5 shrink-0 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
                   title="Logout"
                 >
