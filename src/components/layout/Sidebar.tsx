@@ -251,7 +251,7 @@ export const Sidebar = ({ isSidebarOpen, setIsSidebarOpen }: SidebarProps) => {
 
                 {/* Logout Button */}
                 <button
-                  onClick={logout}
+                  onClick={() => logout()}
                   className="p-1.5 shrink-0 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
                   title="Logout"
                 >
