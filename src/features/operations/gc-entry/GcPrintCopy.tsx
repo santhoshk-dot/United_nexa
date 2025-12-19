@@ -109,7 +109,6 @@ export const GcPrintCopy: React.FC<Props> = ({
       style={{
         width: "100%",
         height: "146mm", 
-        // Increased padding to push content inwards slightly and look balanced
         padding: "5mm 6mm 0 6mm", 
         boxSizing: "border-box",
         overflow: "hidden",
@@ -117,12 +116,10 @@ export const GcPrintCopy: React.FC<Props> = ({
         flexDirection: "column"
       }}
     >
-      {/* Removed the conflicting @page style tag here */}
-
       {/* --- HEADER --- */}
-      {/* Increased margin-bottom (mb-2) and text sizes */}
       <div className="relative mb-2 flex min-h-[75px] items-start">
-        <div className="flex flex-col justify-start w-1/4 pt-1">
+        {/* CHANGED: Reduced width to 20% to give center more space */}
+        <div className="flex flex-col justify-start w-[20%] pt-1">
           <div className="uppercase text-[15px] whitespace-nowrap font-bold w-fit mb-1">
             {copyType}
           </div>
@@ -132,25 +129,28 @@ export const GcPrintCopy: React.FC<Props> = ({
           </div>
         </div>
 
-        <div className="flex flex-col items-center flex-1 px-2 text-center">
+        {/* CHANGED: Increased width to 60% for address */}
+        <div className="flex flex-col items-center w-[60%] px-1 text-center">
           <div className="text-[10px] font-bold flex gap-3 mb-1">
             <span>{label.fixedGstinLabel}:{label.fixedGstinValue}</span>
             <span>{label.mobileLabel} : {label.mobileNumberValue}</span>
           </div>
-          {/* Increased Company Name Size significantly */}
-          <h1 className="text-2xl font-extrabold uppercase tracking-tight leading-none mb-1">
+          {/* Company Name Single Line */}
+          <h1 className="text-2xl font-extrabold uppercase tracking-tight leading-none mb-1 whitespace-nowrap">
             {label.companyName}
           </h1>
           <div className="font-bold text-[10px] uppercase leading-tight">
             {label.tagLine}
           </div>
+          {/* Address Single Line - Now has more space */}
           <div className="font-bold text-[9px] whitespace-nowrap leading-tight mt-0.5">
             {label.companyAddress}
           </div>
         </div>
 
-        <div className="flex flex-col items-center justify-center w-1/4 pt-1">
-          <QRCodeSVG value={directApiUrl} size={74} level="M" />
+        {/* CHANGED: Reduced width to 20% */}
+        <div className="flex flex-col items-center justify-center w-[20%] pt-1">
+          <QRCodeSVG value={directApiUrl} size={54} level="M" />
           <span className="text-[8px] font-bold mt-1 uppercase">
             {label.scanLabel}
           </span>
@@ -158,7 +158,6 @@ export const GcPrintCopy: React.FC<Props> = ({
       </div>
 
       {/* --- FROM / TO BAR --- */}
-      {/* Increased text size to text-[11px] and padding py-1 */}
       <div className="border border-black flex font-bold text-[11px] uppercase mb-2">
         <div className="flex-none px-2 py-1 border-r border-black">
           {label.fromLabel} <span className="ml-1 text-[12px]">{gc.from}</span>
@@ -172,8 +171,7 @@ export const GcPrintCopy: React.FC<Props> = ({
       </div>
 
       {/* --- CONSIGNOR / CONSIGNEE --- */}
-      {/* Increased gap and font sizes */}
-      <div className="flex mb-2 gap-4">
+      <div className="flex mb-2 gap-4 pl-2">
         <div className="w-1/2">
           <div className="text-[10px] mb-1 font-bold text-gray-600 uppercase border-b border-gray-300 w-fit">{label.consignorLabel}</div>
           <div className="pl-1">
@@ -193,7 +191,6 @@ export const GcPrintCopy: React.FC<Props> = ({
       </div>
 
       {/* --- MAIN TABLE --- */}
-      {/* Increased border width slightly visually with structure, increased cell padding */}
       <div className="border border-black mb-0 flex-grow flex flex-col">
         <table className="w-full border-collapse flex-grow">
           <thead>
@@ -206,7 +203,6 @@ export const GcPrintCopy: React.FC<Props> = ({
             </tr>
           </thead>
           <tbody className="text-[11px] font-bold">
-            {/* Main Row - let it grow to fill space if needed */}
             <tr className="align-top">
               <td className="border-r border-black text-center pt-2">{quantityNum}</td>
               <td className="border-r border-black pl-2 pt-2 uppercase">
@@ -216,7 +212,6 @@ export const GcPrintCopy: React.FC<Props> = ({
               </td>
               <td className="border-r border-black text-center pt-2"></td>
               <td className="border-r border-black text-center pt-2"></td>
-              {/* Freight Column Breakdown */}
               <td rowSpan={2} className="relative align-top p-0 h-full">
                 <div className="flex flex-col h-full justify-between">
                   <div className="px-2 pt-2 text-right text-[11px] leading-normal">
@@ -257,7 +252,6 @@ export const GcPrintCopy: React.FC<Props> = ({
                 </div>
               </td>
             </tr>
-            {/* Invoice Row */}
             <tr className="border-t border-black h-10">
               <td colSpan={2} className="border-r border-black align-top p-1">
                 <div className="flex justify-between text-[10px] font-bold mb-1">
@@ -280,7 +274,6 @@ export const GcPrintCopy: React.FC<Props> = ({
                 </div>
               </td>
             </tr>
-            {/* Delivery / Words Row */}
             <tr className="border-t border-black">
               <td colSpan={2} className="border-r border-black p-1 h-8 align-middle">
                 <span className="font-normal text-[10px] mr-2">{label.deliveryAtLabel}:</span>
@@ -300,7 +293,6 @@ export const GcPrintCopy: React.FC<Props> = ({
       </div>
 
       {/* --- FOOTER --- */}
-      {/* Increased heights and font sizes in footer */}
       <div className="border-x border-b border-black pt-0 pb-2 px-2 flex justify-between items-end min-h-[0.5rem] relative bg-white">
         <div className="w-1/3">
           <div className="text-[10px] font-bold leading-tight">
@@ -312,7 +304,7 @@ export const GcPrintCopy: React.FC<Props> = ({
           {label.footerUnloadingNote}
         </div>
         <div className="text-[10px] flex flex-col items-center w-1/3 text-right">
-          <div className="h-4"></div> {/* Space for signature */}
+          <div className="h-4"></div>
           <span className="font-extrabold uppercase text-[10px]">{user?.name || 'Admin'}</span>
           <span className="italic font-bold text-[8px] pt-1 border-t border-black w-3/4 text-center mt-1">{label.footerSignatureLine}</span>
         </div>

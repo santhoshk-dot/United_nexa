@@ -48,8 +48,8 @@ export const GcPrintManager = ({ jobs, onClose }: GcPrintManagerProps) => {
       <style>{`
         @media print {
           @page {
-            /* CHANGED: Set to A4 Portrait to use default printer settings */
-            size: A4 portrait; 
+            /* CHANGED: Force A4 Portrait (Standard setting) */
+            size: A4 portrait;
             margin: 0mm !important;
           }
 
@@ -71,6 +71,8 @@ export const GcPrintManager = ({ jobs, onClose }: GcPrintManagerProps) => {
             position: absolute;
             top: 0; left: 0; 
             width: 210mm;
+            /* Wrapper allows full A4 height flow */
+            height: auto; 
             margin: 0; padding: 0;
             background: white;
             z-index: 9999;
@@ -85,18 +87,19 @@ export const GcPrintManager = ({ jobs, onClose }: GcPrintManagerProps) => {
           .print-actions { display: none !important; }
 
           .print-page {
-            /* This forces each A5 slip onto a new A4 page (top half) */
+            /* Forces each slip to start on a new A4 page */
             break-after: page;
             page-break-after: always;
             
-            /* Dimensions of the content remain A5 Landscape */
+            /* A5 Landscape Dimensions */
             width: 210mm; 
-            height: 148mm !important; 
+            height: 148mm !important; /* Occupies top half of A4 */
             
             overflow: hidden; 
             position: relative;
             margin: 0;
             padding: 0;
+            border-bottom: 1px dashed #ccc; /* Optional: Guide line for cutting */
           }
         }
 
