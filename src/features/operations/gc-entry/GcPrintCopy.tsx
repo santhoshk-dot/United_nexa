@@ -117,20 +117,13 @@ export const GcPrintCopy: React.FC<Props> = ({
         flexDirection: "column"
       }}
     >
-      <style dangerouslySetInnerHTML={{ __html: `
-        @media print {
-          @page {
-            size: 210mm 148mm !important;
-            margin: 0mm !important;
-          }
-        }
-      `}} />
+      {/* Removed the conflicting @page style tag here */}
 
       {/* --- HEADER --- */}
       {/* Increased margin-bottom (mb-2) and text sizes */}
       <div className="relative mb-2 flex min-h-[75px] items-start">
         <div className="flex flex-col justify-start w-1/4 pt-1">
-          <div className="uppercase text-xs font-bold w-fit mb-1 border-b border-black">
+          <div className="uppercase text-[15px] whitespace-nowrap font-bold w-fit mb-1">
             {copyType}
           </div>
           <div className="font-bold text-[11px] leading-snug">
@@ -151,7 +144,7 @@ export const GcPrintCopy: React.FC<Props> = ({
           <div className="font-bold text-[10px] uppercase leading-tight">
             {label.tagLine}
           </div>
-          <div className="font-bold text-[9px] whitespace-pre-wrap leading-tight mt-0.5">
+          <div className="font-bold text-[9px] whitespace-nowrap leading-tight mt-0.5">
             {label.companyAddress}
           </div>
         </div>
@@ -293,10 +286,10 @@ export const GcPrintCopy: React.FC<Props> = ({
                 <span className="font-normal text-[10px] mr-2">{label.deliveryAtLabel}:</span>
                 <span className="font-bold text-[12px] uppercase">{gc.deliveryAt}</span>
               </td>
-              <td colSpan={3} className="p-1 align-middle bg-gray-100">
+              <td colSpan={3} className="border-r border-black p-1 align-middle">
                 <div className="flex items-baseline gap-2 pl-2">
                   <span className="text-[10px] font-normal whitespace-nowrap">{label.toPayRsLabel}</span>
-                  <span className="text-[10px] font-extrabold uppercase leading-none italic">
+                  <span className="text-[10px] font-extrabold whitespace-nowrap uppercase leading-none italic">
                     {numberToWordsInRupees(balanceToPayNum)}
                   </span>
                 </div>
@@ -308,7 +301,7 @@ export const GcPrintCopy: React.FC<Props> = ({
 
       {/* --- FOOTER --- */}
       {/* Increased heights and font sizes in footer */}
-      <div className="border-x border-b border-black pt-2 pb-2 px-2 flex justify-between items-end min-h-[3rem] relative bg-white">
+      <div className="border-x border-b border-black pt-0 pb-2 px-2 flex justify-between items-end min-h-[0.5rem] relative bg-white">
         <div className="w-1/3">
           <div className="text-[10px] font-bold leading-tight">
             <span className="font-normal block text-[9px] text-gray-600 mb-0.5 italic">{label.freightFixedUptoLabel}</span>
