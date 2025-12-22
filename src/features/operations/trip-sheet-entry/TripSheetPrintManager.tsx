@@ -15,7 +15,6 @@ export const TripSheetPrintManager = ({
 }: TripSheetPrintManagerProps) => {
   const printTriggered = useRef(false);
 
-  // 🟢 REPLACED MOCK DATA WITH REAL BACKEND DATA
   const dataToPrint = sheets;
 
   // --- AUTO PRINT TRIGGER ---
@@ -23,7 +22,6 @@ export const TripSheetPrintManager = ({
     if (dataToPrint.length === 0) return;
     if (printTriggered.current) return;
 
-    // Small delay ensures content renders into the portal before printing
     const timer = setTimeout(() => {
       printTriggered.current = true;
       window.print();
@@ -38,17 +36,15 @@ export const TripSheetPrintManager = ({
     window.print();
   };
 
-  // Don't render anything if no data
   if (dataToPrint.length === 0) return null;
 
   const printContent = (
     <div className="ts-print-wrapper">
       <style>{`
         /* =========================================
-           1. PRINT STYLES (The Output Paper)
+           1. PRINT STYLES
            ========================================= */
         @media print {
-          /* Remove browser default margins */
           @page {
             size: A4;
             margin: 0;
@@ -62,16 +58,12 @@ export const TripSheetPrintManager = ({
             display: none !important;
           }
 
-          /* Reset HTML/Body */
           html, body {
-            height: 100%;
             margin: 0 !important;
             padding: 0 !important;
-            overflow: visible !important;
             background: white !important;
           }
 
-          /* Wrapper takes over */
           .ts-print-wrapper {
             display: block !important;
             position: absolute;
@@ -81,10 +73,8 @@ export const TripSheetPrintManager = ({
             margin: 0;
             padding: 0;
             background: white;
-            z-index: 9999;
           }
 
-          /* Force black text */
           .ts-print-wrapper * {
             color: black !important;
             print-color-adjust: exact !important;
@@ -94,101 +84,94 @@ export const TripSheetPrintManager = ({
           /* Hide Toolbar */
           .print-actions { display: none !important; }
 
-          /* Page Breaks */
-          .print-page {
-            break-after: page;
-            page-break-after: always;
+          /* Page content styling */
+          .ts-page-content {
             width: 210mm;
-            min-height: 297mm; /* Ensure full height usage */
-            overflow: hidden; 
-            position: relative;
+            padding: 6mm 10mm;
+            box-sizing: border-box;
+          }
+
+          /* Page break for continuation pages */
+          .ts-page-break {
+            break-before: page;
+            page-break-before: always;
+          }
+
+          /* Page break between different trip sheets */
+          .ts-sheet-wrapper + .ts-sheet-wrapper .ts-page-content:first-child {
+            break-before: page;
+            page-break-before: always;
           }
         }
 
         /* =========================================
-           2. SCREEN STYLES (The Preview Overlay)
+           2. SCREEN STYLES (Preview)
            ========================================= */
         @media screen {
           .ts-print-wrapper {
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
             width: 100vw;
-            height: 100dvh; /* Mobile-friendly viewport height */
-            
-            /* Theme-aware background color */
+            height: 100dvh;
             background-color: hsl(var(--muted)); 
-            
-            z-index: 2147483647; /* Max Z-Index */
+            z-index: 2147483647;
             overflow-y: auto;
             overflow-x: hidden;
-            
-            /* Layout for centering pages */
-            padding-top: 80px; /* Space for fixed header */
+            padding-top: 80px;
             padding-bottom: 40px;
             box-sizing: border-box;
             display: flex;
             flex-direction: column;
             align-items: center;
-            
             -webkit-overflow-scrolling: touch;
           }
 
-          /* Desktop Page Preview Style */
-          .print-page {
+          .ts-page-content {
             background: white;
-            color: black; /* Preview text always black */
+            color: black;
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
             margin-bottom: 24px;
-            transform-origin: top center;
-            transition: transform 0.2s ease;
-            width: 210mm; /* Fixed A4 width */
-            min-height: 297mm;
+            width: 210mm;
+            padding: 6mm 10mm;
+            box-sizing: border-box;
           }
         }
 
         /* =========================================
-           3. MOBILE RESPONSIVENESS (Scaling)
+           3. MOBILE RESPONSIVENESS
            ========================================= */
         @media screen and (max-width: 800px) {
           .ts-print-wrapper {
             padding-top: 70px;
-            padding-left: 0;
-            padding-right: 0;
-            background-color: #1f2937; /* Darker background on mobile for contrast */
+            background-color: #1f2937;
           }
 
-          .print-page {
-            /* Scale A4 (794px) down to fit ~375px screens */
-            transform: scale(0.46); 
-            /* Pull up the whitespace caused by scaling */
-            margin-bottom: -135mm; 
+          .ts-page-content {
+            transform: scale(0.46);
+            transform-origin: top center;
+            margin-bottom: -120mm;
             margin-top: 10px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
           }
         }
 
         @media screen and (min-width: 450px) and (max-width: 800px) {
-           /* Tablets */
-           .print-page {
-             transform: scale(0.65);
-             margin-bottom: -90mm;
-           }
+          .ts-page-content {
+            transform: scale(0.65);
+            margin-bottom: -90mm;
+          }
         }
 
         /* =========================================
-           4. TOOLBAR STYLES (Themed)
+           4. TOOLBAR STYLES
            ========================================= */
         .print-actions {
           position: fixed;
           top: 0; left: 0;
           width: 100%;
           height: 64px;
-          
-          /* Theme variables for colors */
           background-color: hsl(var(--card));
           color: hsl(var(--foreground));
           border-bottom: 1px solid hsl(var(--border));
-          
           display: flex;
           align-items: center;
           justify-content: space-between;
@@ -200,9 +183,6 @@ export const TripSheetPrintManager = ({
         .preview-title {
           font-weight: 700;
           font-size: 16px;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
         }
 
         .action-group {
@@ -221,27 +201,187 @@ export const TripSheetPrintManager = ({
           transition: all 0.2s;
         }
         
-        /* Themed Primary Button */
         .print-btn {
           background-color: hsl(var(--primary));
           color: hsl(var(--primary-foreground));
         }
-        .print-btn:active { transform: scale(0.96); }
         .print-btn:hover { opacity: 0.9; }
 
-        /* Themed Destructive Button */
         .close-btn {
           background-color: hsl(var(--destructive));
           color: hsl(var(--destructive-foreground));
         }
-        .close-btn:active { transform: scale(0.96); }
         .close-btn:hover { opacity: 0.9; }
 
-        /* Small screen adjustments for toolbar */
         @media screen and (max-width: 480px) {
-          .preview-title { font-size: 14px; max-width: 120px; }
+          .preview-title { font-size: 14px; }
           .btn-base { padding: 6px 12px; font-size: 13px; }
-          .action-group { gap: 8px; }
+        }
+
+        /* =========================================
+           5. TRIP SHEET COMPONENT STYLES
+           ========================================= */
+        .ts-page-heading {
+          text-align: center;
+          font-weight: 700;
+          font-size: 18px;
+          margin-bottom: 5px;
+        }
+
+        .ts-box {
+          border: 2px solid #000;
+          padding: 8px 10px;
+          box-sizing: border-box;
+          width: 100%;
+        }
+
+        .ts-header-flex {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+        }
+
+        .ts-company-block { 
+          width: 64%; 
+          border-right: 1px solid #000; 
+          font-weight: 600;
+          padding-right: 8px;
+        }
+
+        .ts-company-title { 
+          font-weight: 900; 
+          font-size: 20px; 
+        }
+
+        .ts-company-sub { 
+          font-size: 11px; 
+          margin-top: 2px; 
+        }
+
+        .ts-meta-block {
+          width: 36%;
+          text-align: left;
+          font-size: 13px;
+          line-height: 1.4;
+          padding: 6px 8px;
+        }
+
+        .ts-fromto {
+          display: flex;
+          justify-content: space-between;
+          margin-top: 5px;
+          padding: 5px 2px;
+          font-weight: 200;
+          font-size: 13px;
+          border-top: 1px solid #000;
+        }
+
+        .ts-table {
+          width: 100%;
+          border-collapse: collapse;
+          font-size: 12px;
+          margin-top: 5px;
+        }
+
+        .ts-table thead th {
+          border-top: 1px solid #000;
+          border-bottom: 1px solid #000;
+          border-left: 1px solid #000;
+          padding: 5px;
+          font-weight: 700;
+        }
+        .ts-table thead th:last-child {
+          border-right: 1px solid #000;
+        }
+
+        .ts-table tbody td {
+          padding: 4px 5px;
+          border-left: 1px solid #000;
+          vertical-align: top;
+          height: 20px;
+          line-height: 1.3;
+        }
+        .ts-table tbody td:last-child {
+          border-right: 1px solid #000;
+        }
+
+        .ts-total-row td {
+          border-top: 1px solid #000;
+          border-bottom: 1px solid #000;
+          padding: 6px 5px;
+          font-weight: 800;
+        }
+
+        .ts-footer {
+          margin-top: 5px;
+          font-size: 11px;
+          line-height: 1.4;
+        }
+
+        .ts-dash {
+          display: inline-block;
+          border-bottom: 1px dashed #000;
+          padding: 0 5px;
+          min-width: 100px;
+        }
+
+        .ts-footer-grid {
+          margin-top: 6px;
+          display: grid;
+          grid-template-columns: 1fr 1fr 1fr;
+          gap: 6px;
+          font-size: 11px;
+        }
+
+        .ts-col-line {
+          border-bottom: 1px dashed #000;
+          padding-bottom: 2px; 
+          display: inline-block;
+          min-width: 110px;
+        }
+
+        .ts-legal {
+          margin-top: 6px;
+          font-size: 10px;
+          text-align: left;
+          line-height: 1.3;
+        }
+
+        .ts-sigs {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-end;
+          margin-top: 15px;
+          font-size: 11px;
+          padding: 0 20px;
+        }
+
+        .ts-sig-box {
+          text-align: center;
+          width: 45%;
+        }
+
+        .ts-sig-line {
+          display: block;
+          width: 70%;
+          height: 1px;
+          margin: 0 auto 5px;
+          border-top: 1px solid #000;
+        }
+
+        .ts-sig-name {
+          font-weight: bold;
+          margin-bottom: 5px;
+          min-height: 16px;
+        }
+
+        .ts-continuation-header {
+          text-align: center;
+          font-size: 12px;
+          font-weight: 600;
+          padding: 8px;
+          border-bottom: 1px solid #000;
+          margin-bottom: 10px;
         }
       `}</style>
 
@@ -263,9 +403,9 @@ export const TripSheetPrintManager = ({
       </div>
 
       {/* DOCUMENT PAGES */}
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', fontFamily: 'Arial, Helvetica, sans-serif' }}>
         {dataToPrint.map((sheet) => (
-          <div className="print-page" key={sheet.id}>
+          <div className="ts-sheet-wrapper" key={sheet.id}>
             <TripSheetPrintCopy sheet={sheet} />
           </div>
         ))}
