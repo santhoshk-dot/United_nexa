@@ -107,8 +107,8 @@ export const GcPrintCopy: React.FC<Props> = ({
     <div
       className="print-page font-sans text-black bg-white"
       style={{
-        width: "100%",
-        height: "146mm", 
+        width: "100%", /* Changed from 210mm to 100% to fill container */
+        height: "148mm", 
         padding: "5mm 6mm 0 6mm", 
         boxSizing: "border-box",
         overflow: "hidden",
@@ -118,7 +118,6 @@ export const GcPrintCopy: React.FC<Props> = ({
     >
       {/* --- HEADER --- */}
       <div className="relative mb-2 flex min-h-[75px] items-start">
-        {/* CHANGED: Reduced width to 20% to give center more space */}
         <div className="flex flex-col justify-start w-[20%] pt-1">
           <div className="uppercase text-[15px] whitespace-nowrap font-bold w-fit mb-1">
             {copyType}
@@ -129,28 +128,24 @@ export const GcPrintCopy: React.FC<Props> = ({
           </div>
         </div>
 
-        {/* CHANGED: Increased width to 60% for address */}
         <div className="flex flex-col items-center w-[60%] px-1 text-center">
           <div className="text-[10px] font-bold flex gap-3 mb-1">
             <span>{label.fixedGstinLabel}:{label.fixedGstinValue}</span>
             <span>{label.mobileLabel} : {label.mobileNumberValue}</span>
           </div>
-          {/* Company Name Single Line */}
           <h1 className="text-2xl font-extrabold uppercase tracking-tight leading-none mb-1 whitespace-nowrap">
             {label.companyName}
           </h1>
           <div className="font-bold text-[10px] uppercase leading-tight">
             {label.tagLine}
           </div>
-          {/* Address Single Line - Now has more space */}
           <div className="font-bold text-[9px] whitespace-nowrap leading-tight mt-0.5">
             {label.companyAddress}
           </div>
         </div>
 
-        {/* CHANGED: Reduced width to 20% */}
         <div className="flex flex-col items-center justify-center w-[20%] pt-1">
-          <QRCodeSVG value={directApiUrl} size={54} level="M" />
+          <QRCodeSVG value={directApiUrl} size={74} level="M" />
           <span className="text-[8px] font-bold mt-1 uppercase">
             {label.scanLabel}
           </span>
@@ -171,7 +166,7 @@ export const GcPrintCopy: React.FC<Props> = ({
       </div>
 
       {/* --- CONSIGNOR / CONSIGNEE --- */}
-      <div className="flex mb-2 gap-4 pl-2">
+      <div className="flex mb-2 gap-4">
         <div className="w-1/2">
           <div className="text-[10px] mb-1 font-bold text-gray-600 uppercase border-b border-gray-300 w-fit">{label.consignorLabel}</div>
           <div className="pl-1">
