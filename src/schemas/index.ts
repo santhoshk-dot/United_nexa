@@ -50,7 +50,7 @@ export const consignorSchema = z.object({
 export const consigneeSchema = z.object({
   name: z.string().min(1, "Consignee Name is required"),
   destination: z.string().min(1, "Destination is required"),
-  address: z.string().min(1, "Address is required"),
+  address: z.string().optional(),
   phone: z.string().regex(MOBILE_REGEX, "Invalid Mobile Number"),
   gst: z.string().optional().refine(val => !val || GST_REGEX.test(val), {
     message: "Invalid GST Format"
