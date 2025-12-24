@@ -20,6 +20,8 @@ import { CsvImporter } from '../../../../components/shared/CsvImporter';
 import { useToast } from '../../../../contexts/ToastContext';
 import { usePagination } from '../../../../utils/usePagination';
 import { Pagination } from '../../../../components/shared/Pagination';
+import { AppSelect } from '../../../../components/shared/AppSelect';
+
 
 const MOBILE_REGEX = /^[6-9]\d{9}$/;
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -29,7 +31,7 @@ export const UserList = () => {
   const toast = useToast();
 
   const [search, setSearch] = useState('');
-  const [roleFilter] = useState<string>('all');
+  const [roleFilter, setRoleFilter] = useState<string>('all');
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<AppUser | undefined>(undefined);
@@ -178,6 +180,18 @@ export const UserList = () => {
             />
           </div>
 
+          <div className="w-48">
+            <AppSelect
+              options={[
+                { value: 'all', label: 'All Roles' },
+                { value: 'user', label: 'User' },
+                { value: 'admin', label: 'Admin' },
+              ]}
+              value={roleFilter}
+              onChange={(val: string) => setRoleFilter(val)}
+            />
+          </div>
+
           <Button variant="outline" onClick={handleExport} className="h-10">
             <Download className="w-4 h-4" />
             Export
@@ -225,20 +239,20 @@ export const UserList = () => {
               Export
             </Button>
             <CsvImporter<AppUser>
-            onImport={handleImport}
-            existingData={users}
-            label="Import Users"
-            checkDuplicate={(newItem, existing) =>
-              newItem.email.trim().toLowerCase() === existing.email.trim().toLowerCase()
-            }
-            mapRow={csvMapRow}
-            // 泙 NEW: Added Template
-            template={{
-              filename: 'users_import_template.csv',
-              columns: ['Name', 'Email', 'Password', 'Mobile', 'Role'],
-              sampleRow: ['Demo User', 'demo@example.com', 'pass123', '9876543210', 'user']
-            }}
-          />
+              onImport={handleImport}
+              existingData={users}
+              label="Import Users"
+              checkDuplicate={(newItem, existing) =>
+                newItem.email.trim().toLowerCase() === existing.email.trim().toLowerCase()
+              }
+              mapRow={csvMapRow}
+              // 泙 NEW: Added Template
+              template={{
+                filename: 'users_import_template.csv',
+                columns: ['Name', 'Email', 'Password', 'Mobile', 'Role'],
+                sampleRow: ['Demo User', 'demo@example.com', 'pass123', '9876543210', 'user']
+              }}
+            />
             <Button variant="primary" onClick={handleCreateNew} className="flex-1 h-9 text-xs sm:text-sm">
               <UserPlus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />Add
               {/* <span className="hidden xs:inline">Add</span>

@@ -6,6 +6,7 @@ import { getTodayDate } from '../../../utils/dateHelpers';
 import { Input } from '../../../components/shared/Input';
 import { Button } from '../../../components/shared/Button';
 import { AsyncAutocomplete } from '../../../components/shared/AsyncAutocomplete';
+import { AppSelect } from '../../../components/shared/AppSelect';
 import { Printer, Save, X, Plus, Trash2, AlertCircle } from 'lucide-react';
 import { GcPrintManager, type GcPrintJob } from './GcPrintManager';
 import { useToast } from '../../../contexts/ToastContext';
@@ -121,7 +122,7 @@ export const GcEntryForm = () => {
     const [currentFromNo, setCurrentFromNo] = useState<string>('1');
     const [currentPackingOption, setCurrentPackingOption] = useState<any>(null);
     const [currentContentOption, setCurrentContentOption] = useState<any>(null);
-    
+
     // 🟢 NEW: State for proactive duplicate warning
     const [duplicateWarning, setDuplicateWarning] = useState<string>('');
 
@@ -362,14 +363,14 @@ export const GcEntryForm = () => {
         const val = option?.value || '';
 
         if (form.destination !== val) {
-             setConsigneeOption(null);
-             setForm(prev => ({ 
-                 ...prev, 
-                 consigneeId: '', 
-                 consigneeProofType: 'gst', 
-                 consigneeProofValue: '' 
-             }));
-             setConsigneeDestDisplay('');
+            setConsigneeOption(null);
+            setForm(prev => ({
+                ...prev,
+                consigneeId: '',
+                consigneeProofType: 'gst',
+                consigneeProofValue: ''
+            }));
+            setConsigneeDestDisplay('');
         }
 
         setForm(prev => ({ ...prev, destination: val, deliveryAt: val, freightUptoAt: val }));
@@ -469,11 +470,11 @@ export const GcEntryForm = () => {
             }));
 
             if (dest && !form.destination) {
-                 const destOpt = { label: dest, value: dest };
-                 setDestinationOption(destOpt);
-                 setDeliveryOption(destOpt);
-                 setFreightOption(destOpt);
-                 setForm(prev => ({...prev, destination: dest, deliveryAt: dest, freightUptoAt: dest}));
+                const destOpt = { label: dest, value: dest };
+                setDestinationOption(destOpt);
+                setDeliveryOption(destOpt);
+                setFreightOption(destOpt);
+                setForm(prev => ({ ...prev, destination: dest, deliveryAt: dest, freightUptoAt: dest }));
             }
 
         } else {
@@ -509,7 +510,7 @@ export const GcEntryForm = () => {
     };
 
     // --- Content Items Handlers ---
-    
+
     // 🟢 NEW: Effect to proactively check for duplicates and set warning
     useEffect(() => {
         if (!currentPacking || !currentContents) {
@@ -518,8 +519,8 @@ export const GcEntryForm = () => {
         }
 
         // Case-insensitive check for duplicates
-        const isDuplicate = contentItems.some(item => 
-            item.packing.trim().toLowerCase() === currentPacking.trim().toLowerCase() && 
+        const isDuplicate = contentItems.some(item =>
+            item.packing.trim().toLowerCase() === currentPacking.trim().toLowerCase() &&
             item.contents.trim().toLowerCase() === currentContents.trim().toLowerCase()
         );
 
@@ -727,7 +728,7 @@ export const GcEntryForm = () => {
                             <div className="col-span-1 sm:col-span-2 lg:col-span-5">
                                 <AsyncAutocomplete
                                     // Key prop forces re-render when destination changes, ensuring new options are loaded
-                                    key={form.destination} 
+                                    key={form.destination}
                                     label="Consignee Name"
                                     loadOptions={loadConsigneeOptions}
                                     value={consigneeOption}
@@ -742,20 +743,17 @@ export const GcEntryForm = () => {
                             </div>
                             <div className="col-span-1 lg:col-span-3"><Input label="Consignee Dest" value={consigneeDestDisplay} disabled required {...getValidationProp(consigneeDestDisplay)} /></div>
                             <div className="col-span-1 lg:col-span-2">
-                                <label className="block text-sm font-medium text-foreground mb-1.5">
-                                    Proof Type <span className="text-destructive ml-1">*</span>
-                                </label>
-                                <select
-                                    name="consigneeProofType"
+                                <AppSelect
+                                    label="Proof Type"
+                                    options={[
+                                        { value: 'gst', label: 'GST' },
+                                        { value: 'pan', label: 'PAN' },
+                                        { value: 'aadhar', label: 'Aadhar' },
+                                    ]}
                                     value={form.consigneeProofType}
-                                    onChange={handleProofTypeChange}
+                                    onChange={(val: string) => handleProofTypeChange({ target: { value: val } } as any)}
                                     required
-                                    className="w-full h-11 px-4 bg-background text-foreground border border-border rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200 hover:border-primary/50"
-                                >
-                                    <option value="gst">GST</option>
-                                    <option value="pan">PAN</option>
-                                    <option value="aadhar">Aadhar</option>
-                                </select>
+                                />
                             </div>
                             <div className="col-span-1 lg:col-span-2"><Input label="Proof Value" name="consigneeProofValue" value={form.consigneeProofValue} onChange={handleChange} disabled required {...getValidationProp(form.consigneeProofValue)} /></div>
                         </div>
@@ -835,7 +833,7 @@ export const GcEntryForm = () => {
                                         }}
                                         placeholder="Search packing..."
                                         defaultOptions={false}
-                                        className="text-foreground" 
+                                        className="text-foreground"
                                     />
                                 </div>
                                 <div className="col-span-2 sm:col-span-2 lg:col-span-2">
@@ -878,7 +876,7 @@ export const GcEntryForm = () => {
                                 {duplicateWarning && (
                                     <div className="col-span-full mt-0 justify-center flex">
                                         <p className="text-sm text-destructive font-medium flex items-center">
-                                            <AlertCircle size={16} className="mr-2" /> 
+                                            <AlertCircle size={16} className="mr-2" />
                                             {duplicateWarning}
                                         </p>
                                     </div>

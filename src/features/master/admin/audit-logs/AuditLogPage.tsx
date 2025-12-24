@@ -29,7 +29,8 @@ import type { HistoryLog, GcEntry } from '../../../../types';
 import { Button } from '../../../../components/shared/Button';
 import { DateFilterButtons, getTodayDate, getYesterdayDate } from '../../../../components/shared/DateFilterButtons';
 import { Pagination } from '../../../../components/shared/Pagination';
-import {LoadingScreen } from '../../../../components/shared/LoadingScreen';
+import { LoadingScreen } from '../../../../components/shared/LoadingScreen';
+import { AppSelect } from '../../../../components/shared/AppSelect';
 import { useDataContext } from '../../../../contexts/DataContext';
 
 interface ExtendedHistoryLog extends HistoryLog {
@@ -76,7 +77,7 @@ const AuditLogPage = () => {
   useEffect(() => {
     if (consignors.length === 0) fetchConsignors();
     if (consignees.length === 0) fetchConsignees();
-  }, []); 
+  }, []);
 
   // --- Handlers ---
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -127,19 +128,17 @@ const AuditLogPage = () => {
   };
 
   // 🟢 HANDLERS FOR SPLIT DROPDOWNS
-  const handleOpsChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const val = e.target.value;
+  const handleOpsChange = (val: string) => {
     setFilters({ module: val || 'All' });
   };
 
-  const handleMasterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const val = e.target.value;
+  const handleMasterChange = (val: string) => {
     setFilters({ module: val || 'All' });
   };
 
   // 🟢 LOGIC TO DETERMINE DROPDOWN VALUES
   const currentModule = filters.module || 'All';
-  
+
   const opsOptions = ['GcEntry', 'TripSheet', 'LoadingSheet'];
   const masterOptions = ['Consignor', 'Consignee', 'Vehicle', 'Driver', 'User', 'FromPlace', 'ToPlace', 'Packing', 'Content',];
 
@@ -153,10 +152,10 @@ const AuditLogPage = () => {
   useEffect(() => {
     if (selectedLog && (selectedLog.collectionName === 'LoadingSheet' || selectedLog.collectionName === 'GcEntry')) {
       if (selectedLog.action === 'DELETE') {
-         setLogContext(null);
-         return;
+        setLogContext(null);
+        return;
       }
-      
+
       setLoadingContext(true);
       fetchGcById(selectedLog.documentId)
         .then((data) => {
@@ -325,7 +324,7 @@ const AuditLogPage = () => {
       case 'LoadingSheet': return <Box size={18} />;
       case 'TripSheet': return <Activity size={18} />;
       case 'GcEntry': return <FileText size={18} />;
-      case 'Consignor': 
+      case 'Consignor':
       case 'Consignee': return <Users size={18} />;
       case 'Vehicle': return <Truck size={18} />;
       case 'Driver': return <User size={18} />;
@@ -583,63 +582,54 @@ const AuditLogPage = () => {
           {/* 🟢 CHANGED: Two separate dropdowns for Module */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
             <div>
-              <label className="block text-xs font-medium text-muted-foreground mb-1.5">Operation Module</label>
-              <div className="relative">
-                <FileText className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <select
-                  className="w-full h-10 pl-10 pr-3 bg-secondary/50 text-foreground rounded-lg border-0 focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm appearance-none"
-                  value={isOpsSelected ? opsValue : ''}
-                  onChange={handleOpsChange}
-                >
-                  <option value="">Select Operation...</option>
-                  <option value="Operations">All Operations</option>
-                  <option value="GcEntry">GC Entry</option>
-                  <option value="TripSheet">Trip Sheet</option>
-                  <option value="LoadingSheet">Loading Sheet</option>
-                </select>
-              </div>
+              <AppSelect
+                label="Operation Module"
+                options={[
+                  { value: 'Operations', label: 'All Operations' },
+                  { value: 'GcEntry', label: 'GC Entry' },
+                  { value: 'TripSheet', label: 'Trip Sheet' },
+                  { value: 'LoadingSheet', label: 'Loading Sheet' },
+                ]}
+                value={isOpsSelected ? opsValue : ''}
+                onChange={handleOpsChange}
+                placeholder="Select Operation..."
+              />
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-muted-foreground mb-1.5">Master Module</label>
-              <div className="relative">
-                <Database className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <select
-                  className="w-full h-10 pl-10 pr-3 bg-secondary/50 text-foreground rounded-lg border-0 focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm appearance-none"
-                  value={isMasterSelected ? masterValue : ''}
-                  onChange={handleMasterChange}
-                >
-                  <option value="">Select Master...</option>
-                  <option value="Masters">All Masters</option>
-                  <option value="Consignor">Consignor</option>
-                  <option value="Consignee">Consignee</option>
-                  <option value="Vehicle">Vehicle</option>
-                  <option value="Driver">Driver</option>
-                  <option value="FromPlace">From Place</option>
-                  <option value="ToPlace">To Place</option>
-                  <option value="Packing">Packing Unit</option>
-                  <option value="Content">Content Type</option>
-                  <option value="Godown">Godown</option>
-                  <option value="User">User</option>
-                </select>
-              </div>
+              <AppSelect
+                label="Master Module"
+                options={[
+                  { value: 'Masters', label: 'All Masters' },
+                  { value: 'Consignor', label: 'Consignor' },
+                  { value: 'Consignee', label: 'Consignee' },
+                  { value: 'Vehicle', label: 'Vehicle' },
+                  { value: 'Driver', label: 'Driver' },
+                  { value: 'FromPlace', label: 'From Place' },
+                  { value: 'ToPlace', label: 'To Place' },
+                  { value: 'Packing', label: 'Packing Unit' },
+                  { value: 'Content', label: 'Content Type' },
+                  { value: 'Godown', label: 'Godown' },
+                  { value: 'User', label: 'User' },
+                ]}
+                value={isMasterSelected ? masterValue : ''}
+                onChange={handleMasterChange}
+                placeholder="Select Master..."
+              />
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-muted-foreground mb-1.5">Action</label>
-              <div className="relative">
-                <Activity className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <select
-                  className="w-full h-10 pl-10 pr-3 bg-secondary/50 text-foreground rounded-lg border-0 focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm appearance-none"
-                  value={filters.action || 'All'}
-                  onChange={(e) => setFilters({ action: e.target.value })}
-                >
-                  <option value="All">All Actions</option>
-                  <option value="CREATE">Created</option>
-                  <option value="UPDATE">Updated</option>
-                  <option value="DELETE">Deleted</option>
-                </select>
-              </div>
+              <AppSelect
+                label="Action"
+                options={[
+                  { value: 'All', label: 'All Actions' },
+                  { value: 'CREATE', label: 'Created' },
+                  { value: 'UPDATE', label: 'Updated' },
+                  { value: 'DELETE', label: 'Deleted' },
+                ]}
+                value={filters.action || 'All'}
+                onChange={(val: string) => setFilters({ action: val })}
+              />
             </div>
           </div>
           <DateFilterButtons
@@ -700,19 +690,19 @@ const AuditLogPage = () => {
                       <tr key={log._id || index} className="hover:bg-muted/30 transition-colors">
                         {/* 🟢 CHANGED: Display S.No for Master, DocID for Operations */}
                         <td className="px-4 py-3">
-                           {isOperational(log.collectionName) ? (
-                              <span className="font-mono font-semibold text-primary">{log.documentId}</span>
-                           ) : (
-                              <span className="font-mono text-muted-foreground text-sm">
-                                {(currentPage - 1) * itemsPerPage + index + 1}
-                              </span>
-                           )}
+                          {isOperational(log.collectionName) ? (
+                            <span className="font-mono font-semibold text-primary">{log.documentId}</span>
+                          ) : (
+                            <span className="font-mono text-muted-foreground text-sm">
+                              {(currentPage - 1) * itemsPerPage + index + 1}
+                            </span>
+                          )}
                         </td>
                         <td className="px-4 py-3">
-                            <div className="flex items-center gap-2">
-                                <span className="text-muted-foreground">{getModuleIcon(log.collectionName)}</span>
-                                <span className="text-sm text-foreground font-medium">{getModuleLabel(log.collectionName)}</span>
-                            </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-muted-foreground">{getModuleIcon(log.collectionName)}</span>
+                            <span className="text-sm text-foreground font-medium">{getModuleLabel(log.collectionName)}</span>
+                          </div>
                         </td>
                         <td className="px-4 py-3"><span className="text-sm text-foreground font-medium">{log.changedBy}</span></td>
                         <td className="px-4 py-3"><span className="text-sm text-foreground font-medium">{formatDateTime(log.timestamp)}</span></td>
@@ -766,8 +756,8 @@ const AuditLogPage = () => {
                               </span>
                             )}
                             <span className="text-xs text-foreground mt-0.5 block font-medium flex items-center gap-1">
-                                {getModuleIcon(log.collectionName)}
-                                {getModuleLabel(log.collectionName)}
+                              {getModuleIcon(log.collectionName)}
+                              {getModuleLabel(log.collectionName)}
                             </span>
                           </div>
                         </td>
@@ -824,7 +814,7 @@ const AuditLogPage = () => {
                         </div>
                         <div>
                           <h3 className="font-medium text-foreground text-sm">
-                             {isOperational(log.collectionName) ? log.documentId : `S.No: ${(currentPage - 1) * itemsPerPage + index + 1}`}
+                            {isOperational(log.collectionName) ? log.documentId : `S.No: ${(currentPage - 1) * itemsPerPage + index + 1}`}
                           </h3>
                           <div className="text-sm text-foreground mt-0.5 font-medium">{getModuleLabel(log.collectionName)}</div>
                         </div>
