@@ -16,7 +16,7 @@ import { useServerPagination } from '../../../../hooks/useServerPagination';
 import { Button } from '../../../../components/shared/Button';
 import { DateFilterButtons, getTodayDate, getYesterdayDate } from '../../../../components/shared/DateFilterButtons';
 import { Pagination } from '../../../../components/shared/Pagination';
-import LoadingScreen from '../../../../components/shared/LoadingScreen';
+import {LoadingScreen} from '../../../../components/shared/LoadingScreen';
 import { Input } from '../../../../components/shared/Input';
 
 interface TermsLog {

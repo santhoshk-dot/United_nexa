@@ -160,23 +160,44 @@ export const ConsignorList = () => {
   const hasActiveFilters = filterType !== 'all' || search !== '';
 
   const csvMapRow = (row: any) => {
-    if (!row.name || !row.gst) return null; // Address check removed
-    if (!GST_REGEX.test(row.gst)) return null;
-    if (row.mobile && !MOBILE_REGEX.test(row.mobile)) return null;
-    if (row.pan && !PAN_REGEX.test(row.pan)) return null;
-    if (row.aadhar && !AADHAR_REGEX.test(row.aadhar)) return null;
+    // 🟢 UPDATED: Check both Title Case (Export format) and Lowercase keys
+    const name = row.name || row.Name;
+    const gst = row.gst || row.GST;
+    const mobile = row.mobile || row.Mobile;
+    const address = row.address || row.Address;
+    const from = row.from || row.From;
+    const pan = row.pan || row.PAN;
+    const aadhar = row.aadhar || row.Aadhar;
+    const filingDate = row.filingdate || row['Filing Date'] || getTodayDate();
+
+    // Basic Validation
+    if (!name || !gst) return null; // Address check removed based on context, but schema might require it. Kept minimal for now.
+    
+    // Regex Validation
+    if (!GST_REGEX.test(gst)) return null;
+    if (mobile && !MOBILE_REGEX.test(mobile)) return null;
+    if (pan && !PAN_REGEX.test(pan)) return null;
+    if (aadhar && !AADHAR_REGEX.test(aadhar)) return null;
 
     return {
       id: `cn-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
-      name: row.name,
-      gst: row.gst,
-      address: row.address || '', // Default to empty string if missing
-      from: row.from || 'Sivakasi',
-      filingDate: row.filingdate || getTodayDate(),
-      mobile: row.mobile || '',
-      pan: row.pan || undefined,
-      aadhar: row.aadhar || undefined,
+      name: name,
+      gst: gst,
+      address: address || '',
+      from: from || 'Sivakasi',
+      filingDate: filingDate,
+      mobile: mobile || '',
+      pan: pan || undefined,
+      aadhar: aadhar || undefined,
     };
+  };
+
+  // 🟢 NEW: Check duplicates based on Proof of Identity (GST, PAN, Aadhar)
+  const checkDuplicateByProof = (newItem: any, existing: Consignor) => {
+      if (newItem.gst && existing.gst && newItem.gst.trim().toLowerCase() === existing.gst.trim().toLowerCase()) return true;
+      if (newItem.pan && existing.pan && newItem.pan.trim().toLowerCase() === existing.pan.trim().toLowerCase()) return true;
+      if (newItem.aadhar && existing.aadhar && newItem.aadhar.trim() === existing.aadhar.trim()) return true;
+      return false;
   };
 
   return (
@@ -219,11 +240,9 @@ export const ConsignorList = () => {
             onImport={handleImport}
             existingData={consignors}
             label="Import Consignors"
-            checkDuplicate={(newItem, existing) => 
-              newItem.gst.trim().toLowerCase() === existing.gst.trim().toLowerCase()
-            }
+            // 🟢 UPDATED: Use the new robust duplicate checker
+            checkDuplicate={checkDuplicateByProof}
             mapRow={csvMapRow}
-            // 泙 NEW: Add template prop here
             template={{
               filename: 'consignor_import_template.csv',
               columns: ['Name', 'GST', 'Address', 'Mobile', 'From', 'PAN', 'Aadhar'],
@@ -273,11 +292,9 @@ export const ConsignorList = () => {
             onImport={handleImport}
             existingData={consignors}
             label="Import Consignors"
-            checkDuplicate={(newItem, existing) => 
-              newItem.gst.trim().toLowerCase() === existing.gst.trim().toLowerCase()
-            }
+            // 🟢 UPDATED: Use the new robust duplicate checker
+            checkDuplicate={checkDuplicateByProof}
             mapRow={csvMapRow}
-            // 泙 NEW: Add template prop here
             template={{
               filename: 'consignor_import_template.csv',
               columns: ['Name', 'GST', 'Address', 'Mobile', 'From', 'PAN', 'Aadhar'],
@@ -286,8 +303,6 @@ export const ConsignorList = () => {
           />
             <Button variant="primary" onClick={handleCreateNew} className="flex-1 h-9 text-xs sm:text-sm">
               <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />Add
-              {/* <span className="hidden xs:inline">Add</span>
-              <span className="hidden sm:inline ml-1">Consignor</span> */}
             </Button>
           </div>
         </div>

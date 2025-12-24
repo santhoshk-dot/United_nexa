@@ -16,23 +16,32 @@ import {
   ArrowRight,
   Hash,
   Activity,
-  CheckCircle2
+  CheckCircle2,
+  Truck,
+  Users,
+  MapPin,
+  Package,
+  Layers,
+  Home
 } from 'lucide-react';
 import { useServerPagination } from '../../../../hooks/useServerPagination';
 import type { HistoryLog, GcEntry } from '../../../../types';
 import { Button } from '../../../../components/shared/Button';
 import { DateFilterButtons, getTodayDate, getYesterdayDate } from '../../../../components/shared/DateFilterButtons';
 import { Pagination } from '../../../../components/shared/Pagination';
-import LoadingScreen from '../../../../components/shared/LoadingScreen';
+import {LoadingScreen } from '../../../../components/shared/LoadingScreen';
 import { useDataContext } from '../../../../contexts/DataContext';
 
-// 🟢 Extend the type locally to include the dynamically joined reason
 interface ExtendedHistoryLog extends HistoryLog {
   reason?: string;
 }
 
+// 🟢 HELPER: Determine if a collection is Operational
+const isOperational = (collectionName: string) => {
+  return ['GcEntry', 'TripSheet', 'LoadingSheet'].includes(collectionName);
+};
+
 const AuditLogPage = () => {
-  // 1. Destructure fetchers to ensure we have data for lookups
   const { fetchGcById, consignors, consignees, fetchConsignors, fetchConsignees } = useDataContext();
 
   const {
@@ -64,11 +73,10 @@ const AuditLogPage = () => {
   const [logContext, setLogContext] = useState<GcEntry | null>(null);
   const [loadingContext, setLoadingContext] = useState(false);
 
-  // 2. Fetch Master Data if missing (Critical for Name Lookup)
   useEffect(() => {
     if (consignors.length === 0) fetchConsignors();
     if (consignees.length === 0) fetchConsignees();
-  }, []); // Run once on mount
+  }, []); 
 
   // --- Handlers ---
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -118,10 +126,32 @@ const AuditLogPage = () => {
     });
   };
 
+  // 🟢 HANDLERS FOR SPLIT DROPDOWNS
+  const handleOpsChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const val = e.target.value;
+    setFilters({ module: val || 'All' });
+  };
+
+  const handleMasterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const val = e.target.value;
+    setFilters({ module: val || 'All' });
+  };
+
+  // 🟢 LOGIC TO DETERMINE DROPDOWN VALUES
+  const currentModule = filters.module || 'All';
+  
+  const opsOptions = ['GcEntry', 'TripSheet', 'LoadingSheet'];
+  const masterOptions = ['Consignor', 'Consignee', 'Vehicle', 'Driver', 'User', 'FromPlace', 'ToPlace', 'Packing', 'Content',];
+
+  const isOpsSelected = opsOptions.includes(currentModule) || currentModule === 'Operations';
+  const isMasterSelected = masterOptions.includes(currentModule) || currentModule === 'Masters';
+
+  const opsValue = isOpsSelected ? currentModule : (currentModule === 'All' ? '' : '');
+  const masterValue = isMasterSelected ? currentModule : (currentModule === 'All' ? '' : '');
+
   // --- Effects ---
   useEffect(() => {
     if (selectedLog && (selectedLog.collectionName === 'LoadingSheet' || selectedLog.collectionName === 'GcEntry')) {
-      // Don't fetch context if it's a deletion (record might not be fully retrievable via standard API)
       if (selectedLog.action === 'DELETE') {
          setLogContext(null);
          return;
@@ -165,7 +195,6 @@ const AuditLogPage = () => {
     }
   };
 
-  // 3. Robust ID to Name Resolution (Handles string/number mismatch)
   const resolveIdToName = (id: string | number, key: string) => {
     if (!id) return 'N/A';
     const idStr = String(id);
@@ -186,7 +215,7 @@ const AuditLogPage = () => {
   const formatObject = (obj: any): JSX.Element => {
     if (!obj) return <span className="text-muted-foreground italic">Empty</span>;
 
-    const keys = Object.keys(obj).filter(k => !['id', '_id', 'createdAt', 'updatedAt', 'createdBy', 'updatedBy'].includes(k));
+    const keys = Object.keys(obj).filter(k => !['id', '_id', 'createdAt', 'updatedAt', 'createdBy', 'updatedBy', '__v'].includes(k));
 
     if (keys.length === 0) return <span className="text-xs italic text-muted-foreground">ID: {obj.id || 'Object'}</span>;
 
@@ -277,6 +306,16 @@ const AuditLogPage = () => {
       case 'GcEntry': return 'GC Entry';
       case 'TripSheet': return 'Trip Sheet';
       case 'LoadingSheet': return 'Loading Sheet';
+      case 'Consignor': return 'Consignor';
+      case 'Consignee': return 'Consignee';
+      case 'Vehicle': return 'Vehicle';
+      case 'Driver': return 'Driver';
+      case 'User': return 'User';
+      case 'FromPlace': return 'From Place';
+      case 'ToPlace': return 'To Place';
+      case 'Packing': return 'Packing Unit';
+      case 'Content': return 'Content Type';
+      case 'Godown': return 'Godown';
       default: return collectionName;
     }
   };
@@ -286,6 +325,16 @@ const AuditLogPage = () => {
       case 'LoadingSheet': return <Box size={18} />;
       case 'TripSheet': return <Activity size={18} />;
       case 'GcEntry': return <FileText size={18} />;
+      case 'Consignor': 
+      case 'Consignee': return <Users size={18} />;
+      case 'Vehicle': return <Truck size={18} />;
+      case 'Driver': return <User size={18} />;
+      case 'User': return <User size={18} className="text-purple-600" />;
+      case 'FromPlace':
+      case 'ToPlace': return <MapPin size={18} />;
+      case 'Packing': return <Package size={18} />;
+      case 'Content': return <Layers size={18} />;
+      case 'Godown': return <Home size={18} />;
       default: return <Database size={18} />;
     }
   };
@@ -531,23 +580,51 @@ const AuditLogPage = () => {
               </button>
             </div>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+          {/* 🟢 CHANGED: Two separate dropdowns for Module */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
             <div>
-              <label className="block text-xs font-medium text-muted-foreground mb-1.5">Module</label>
+              <label className="block text-xs font-medium text-muted-foreground mb-1.5">Operation Module</label>
               <div className="relative">
-                <Database className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <FileText className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <select
                   className="w-full h-10 pl-10 pr-3 bg-secondary/50 text-foreground rounded-lg border-0 focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm appearance-none"
-                  value={filters.module || 'All'}
-                  onChange={(e) => setFilters({ module: e.target.value })}
+                  value={isOpsSelected ? opsValue : ''}
+                  onChange={handleOpsChange}
                 >
-                  <option value="All">All Modules</option>
+                  <option value="">Select Operation...</option>
+                  <option value="Operations">All Operations</option>
                   <option value="GcEntry">GC Entry</option>
                   <option value="TripSheet">Trip Sheet</option>
                   <option value="LoadingSheet">Loading Sheet</option>
                 </select>
               </div>
             </div>
+
+            <div>
+              <label className="block text-xs font-medium text-muted-foreground mb-1.5">Master Module</label>
+              <div className="relative">
+                <Database className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <select
+                  className="w-full h-10 pl-10 pr-3 bg-secondary/50 text-foreground rounded-lg border-0 focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm appearance-none"
+                  value={isMasterSelected ? masterValue : ''}
+                  onChange={handleMasterChange}
+                >
+                  <option value="">Select Master...</option>
+                  <option value="Masters">All Masters</option>
+                  <option value="Consignor">Consignor</option>
+                  <option value="Consignee">Consignee</option>
+                  <option value="Vehicle">Vehicle</option>
+                  <option value="Driver">Driver</option>
+                  <option value="FromPlace">From Place</option>
+                  <option value="ToPlace">To Place</option>
+                  <option value="Packing">Packing Unit</option>
+                  <option value="Content">Content Type</option>
+                  <option value="Godown">Godown</option>
+                  <option value="User">User</option>
+                </select>
+              </div>
+            </div>
+
             <div>
               <label className="block text-xs font-medium text-muted-foreground mb-1.5">Action</label>
               <div className="relative">
@@ -621,8 +698,22 @@ const AuditLogPage = () => {
                   {logs.length > 0 ? (
                     logs.map((log, index) => (
                       <tr key={log._id || index} className="hover:bg-muted/30 transition-colors">
-                        <td className="px-4 py-3"><span className="font-mono font-semibold text-primary">{log.documentId}</span></td>
-                        <td className="px-4 py-3"><span className="text-sm text-foreground font-medium">{getModuleLabel(log.collectionName)}</span></td>
+                        {/* 🟢 CHANGED: Display S.No for Master, DocID for Operations */}
+                        <td className="px-4 py-3">
+                           {isOperational(log.collectionName) ? (
+                              <span className="font-mono font-semibold text-primary">{log.documentId}</span>
+                           ) : (
+                              <span className="font-mono text-muted-foreground text-sm">
+                                {(currentPage - 1) * itemsPerPage + index + 1}
+                              </span>
+                           )}
+                        </td>
+                        <td className="px-4 py-3">
+                            <div className="flex items-center gap-2">
+                                <span className="text-muted-foreground">{getModuleIcon(log.collectionName)}</span>
+                                <span className="text-sm text-foreground font-medium">{getModuleLabel(log.collectionName)}</span>
+                            </div>
+                        </td>
                         <td className="px-4 py-3"><span className="text-sm text-foreground font-medium">{log.changedBy}</span></td>
                         <td className="px-4 py-3"><span className="text-sm text-foreground font-medium">{formatDateTime(log.timestamp)}</span></td>
                         <td className="px-4 py-3"><span className={`inline-flex px-2 py-1 rounded text-xs font-semibold border ${getActionColor(log.action)}`}>{log.action}</span></td>
@@ -667,8 +758,17 @@ const AuditLogPage = () => {
                       <tr key={log._id || index} className="hover:bg-muted/30 transition-colors">
                         <td className="px-3 py-3">
                           <div>
-                            <span className="font-mono font-semibold text-primary block">{log.documentId}</span>
-                            <span className="text-xs text-foreground mt-0.5 block font-medium">{getModuleLabel(log.collectionName)}</span>
+                            {isOperational(log.collectionName) ? (
+                              <span className="font-mono font-semibold text-primary block">{log.documentId}</span>
+                            ) : (
+                              <span className="font-mono text-muted-foreground text-sm block">
+                                {(currentPage - 1) * itemsPerPage + index + 1}
+                              </span>
+                            )}
+                            <span className="text-xs text-foreground mt-0.5 block font-medium flex items-center gap-1">
+                                {getModuleIcon(log.collectionName)}
+                                {getModuleLabel(log.collectionName)}
+                            </span>
                           </div>
                         </td>
                         <td className="px-3 py-3">
@@ -723,7 +823,9 @@ const AuditLogPage = () => {
                           {getModuleIcon(log.collectionName)}
                         </div>
                         <div>
-                          <h3 className="font-medium text-foreground text-sm">{log.documentId}</h3>
+                          <h3 className="font-medium text-foreground text-sm">
+                             {isOperational(log.collectionName) ? log.documentId : `S.No: ${(currentPage - 1) * itemsPerPage + index + 1}`}
+                          </h3>
                           <div className="text-sm text-foreground mt-0.5 font-medium">{getModuleLabel(log.collectionName)}</div>
                         </div>
                       </div>
@@ -847,6 +949,18 @@ const AuditLogPage = () => {
                       </p>
                     </div>
                   )}
+
+                  {/* 🟢 Show Snapshot ONLY for Deletes (Hidden for Creates as requested) */}
+                  {/* {selectedLog.snapshot && selectedLog.action !== 'CREATE' && (
+                     <div className="mt-8 text-left">
+                        <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2 border-b border-border pb-1">
+                            Snapshot Data
+                        </h4>
+                        <div className="bg-muted/10 rounded-lg border border-border p-4">
+                            {formatObject(selectedLog.snapshot)}
+                        </div>
+                     </div>
+                  )} */}
 
                 </div>
               )}

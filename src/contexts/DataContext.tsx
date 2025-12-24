@@ -221,7 +221,8 @@ interface DataContextType {
 
   // --- Search Functions ---
   searchConsignors: (search: string, page: number) => Promise<any>;
-  searchConsignees: (search: string, page: number) => Promise<any>;
+  // 🟢 UPDATED: searchConsignees now accepts optional filters (e.g., destination)
+  searchConsignees: (search: string, page: number, filters?: any) => Promise<any>;
   searchVehicles: (search: string, page: number) => Promise<any>;
   searchDrivers: (search: string, page: number) => Promise<any>;
   searchFromPlaces: (search: string, page: number) => Promise<any>;
@@ -382,9 +383,12 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
     } catch (e) { return { data: [], hasMore: false }; }
   };
 
-  const searchConsignees = async (search: string, page: number) => {
+  // 🟢 UPDATED: searchConsignees with filters support
+  const searchConsignees = async (search: string, page: number, filters: any = {}) => {
     try {
-      const { data } = await api.get('/master/consignees', { params: { search, page }, skipLoader: true } as any);
+      // Merge filters into params. Now 'destination' can be passed here.
+      const params = { search, page, ...filters };
+      const { data } = await api.get('/master/consignees', { params, skipLoader: true } as any);
       return data;
     } catch (e) { return { data: [], hasMore: false }; }
   };
