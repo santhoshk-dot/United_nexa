@@ -169,7 +169,8 @@ export const ConsigneeList = () => {
     const pan = row.pan || undefined;
     const aadhar = row.aadhar || undefined;
 
-    if (!nameInput || !mobileInput || !destinationInput || !addressInput) return null;
+    // Address is optional now
+    if (!nameInput || !mobileInput || !destinationInput) return null;
 
     const mobileStr = String(mobileInput).trim();
     if (!MOBILE_REGEX.test(mobileStr)) return null;
@@ -192,6 +193,14 @@ export const ConsigneeList = () => {
       pan: pan && PAN_REGEX.test(pan) ? pan : undefined,
       aadhar: aadhar && AADHAR_REGEX.test(String(aadhar)) ? String(aadhar) : undefined,
     };
+  };
+
+  // 🟢 Helper to check duplicates by Proof of Identity
+  const checkDuplicateByProof = (newItem: any, existing: Consignee) => {
+      if (newItem.gst && existing.gst && newItem.gst === existing.gst) return true;
+      if (newItem.pan && existing.pan && newItem.pan === existing.pan) return true;
+      if (newItem.aadhar && existing.aadhar && newItem.aadhar === existing.aadhar) return true;
+      return false;
   };
 
   return (
@@ -234,12 +243,9 @@ export const ConsigneeList = () => {
             onImport={handleImport}
             existingData={consignees}
             label="Import Consignees"
-            checkDuplicate={(newItem, existing) => 
-              newItem.name.trim().toLowerCase() === existing.name.trim().toLowerCase() && 
-              newItem.destination.trim().toLowerCase() === existing.destination.trim().toLowerCase()
-            }
+            // 🟢 UPDATED: Check duplicate based on Proof of Identity
+            checkDuplicate={checkDuplicateByProof}
             mapRow={csvMapRow}
-            // 泙 NEW: Added Template
             template={{
               filename: 'consignee_import_template.csv',
               columns: ['Name', 'Mobile', 'Destination', 'Address', 'GST', 'PAN', 'Aadhar'],
@@ -289,12 +295,9 @@ export const ConsigneeList = () => {
             onImport={handleImport}
             existingData={consignees}
             label="Import Consignees"
-            checkDuplicate={(newItem, existing) => 
-              newItem.name.trim().toLowerCase() === existing.name.trim().toLowerCase() && 
-              newItem.destination.trim().toLowerCase() === existing.destination.trim().toLowerCase()
-            }
+            // 🟢 UPDATED: Check duplicate based on Proof of Identity
+            checkDuplicate={checkDuplicateByProof}
             mapRow={csvMapRow}
-            // 泙 NEW: Added Template
             template={{
               filename: 'consignee_import_template.csv',
               columns: ['Name', 'Mobile', 'Destination', 'Address', 'GST', 'PAN', 'Aadhar'],

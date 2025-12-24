@@ -6,7 +6,7 @@ import { getTodayDate } from '../../../utils/dateHelpers';
 import { Input } from '../../../components/shared/Input';
 import { Button } from '../../../components/shared/Button';
 import { AsyncAutocomplete } from '../../../components/shared/AsyncAutocomplete';
-import { Printer, Save, X, Plus, Trash2 } from 'lucide-react';
+import { Printer, Save, X, Plus, Trash2, AlertCircle } from 'lucide-react';
 import { GcPrintManager, type GcPrintJob } from './GcPrintManager';
 import { useToast } from '../../../contexts/ToastContext';
 import { gcEntrySchema } from '../../../schemas';
@@ -67,7 +67,7 @@ export const GcEntryForm = () => {
     const isEditMode = !!gcNo;
     const [loading, setLoading] = useState(isEditMode);
 
-    // 🟢 NEW: Validation State & Refs
+    // 泙 NEW: Validation State & Refs
     const [formErrors, setFormErrors] = useState<Record<string, string>>({});
     const validationTimeouts = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
@@ -121,11 +121,14 @@ export const GcEntryForm = () => {
     const [currentFromNo, setCurrentFromNo] = useState<string>('1');
     const [currentPackingOption, setCurrentPackingOption] = useState<any>(null);
     const [currentContentOption, setCurrentContentOption] = useState<any>(null);
+    
+    // 🟢 NEW: State for proactive duplicate warning
+    const [duplicateWarning, setDuplicateWarning] = useState<string>('');
 
     const [consignorGstOption, setConsignorGstOption] = useState<any>(null);
     const [consigneeDestDisplay, setConsigneeDestDisplay] = useState('');
 
-    // 🟢 NEW: Field Validation Helper
+    // 泙 NEW: Field Validation Helper
     const validateField = (name: string, value: any) => {
         try {
             const fieldSchema = (gcEntrySchema.shape as any)[name];
@@ -272,7 +275,8 @@ export const GcEntryForm = () => {
     };
 
     const loadConsigneeOptions = async (search: string, _prevOptions: any, { page }: any) => {
-        const result = await searchConsignees(search, page);
+        const filters = form.destination ? { destination: form.destination } : {};
+        const result = await searchConsignees(search, page, filters);
         return {
             options: result.data.map((c: any) => ({ value: c.id, label: c.name, destination: c.destination, gst: c.gst, pan: c.pan, aadhar: c.aadhar })),
             hasMore: result.hasMore,
@@ -356,6 +360,17 @@ export const GcEntryForm = () => {
     const handleDestinationSelect = (option: any) => {
         setDestinationOption(option);
         const val = option?.value || '';
+
+        if (form.destination !== val) {
+             setConsigneeOption(null);
+             setForm(prev => ({ 
+                 ...prev, 
+                 consigneeId: '', 
+                 consigneeProofType: 'gst', 
+                 consigneeProofValue: '' 
+             }));
+             setConsigneeDestDisplay('');
+        }
 
         setForm(prev => ({ ...prev, destination: val, deliveryAt: val, freightUptoAt: val }));
         setDeliveryOption(option);
@@ -449,18 +464,16 @@ export const GcEntryForm = () => {
             setForm(prev => ({
                 ...prev,
                 consigneeId: val,
-                destination: dest,
-                deliveryAt: dest,
-                freightUptoAt: dest,
                 consigneeProofType: proofType,
                 consigneeProofValue: proofValue
             }));
 
-            if (dest) {
-                const destOpt = { label: dest, value: dest };
-                setDestinationOption(destOpt);
-                setDeliveryOption(destOpt);
-                setFreightOption(destOpt);
+            if (dest && !form.destination) {
+                 const destOpt = { label: dest, value: dest };
+                 setDestinationOption(destOpt);
+                 setDeliveryOption(destOpt);
+                 setFreightOption(destOpt);
+                 setForm(prev => ({...prev, destination: dest, deliveryAt: dest, freightUptoAt: dest}));
             }
 
         } else {
@@ -496,6 +509,27 @@ export const GcEntryForm = () => {
     };
 
     // --- Content Items Handlers ---
+    
+    // 🟢 NEW: Effect to proactively check for duplicates and set warning
+    useEffect(() => {
+        if (!currentPacking || !currentContents) {
+            setDuplicateWarning('');
+            return;
+        }
+
+        // Case-insensitive check for duplicates
+        const isDuplicate = contentItems.some(item => 
+            item.packing.trim().toLowerCase() === currentPacking.trim().toLowerCase() && 
+            item.contents.trim().toLowerCase() === currentContents.trim().toLowerCase()
+        );
+
+        if (isDuplicate) {
+            setDuplicateWarning('This Packing and Content combination already exists.');
+        } else {
+            setDuplicateWarning('');
+        }
+    }, [currentPacking, currentContents, contentItems]);
+
     const resetCurrentContent = () => {
         setCurrentQty('');
         setCurrentPacking('');
@@ -504,11 +538,17 @@ export const GcEntryForm = () => {
         setCurrentFromNo('1');
         setCurrentPackingOption(null);
         setCurrentContentOption(null);
+        setDuplicateWarning(''); // Clear warning on reset
     };
 
     const handleAddContent = () => {
         if (!currentQty || !currentPacking || !currentContents) {
             toast.error("Please fill Qty, Packing and Contents before adding.");
+            return;
+        }
+
+        // Safety check (redundant if button is disabled, but good practice)
+        if (duplicateWarning) {
             return;
         }
 
@@ -686,13 +726,16 @@ export const GcEntryForm = () => {
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-4">
                             <div className="col-span-1 sm:col-span-2 lg:col-span-5">
                                 <AsyncAutocomplete
+                                    // Key prop forces re-render when destination changes, ensuring new options are loaded
+                                    key={form.destination} 
                                     label="Consignee Name"
                                     loadOptions={loadConsigneeOptions}
                                     value={consigneeOption}
                                     onChange={handleConsigneeSelect}
-                                    placeholder="Search..."
+                                    placeholder={form.destination ? `Search consignee in ${form.destination}...` : "Select Destination first..."}
                                     required
                                     defaultOptions={false}
+                                    isDisabled={!form.destination} // Optional: Disable until destination selected
                                     {...getValidationProp(form.consigneeId)}
                                 />
                                 {formErrors.consigneeId && <p className="text-xs text-red-500 mt-1">{formErrors.consigneeId}</p>}
@@ -823,12 +866,23 @@ export const GcEntryForm = () => {
                                     <Button
                                         type="button"
                                         variant="primary"
-                                        className="w-full text-white bg-primary hover:bg-primary/90"
+                                        className="w-full text-white bg-primary hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
                                         onClick={handleAddContent}
+                                        // 🟢 NEW: Disable button if duplicate warning exists
+                                        disabled={!!duplicateWarning}
                                     >
                                         <Plus size={16} className="mr-1" /> Add
                                     </Button>
                                 </div>
+                                {/* 🟢 NEW: Warning Message Display */}
+                                {duplicateWarning && (
+                                    <div className="col-span-full mt-0 justify-center flex">
+                                        <p className="text-sm text-destructive font-medium flex items-center">
+                                            <AlertCircle size={16} className="mr-2" /> 
+                                            {duplicateWarning}
+                                        </p>
+                                    </div>
+                                )}
                             </div>
                         </div>
 
@@ -882,7 +936,7 @@ export const GcEntryForm = () => {
 
                     <div>
                         <h3 className="text-base font-bold text-primary border-b border-border pb-2 mb-4">Billing & Payment</h3>
-                        {/* 🟢 UPDATED: Two rows of 5 equal-width columns */}
+                        {/* 泙 UPDATED: Two rows of 5 equal-width columns */}
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                             {/* Row 1 */}
                             <div className="col-span-1">
@@ -893,7 +947,7 @@ export const GcEntryForm = () => {
                                 <Input label="Bill Value" name="billValue" placeholder='0' value={form.billValue} onChange={handleChange} required {...getValidationProp(form.billValue)} />
                                 {formErrors.billValue && <p className="text-xs text-red-500 mt-1">{formErrors.billValue}</p>}
                             </div>
-                            {/* 🟢 NEW: Bill Date Field */}
+                            {/* 泙 NEW: Bill Date Field */}
                             <div className="col-span-1">
                                 <Input label="Bill Date" type="date" name="billDate" value={form.billDate} onChange={handleChange} required {...getValidationProp(form.billDate)} />
                                 {formErrors.billDate && <p className="text-xs text-red-500 mt-1">{formErrors.billDate}</p>}
@@ -906,7 +960,7 @@ export const GcEntryForm = () => {
                             <div className="col-span-1"><Input label="Statistic" name="statisticCharge" value={form.statisticCharge} onChange={handleChange} /></div>
                             <div className="col-span-1"><Input label="Advance" name="advanceNone" value={form.advanceNone} onChange={handleChange} /></div>
                             <div className="col-span-1"><Input label="Balance" name="balanceToPay" value={form.balanceToPay} onChange={handleChange} /></div>
-                            {/* 🟢 MOVED: Payment Type into Grid */}
+                            {/* 泙 MOVED: Payment Type into Grid */}
                             <div className="col-span-1">
                                 <RadioGroup
                                     label="Payment Type"

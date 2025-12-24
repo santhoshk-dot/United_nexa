@@ -165,7 +165,6 @@ export const TripSheetForm = () => {
   // --- ASYNC LOADERS ---
   
   // 🟢 REAL BACKEND SEARCH FOR GC
- // 🟢 REAL BACKEND SEARCH FOR GC
   const loadGcOptions = async (search: string, _prev: any, { page }: any) => {
       try {
         const { data } = await api.get('/operations/gc', { 
@@ -292,6 +291,11 @@ export const TripSheetForm = () => {
                 setGcConsignor(data.consignor?.name || "");
                 setGcConsignee(data.consignee?.name || "");
                 
+                // 🟢 NEW: Automatically select the first item if available
+                if (mappedItems.length > 0) {
+                    setSelectedItemIndex("0");
+                }
+
             } else {
                  setGcItems([]);
                  setGcConsignor("");
@@ -335,8 +339,9 @@ export const TripSheetForm = () => {
         return;
     }
 
-    if (!rate || rate <= 0) { 
-        toast.error("Please enter a valid RATE."); 
+    // 🟢 UPDATED: Allow 0 rate, but block negative
+    if (rate < 0) { 
+        toast.error("Please enter a valid RATE (cannot be negative)."); 
         return; 
     }
 
@@ -607,7 +612,7 @@ export const TripSheetForm = () => {
                         <input
                             type="number"
                             placeholder="Rate"
-                            value={rate > 0 ? rate : ''}
+                            value={rate}
                             onChange={(e) => setRate(Number(e.target.value))}
                             className="flex-1 w-full px-3 py-2 text-sm bg-background text-foreground border border-muted-foreground/30 rounded-r-md focus:outline-none focus:ring-primary focus:border-primary"
                         />

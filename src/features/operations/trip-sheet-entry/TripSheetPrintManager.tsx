@@ -62,6 +62,8 @@ export const TripSheetPrintManager = ({
             margin: 0 !important;
             padding: 0 !important;
             background: white !important;
+            width: 210mm;
+            height: 297mm;
           }
 
           .ts-print-wrapper {
@@ -84,11 +86,13 @@ export const TripSheetPrintManager = ({
           /* Hide Toolbar */
           .print-actions { display: none !important; }
 
-          /* Page content styling */
+          /* Page content styling - Full A4 */
           .ts-page-content {
             width: 210mm;
+            height: 297mm;
             padding: 6mm 10mm;
             box-sizing: border-box;
+            overflow: hidden;
           }
 
           /* Page break for continuation pages */
@@ -132,6 +136,7 @@ export const TripSheetPrintManager = ({
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
             margin-bottom: 24px;
             width: 210mm;
+            height: 297mm;
             padding: 6mm 10mm;
             box-sizing: border-box;
           }
@@ -230,22 +235,29 @@ export const TripSheetPrintManager = ({
 
         .ts-box {
           border: 2px solid #000;
-          padding: 8px 10px;
           box-sizing: border-box;
           width: 100%;
+          height: calc(100% - 28px);
+          display: flex;
+          flex-direction: column;
+        }
+
+        .ts-box-header {
+          flex-shrink: 0;
         }
 
         .ts-header-flex {
           display: flex;
           justify-content: space-between;
           align-items: flex-start;
+          border-bottom: 1px solid #000;
         }
 
         .ts-company-block { 
           width: 64%; 
           border-right: 1px solid #000; 
           font-weight: 600;
-          padding-right: 8px;
+          padding: 6px 8px;
         }
 
         .ts-company-title { 
@@ -269,51 +281,78 @@ export const TripSheetPrintManager = ({
         .ts-fromto {
           display: flex;
           justify-content: space-between;
-          margin-top: 5px;
-          padding: 5px 2px;
+          padding: 5px 8px;
           font-weight: 200;
           font-size: 13px;
-          border-top: 1px solid #000;
+          border-bottom: 1px solid #000;
+        }
+
+        .ts-table-wrapper {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
         }
 
         .ts-table {
           width: 100%;
           border-collapse: collapse;
           font-size: 12px;
-          margin-top: 5px;
+          height: 100%;
         }
 
         .ts-table thead th {
-          border-top: 1px solid #000;
           border-bottom: 1px solid #000;
-          border-left: 1px solid #000;
+          border-right: 1px solid #000;
           padding: 5px;
           font-weight: 700;
+          text-align: left;
         }
         .ts-table thead th:last-child {
-          border-right: 1px solid #000;
+          border-right: none;
+        }
+
+        .ts-table tbody {
+          height: 100%;
+        }
+
+        .ts-table tbody tr {
+          height: auto;
         }
 
         .ts-table tbody td {
           padding: 4px 5px;
-          border-left: 1px solid #000;
+          border-right: 1px solid #000;
           vertical-align: top;
-          height: 20px;
           line-height: 1.3;
         }
         .ts-table tbody td:last-child {
-          border-right: 1px solid #000;
+          border-right: none;
+        }
+
+        .ts-table tbody tr.ts-filler-row {
+          height: 100%;
+        }
+
+        .ts-table tbody tr.ts-filler-row td {
+          border-bottom: none;
         }
 
         .ts-total-row td {
           border-top: 1px solid #000;
-          border-bottom: 1px solid #000;
+          border-bottom: none;
           padding: 6px 5px;
           font-weight: 800;
         }
 
+        .ts-box-footer {
+          flex-shrink: 0;
+          border-top: 1px solid #000;
+          padding: 5px 8px;
+          margin-top: auto;
+        }
+
         .ts-footer {
-          margin-top: 5px;
           font-size: 11px;
           line-height: 1.4;
         }
@@ -351,7 +390,7 @@ export const TripSheetPrintManager = ({
           display: flex;
           justify-content: space-between;
           align-items: flex-end;
-          margin-top: 15px;
+          margin-top: 12px;
           font-size: 11px;
           padding: 0 20px;
         }

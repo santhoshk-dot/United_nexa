@@ -134,7 +134,7 @@ export const ToPlacesList = () => {
       toast.error("No data to export");
       return;
     }
-    const headers = ['To Place Name', 'Short Name'];
+    const headers = ['Place Name', 'Short Name'];
     const csvContent = [
       headers.join(','),
       ...filteredToPlaces.map(tp => [
