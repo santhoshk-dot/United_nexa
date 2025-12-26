@@ -11,6 +11,7 @@ import { getTodayDate } from "../../../utils/dateHelpers";
 import api from "../../../utils/api";
 import { useToast } from "../../../contexts/ToastContext";
 import { tripSheetSchema } from "../../../schemas";
+import { ConfirmationDialog } from "../../../components/shared/ConfirmationDialog";
 
 
 const toNum = (v: any) => (Number.isFinite(Number(v)) ? Number(v) : 0);
@@ -36,7 +37,7 @@ export const TripSheetForm = () => {
     addTripSheet,
     updateTripSheet,
     fetchTripSheetById, 
-    fetchGcDetailsForTripSheet, // 🟢 Get this from hook
+    fetchGcDetailsForTripSheet, 
     searchFromPlaces,
     searchToPlaces,
     searchDrivers,
@@ -78,6 +79,15 @@ export const TripSheetForm = () => {
   const [lorryNameOption, setLorryNameOption] = useState<any>(null);
 
   const [loading, setLoading] = useState(isEditMode);
+
+  // DELETE CONFIRMATION STATE
+  const [deleteConfirmation, setDeleteConfirmation] = useState<{ open: boolean; gcNo: string | null }>({
+    open: false,
+    gcNo: null
+  });
+
+  // 🟢 NEW: Store GCs that are "Locally Deleted" so they reappear in dropdown immediately
+  const [locallyReleasedGcs, setLocallyReleasedGcs] = useState<any[]>([]);
 
   // Field Validation Helper
   const validateField = (name: string, value: any) => {
@@ -164,26 +174,44 @@ export const TripSheetForm = () => {
 
   // --- ASYNC LOADERS ---
   
-  // 🟢 REAL BACKEND SEARCH FOR GC
+  // 🟢 UPDATED: Load GC Options (Merges API results + Locally Deleted GCs)
   const loadGcOptions = async (search: string, _prev: any, { page }: any) => {
       try {
+        // 1. Fetch "Officially Available" GCs from Backend
         const { data } = await api.get('/operations/gc', { 
             params: { 
                 search, 
                 page, 
                 limit: 20,
-                // Only show GCs that are not yet assigned to a trip sheet
                 availableForTripSheet: 'true' 
             },
-            skipLoader: true // 🟢 This ensures the global loader doesn't appear
-        } as any); // Type cast 'as any' is often needed if TypeScript complains about the custom property
+            skipLoader: true 
+        } as any); 
         
+        const apiOptions = data.data.map((gc: any) => ({
+            value: gc.gcNo,
+            label: `${gc.gcNo} - ${gc.consignorName || 'Unknown'}`
+        }));
+
+        // 2. Filter "Locally Released" GCs based on search term
+        const localOptions = locallyReleasedGcs.filter(opt => {
+             const searchLower = search.toLowerCase();
+             return opt.value.toLowerCase().includes(searchLower) || 
+                    opt.label.toLowerCase().includes(searchLower);
+        });
+
+        // 3. Merge and Remove Duplicates (Prioritise API, but ensure Local are present)
+        // Using a Map to deduplicate by value (gcNo)
+        const combinedMap = new Map();
+        [...localOptions, ...apiOptions].forEach(opt => {
+            combinedMap.set(opt.value, opt);
+        });
+        
+        const mergedOptions = Array.from(combinedMap.values());
+
         return {
-            options: data.data.map((gc: any) => ({
-                value: gc.gcNo,
-                // Combine GC No with other info for better context in dropdown
-                label: `${gc.gcNo} - ${gc.consignorName || 'Unknown'}`
-            })),
+            options: mergedOptions,
+            // Only have more pages if the API says so (local options are always single page)
             hasMore: data.page < data.pages,
             additional: { page: page + 1 }
         };
@@ -275,15 +303,12 @@ export const TripSheetForm = () => {
         setRate(0); // Reset rate on new GC selection
         setSelectedItemIndex(""); // Reset item selection
 
-        // 🟢 REAL FETCH
         try {
             const data = await fetchGcDetailsForTripSheet(selectedGcNo);
             if (data) {
-                // Map backend structure to local form state
-                // Backend usually sends: { contentItems: [{ packing, contents, quantity }], consignor: { name }, consignee: { name } }
                 const mappedItems = (data.contentItems || []).map((item: any) => ({
                     packing: item.packing || "",
-                    content: item.contents || "", // Note: Backend usually uses 'contents' (plural)
+                    content: item.contents || "", 
                     quantity: Number(item.qty) || Number(item.quantity) || 0
                 }));
 
@@ -291,10 +316,13 @@ export const TripSheetForm = () => {
                 setGcConsignor(data.consignor?.name || "");
                 setGcConsignee(data.consignee?.name || "");
                 
-                // 🟢 NEW: Automatically select the first item if available
                 if (mappedItems.length > 0) {
                     setSelectedItemIndex("0");
                 }
+                
+                // 🟢 NEW: If this GC was in our "Locally Released" list, remove it from there 
+                // because it's now being selected/added again.
+                setLocallyReleasedGcs(prev => prev.filter(p => p.value !== selectedGcNo));
 
             } else {
                  setGcItems([]);
@@ -321,7 +349,6 @@ export const TripSheetForm = () => {
     setGcConsignee("");
   };
 
-  // Helper to reset only item selection fields, keeping the GC selected
   const resetItemSelectionOnly = () => {
       setSelectedItemIndex("");
       setRate(0);
@@ -333,19 +360,16 @@ export const TripSheetForm = () => {
       return;
     }
     
-    // Validation: Ensure an item is selected from dropdown
     if (selectedItemIndex === "") {
         toast.error("Please select a Packing/Content item.");
         return;
     }
 
-    // 🟢 UPDATED: Allow 0 rate, but block negative
     if (rate < 0) { 
         toast.error("Please enter a valid RATE (cannot be negative)."); 
         return; 
     }
 
-    // Get the item from the AVAILABLE list
     const selectedItem = availableGcItems[Number(selectedItemIndex)];
 
     if (!selectedItem) {
@@ -367,12 +391,39 @@ export const TripSheetForm = () => {
     setItems((p) => [...p, row]);
     setFormErrors(prev => ({ ...prev, items: '' })); 
     
-    // Don't reset GC completely; just clear the item choice so user sees updated list
     resetItemSelectionOnly(); 
   };
 
-  const handleDeleteGC = (i: number) => {
-    setItems((p) => p.filter((_, idx) => idx !== i));
+  const initiateDeleteGC = (gcNoToDelete: string) => {
+    setDeleteConfirmation({
+      open: true,
+      gcNo: gcNoToDelete
+    });
+  };
+
+  // 🟢 UPDATED: Handles deletion and adds to "Locally Released" list
+  const handleConfirmDeleteGC = () => {
+    const { gcNo } = deleteConfirmation;
+    if (gcNo) {
+      // 1. Find the GC details from the items being deleted to construct the label
+      const itemToDelete = items.find(i => i.gcNo === gcNo);
+      
+      // 2. Remove ALL items matching this GC No
+      setItems((prevItems) => prevItems.filter((item) => item.gcNo !== gcNo));
+      
+      // 3. Add to "Locally Released" list so it appears in dropdown immediately
+      if (itemToDelete) {
+          const label = `${gcNo} - ${itemToDelete.consignor || 'Unknown'}`;
+          setLocallyReleasedGcs(prev => {
+              // Avoid duplicates
+              if (prev.some(p => p.value === gcNo)) return prev;
+              return [...prev, { value: gcNo, label }];
+          });
+      }
+
+      toast.success(`Removed all items for GC ${gcNo}`);
+    }
+    setDeleteConfirmation({ open: false, gcNo: null });
   };
 
   const totalAmount = useMemo(
@@ -384,10 +435,8 @@ export const TripSheetForm = () => {
     if (!isEditMode) setUnloadPlace(toPlace);
   }, [toPlace, isEditMode]);
 
-  // 🟢 UPDATED: Handle driver selection - now handles clearing (when option is null) like To Place
   const handleDriverSelect = (option: any) => {
       if (option) {
-          // When a driver is selected, populate all driver fields
           const newName = option.driverName?.toUpperCase() || '';
           setDriverName(newName);
           setDlNo(option.dlNo || '');
@@ -396,7 +445,6 @@ export const TripSheetForm = () => {
           setDriverDlOption({ value: option.id, label: option.dlNo });
           setDriverMobileOption({ value: option.id, label: option.mobile });
           
-          // Clear errors for all driver fields
           setFormErrors(prev => {
               const next = { ...prev };
               delete next['driverName'];
@@ -405,7 +453,6 @@ export const TripSheetForm = () => {
               return next;
           });
       } else {
-          // When cleared (option is null), reset all driver fields to empty
           setDriverName('');
           setDlNo('');
           setDriverMobile('');
@@ -413,17 +460,14 @@ export const TripSheetForm = () => {
           setDriverDlOption(null);
           setDriverMobileOption(null);
           
-          // Trigger validation for required fields (this will show errors)
           validateField('driverName', '');
           validateField('dlNo', '');
           validateField('driverMobile', '');
       }
   };
 
-  // 🟢 UPDATED: Handle vehicle selection - now handles clearing (when option is null) like To Place
   const handleVehicleSelect = (option: any) => {
       if (option) {
-          // When a vehicle is selected, populate all vehicle fields
           const newLorryNo = option.vehicleNo || '';
           const newLorryName = option.vehicleName?.toUpperCase() || '';
           const newOwnerName = option.ownerName?.toUpperCase() || '';
@@ -436,7 +480,6 @@ export const TripSheetForm = () => {
           setLorryNoOption({ value: option.id, label: newLorryNo });
           setLorryNameOption({ value: option.id, label: newLorryName });
           
-          // Clear errors for all vehicle fields
           setFormErrors(prev => {
               const next = { ...prev };
               delete next['lorryNo'];
@@ -446,7 +489,6 @@ export const TripSheetForm = () => {
               return next;
           });
       } else {
-          // When cleared (option is null), reset all vehicle fields to empty
           setLorryNo('');
           setLorryName('');
           setOwnerName('');
@@ -454,7 +496,6 @@ export const TripSheetForm = () => {
           setLorryNoOption(null);
           setLorryNameOption(null);
           
-          // Trigger validation for required fields (this will show errors)
           validateField('lorryNo', '');
           validateField('lorryName', '');
           validateField('ownerName', '');
@@ -523,6 +564,8 @@ export const TripSheetForm = () => {
         </div>
     );
   }
+
+  const itemsToDeleteCount = items.filter(i => i.gcNo === deleteConfirmation.gcNo).length;
 
   return (
     <div className="flex flex-col h-[calc(100vh-5.5rem)] overflow-hidden"> 
@@ -657,7 +700,8 @@ export const TripSheetForm = () => {
                         <td className="border border-muted p-2">{it.rate}</td>
                         <td className="border border-muted p-2">₹{it.amount.toLocaleString("en-IN")}</td>
                         <td className="border border-muted p-2 text-center">
-                          <button type="button" className="text-red-600" onClick={() => handleDeleteGC(i)}>
+                          {/* 🟢 REPLACED: Trigger delete confirmation instead of direct delete */}
+                          <button type="button" className="text-red-600" onClick={() => initiateDeleteGC(it.gcNo)}>
                             <Trash2 size={16} />
                           </button>
                         </td>
@@ -826,6 +870,21 @@ export const TripSheetForm = () => {
           Save Trip Sheet
         </Button>
       </div>
+
+      {/* 🟢 CONFIRMATION DIALOG FOR DELETE - DYNAMIC MESSAGE */}
+      <ConfirmationDialog
+        open={deleteConfirmation.open}
+        onClose={() => setDeleteConfirmation({ open: false, gcNo: null })}
+        onConfirm={handleConfirmDeleteGC}
+        title={itemsToDeleteCount > 1 ? "Remove GC (Multiple Items)?" : "Remove GC?"}
+        description={
+            itemsToDeleteCount > 1 
+                ? `This GC (${deleteConfirmation.gcNo}) has ${itemsToDeleteCount} items in this trip sheet. Removing it will delete ALL items associated with this GC No. Are you sure?`
+                : `Are you sure you want to remove GC ${deleteConfirmation.gcNo} from this trip sheet?`
+        }
+        confirmText="Remove GC"
+        variant="destructive"
+      />
     </div>
   );
 };
