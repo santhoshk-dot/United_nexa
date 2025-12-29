@@ -16,8 +16,9 @@ import { useServerPagination } from '../../../../hooks/useServerPagination';
 import { Button } from '../../../../components/shared/Button';
 import { DateFilterButtons, getTodayDate, getYesterdayDate } from '../../../../components/shared/DateFilterButtons';
 import { Pagination } from '../../../../components/shared/Pagination';
-import {LoadingScreen} from '../../../../components/shared/LoadingScreen';
+import { LoadingScreen } from '../../../../components/shared/LoadingScreen';
 import { Input } from '../../../../components/shared/Input';
+import { AppSelect } from '../../../../components/shared/AppSelect';
 
 interface TermsLog {
   _id: string;
@@ -103,7 +104,7 @@ const TermsLogPage = () => {
   };
 
   // --- Formatters ---
-  
+
   const formatViewerName = (name: string) => {
     if (!name) return 'Unknown';
     return name.split('(')[0].trim();
@@ -124,13 +125,13 @@ const TermsLogPage = () => {
   // Helper to format User Agent into something readable
   const formatUserAgent = (ua: string | undefined) => {
     if (!ua) return 'Unknown Device';
-    
+
     // Simple checks for common devices/browsers
     if (ua.includes('iPhone')) return 'iPhone';
     if (ua.includes('Android')) return 'Android Device';
     if (ua.includes('Macintosh')) return 'Mac';
     if (ua.includes('Windows')) return 'Windows PC';
-    
+
     // Fallback: truncate the long string
     return ua.length > 30 ? ua.substring(0, 30) + '...' : ua;
   };
@@ -202,10 +203,10 @@ const TermsLogPage = () => {
               </button>
             </div>
           </div>
-          
+
           {/* Row 1: Date Buttons (Left) + Role Filter (Right) */}
           <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4 mb-4">
-            
+
             {/* Left Side: Date Filters */}
             <div className="w-full lg:w-auto">
               <DateFilterButtons
@@ -221,39 +222,36 @@ const TermsLogPage = () => {
 
             {/* Right Side: Role Filter */}
             <div className="w-full lg:flex-1">
-              <label className="block text-xs font-medium text-muted-foreground mb-1.5">Viewer Role</label>
-              <div className="relative">
-                <Shield className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <select
-                  className="w-full h-10 pl-10 pr-3 bg-secondary/50 text-foreground rounded-lg border-0 focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm appearance-none capitalize"
-                  value={filters.role || 'All'}
-                  onChange={(e) => setFilters({ role: e.target.value })}
-                >
-                  <option value="All">All Roles</option>
-                  <option value="consignor">Consignor</option>
-                  <option value="consignee">Consignee</option>
-                  <option value="driver">Driver</option>
-                </select>
-              </div>
+              <AppSelect
+                label="Viewer Role"
+                options={[
+                  { value: 'All', label: 'All Roles' },
+                  { value: 'consignor', label: 'Consignor' },
+                  { value: 'consignee', label: 'Consignee' },
+                  { value: 'driver', label: 'Driver' },
+                ]}
+                value={filters.role || 'All'}
+                onChange={(val: string) => setFilters({ role: val })}
+              />
             </div>
           </div>
 
           {/* Row 2: Custom Date Inputs - Full Width Below */}
           {filters.filterType === 'custom' && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-muted/30 border border-border rounded-xl animate-in slide-in-from-top-2 duration-200">
-              <Input 
-                label="Start Date" 
-                id="customStart" 
-                name="customStart" 
-                type="date" 
+              <Input
+                label="Start Date"
+                id="customStart"
+                name="customStart"
+                type="date"
                 value={filters.startDate || ''}
                 onChange={(e) => handleCustomDateChange(e.target.value, filters.endDate || '')}
               />
-              <Input 
-                label="End Date" 
-                id="customEnd" 
-                name="customEnd" 
-                type="date" 
+              <Input
+                label="End Date"
+                id="customEnd"
+                name="customEnd"
+                type="date"
                 value={filters.endDate || ''}
                 onChange={(e) => handleCustomDateChange(filters.startDate || '', e.target.value)}
               />
@@ -289,7 +287,7 @@ const TermsLogPage = () => {
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                       <div className="flex items-center gap-2">
-                         <Shield className="w-3.5 h-3.5" />
+                        <Shield className="w-3.5 h-3.5" />
                         Role
                       </div>
                     </th>
@@ -299,7 +297,7 @@ const TermsLogPage = () => {
                         Accessed At
                       </div>
                     </th>
-                     <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                       <div className="flex items-center gap-2">
                         <Monitor className="w-3.5 h-3.5" />
                         Device Details
@@ -315,7 +313,7 @@ const TermsLogPage = () => {
                           <span className="font-mono font-semibold text-primary">{log.gcNo}</span>
                         </td>
                         <td className="px-4 py-3">
-                            <span className="text-sm text-foreground font-medium">{formatViewerName(log.viewerName)}</span>
+                          <span className="text-sm text-foreground font-medium">{formatViewerName(log.viewerName)}</span>
                         </td>
                         <td className="px-4 py-3">
                           <span className={`inline-flex px-2 py-1 rounded text-xs font-semibold border capitalize ${getRoleBadgeColor(log.role)}`}>
@@ -323,25 +321,25 @@ const TermsLogPage = () => {
                           </span>
                         </td>
                         <td className="px-4 py-3">
-                            <span className="text-sm text-foreground font-medium">{formatDateTime(log.viewedAt)}</span>
+                          <span className="text-sm text-foreground font-medium">{formatDateTime(log.viewedAt)}</span>
                         </td>
-                         <td className="px-4 py-3">
-                            <div className="text-sm text-foreground font-medium flex items-center gap-2" title={log.userAgent}>
-                              {formatUserAgent(log.userAgent) === 'iPhone' || formatUserAgent(log.userAgent) === 'Android Device' ? (
-                                <Smartphone size={14} className="text-sm text-foreground font-medium" />
-                              ) : (
-                                <Monitor size={14} className="text-sm text-foreground font-medium" />
-                              )}
-                              {formatUserAgent(log.userAgent)}
-                            </div>
+                        <td className="px-4 py-3">
+                          <div className="text-sm text-foreground font-medium flex items-center gap-2" title={log.userAgent}>
+                            {formatUserAgent(log.userAgent) === 'iPhone' || formatUserAgent(log.userAgent) === 'Android Device' ? (
+                              <Smartphone size={14} className="text-sm text-foreground font-medium" />
+                            ) : (
+                              <Monitor size={14} className="text-sm text-foreground font-medium" />
+                            )}
+                            {formatUserAgent(log.userAgent)}
+                          </div>
                         </td>
                       </tr>
                     ))
                   ) : (
                     <tr>
-                        <td colSpan={5} className="px-4 py-12 text-center text-sm text-muted-foreground">
-                            No access logs found matching your filters
-                        </td>
+                      <td colSpan={5} className="px-4 py-12 text-center text-sm text-muted-foreground">
+                        No access logs found matching your filters
+                      </td>
                     </tr>
                   )}
                 </tbody>
@@ -361,29 +359,29 @@ const TermsLogPage = () => {
                         <div>
                           <h3 className="font-semibold text-foreground text-sm text-primary">{log.gcNo}</h3>
                           <div className="font-medium text-xs mt-0.5 flex items-center gap-1">
-                             <Clock size={10} />
-                             {formatDateTime(log.viewedAt)}
+                            <Clock size={10} />
+                            {formatDateTime(log.viewedAt)}
                           </div>
                         </div>
                       </div>
                       <span className={`flex-shrink-0 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded border ${getRoleBadgeColor(log.role)}`}>
-                          {log.role}
+                        {log.role}
                       </span>
                     </div>
-                    
+
                     <div className="pl-[3.25rem] space-y-1.5">
-                        <div className="font-medium flex items-center gap-2 text-sm text-foreground">
-                            <User className="w-3.5 h-3.5" />
-                            <span>{formatViewerName(log.viewerName)}</span>
-                        </div>
-                        <div className="font-medium flex items-center gap-2 text-sm text-foreground" title={log.userAgent}>
-                             {formatUserAgent(log.userAgent) === 'iPhone' || formatUserAgent(log.userAgent) === 'Android Device' ? (
-                                <Smartphone className="w-3.5 h-3.5" />
-                              ) : (
-                                <Monitor className="w-3.5 h-3.5" />
-                              )}
-                             <span className="truncate max-w-[200px]">{formatUserAgent(log.userAgent)}</span>
-                        </div>
+                      <div className="font-medium flex items-center gap-2 text-sm text-foreground">
+                        <User className="w-3.5 h-3.5" />
+                        <span>{formatViewerName(log.viewerName)}</span>
+                      </div>
+                      <div className="font-medium flex items-center gap-2 text-sm text-foreground" title={log.userAgent}>
+                        {formatUserAgent(log.userAgent) === 'iPhone' || formatUserAgent(log.userAgent) === 'Android Device' ? (
+                          <Smartphone className="w-3.5 h-3.5" />
+                        ) : (
+                          <Monitor className="w-3.5 h-3.5" />
+                        )}
+                        <span className="truncate max-w-[200px]">{formatUserAgent(log.userAgent)}</span>
+                      </div>
                     </div>
                   </div>
                 ))
@@ -393,13 +391,13 @@ const TermsLogPage = () => {
             </div>
 
             <div className="border-t border-border p-4">
-              <Pagination 
-                currentPage={currentPage} 
-                totalPages={totalPages} 
-                onPageChange={setCurrentPage} 
-                itemsPerPage={itemsPerPage} 
-                onItemsPerPageChange={setItemsPerPage} 
-                totalItems={totalItems} 
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+                itemsPerPage={itemsPerPage}
+                onItemsPerPageChange={setItemsPerPage}
+                totalItems={totalItems}
               />
             </div>
           </>
