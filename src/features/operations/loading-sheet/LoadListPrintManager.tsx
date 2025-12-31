@@ -376,9 +376,9 @@ export const LoadListPrintManager: React.FC<LoadListPrintManagerProps> = ({ jobs
                                         <h3 className="text-lg font-extrabold uppercase">{label.mainHeader} {getCurrentDate()}</h3>
                                     </div>
 
-                                    {printData.map((data, index) => (
+                                {printData.map((data, index) => (
                                         <div key={index} className="mb-6 leading-snug w-full">
-                                            {/* 🟢 REMOVED whitespace-nowrap to allow text wrapping */}
+                                            {/* ... existing header paragraph ... */}
                                             <p className="font-bold text-base">
                                                 {data.godown} &nbsp;&nbsp;
                                                 {data.consignorName}
@@ -389,8 +389,9 @@ export const LoadListPrintManager: React.FC<LoadListPrintManagerProps> = ({ jobs
 
                                             {data.numbersToDisplay && data.numbersToDisplay.length > 0 && (
                                                 <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1 pl-5 text-left">
-                                                    {data.numbersToDisplay.map((num) => (
-                                                            <span key={num} className="font-normal">{num}</span>
+                                                    {/* 🟢 FIX: Use index in key to handle duplicate package numbers */}
+                                                    {data.numbersToDisplay.map((num, idx) => (
+                                                            <span key={`${num}-${idx}`} className="font-normal">{num}</span>
                                                     ))}
                                                 </div>
                                             )}

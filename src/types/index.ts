@@ -389,6 +389,7 @@ export type LoadingSheetFilter = {
   consignor?: string;
   consignee?: string[];
   godown?: string;
+  pending?: string;
 };
 export type SelectAllSnapshotLS = {
   active: boolean;

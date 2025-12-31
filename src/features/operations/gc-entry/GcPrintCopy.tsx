@@ -68,17 +68,17 @@ export const GcPrintCopy: React.FC<Props> = ({
     .join(', ') || '';
 
   const descriptionLines: string[] = [];
-  if (gc.contentItems && gc.contentItems.length > 0) {
-    gc.contentItems.forEach(item => {
-      const qty = parseFloat(String(item.qty)) || 0;
-      if (qty > 0 && item.packing && item.contents) {
-        descriptionLines.push(`${qty} ${item.packing} of ${item.contents}`);
-      }
-    });
-  }
-  if (descriptionLines.length === 0) {
-    descriptionLines.push(`${numberToWords(quantityNum)} packages`);
-  }
+if (gc.contentItems && gc.contentItems.length > 0) {
+  gc.contentItems.forEach(item => {
+    const qty = parseFloat(String(item.qty)) || 0;
+    if (qty > 0 && item.packing && item.contents) {
+      descriptionLines.push(`${numberToWords(qty).toUpperCase()} ${item.packing} of ${item.contents}`);
+    }
+  });
+}
+if (descriptionLines.length === 0) {
+  descriptionLines.push(`${numberToWords(quantityNum).toUpperCase()} packages`);
+}
 
   let proofLabel = "GSTIN";
   let proofValue = "---";
@@ -281,7 +281,7 @@ export const GcPrintCopy: React.FC<Props> = ({
         {label.toPayRsLabel}
       </span>
       <span className="text-[10px] font-extrabold whitespace-nowrap uppercase italic">
-        {numberToWordsInRupees(balanceToPayNum)}
+        {balanceToPayNum > 0 ? numberToWordsInRupees(balanceToPayNum) : ""}
       </span>
     </div>
   </td>

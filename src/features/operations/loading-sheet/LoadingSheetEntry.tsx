@@ -72,7 +72,7 @@ export const LoadingSheetEntry = () => {
     GcEntry & { loadedCount?: number; consignorId?: string; destination?: string; totalQty?: number }
   >({
     endpoint: '/operations/loading-sheet',
-    skipLoader: true, // <--- NEW: Skip loader on initial load
+    skipLoader: true,
     initialFilters: {
       search: '',
       filterType: 'all',
@@ -146,7 +146,7 @@ export const LoadingSheetEntry = () => {
   // ---------------------------------------------------------------------------
   // Helper: Create complete filter object
   // ---------------------------------------------------------------------------
-  const createCompleteFilters = (sourceFilters: LoadingSheetFilter): LoadingSheetFilter => {
+  const createCompleteFilters = (sourceFilters: Partial<LoadingSheetFilter>): LoadingSheetFilter => {
     return {
       search: sourceFilters.search || '',
       filterType: sourceFilters.filterType || 'all',
@@ -158,6 +158,7 @@ export const LoadingSheetEntry = () => {
       consignor: sourceFilters.consignor || '',
       consignee: sourceFilters.consignee || [],
       godown: sourceFilters.godown || '',
+      pending: sourceFilters.pending || 'true',
     };
   };
 
@@ -395,59 +396,91 @@ export const LoadingSheetEntry = () => {
       total: totalItems,
       filters: completeFilters,
     });
-
-
   };
 
   // ---------------------------------------------------------------------------
-  // Exclude logic
+  // Exclude logic - Exclude all filtered items (fetches from API)
   // ---------------------------------------------------------------------------
   const handleExcludeFilteredData = async () => {
-    if (selectAllMode && selectAllSnapshot.active) {
-      try {
-        const allMatching = await fetchLoadingSheetPrintData([], true, {
-          ...createCompleteFilters(filters)
-        });
+    // CASE 1: Manual Selection Mode - exclude selected visible items
+    if (!selectAllMode || !selectAllSnapshot.active) {
+      const selectedVisible = paginatedData
+        .map(gc => gc.gcNo)
+        .filter(id => selectedGcIds.includes(id));
 
-        if (!allMatching || allMatching.length === 0) {
-          toast.error('No items found to exclude for current filters.');
-          return;
-        }
-
-        const idsToExclude = allMatching.map((gc: any) => gc.gcNo);
-
-        setExcludedGcIds((prev) => Array.from(new Set([...prev, ...idsToExclude])));
-
-        let filterKey: string | undefined;
-        if (filters.consignor) filterKey = 'Consignor';
-        else if (filters.destination) filterKey = 'Destination';
-        else if (filters.godown) filterKey = 'Godown';
-        else if (filters.consignee && filters.consignee.length > 0) filterKey = 'Consignee';
-
-        setExclusionFilter({ isActive: true, filterKey });
-
-        toast.success(`Excluded ${idsToExclude.length} items from bulk selection.`);
-      } catch (err) {
-        console.error('Exclude filtered failed:', err);
-        toast.error('Failed to exclude filtered records.');
-      }
-      return;
-    }
-
-    // MANUAL MODE
-    if (!selectAllMode) {
-      if (selectedGcIds.length === 0) {
-        toast.error('No selected items to exclude.');
+      if (selectedVisible.length === 0) {
         return;
       }
 
-      const idsToExclude = [...selectedGcIds];
+      setExcludedGcIds(prev =>
+        Array.from(new Set([...prev, ...selectedVisible]))
+      );
+      setSelectedGcIds(prev => prev.filter(id => !selectedVisible.includes(id)));
+      setExclusionFilter({ isActive: true, filterKey: 'Manual Selection' });
 
-      setExcludedGcIds((prev) => Array.from(new Set([...prev, ...idsToExclude])));
-      setSelectedGcIds([]);
-      setExclusionFilter({ isActive: true });
+      return;
+    }
 
-      toast.success(`Excluded ${idsToExclude.length} selected items.`);
+    // CASE 2: Select-All Mode - exclude all items matching current filters
+    try {
+      // Build filter object with current filter values
+      const currentFilters: LoadingSheetFilter = {
+        search: filters.search || '',
+        filterType: filters.filterType || 'all',
+        startDate: filters.startDate || '',
+        endDate: filters.endDate || '',
+        customStart: filters.customStart || '',
+        customEnd: filters.customEnd || '',
+        destination: filters.destination || '',
+        consignor: filters.consignor || '',
+        consignee: filters.consignee || [],
+        godown: filters.godown || '',
+      };
+
+      // Check if any filter is active
+      const hasFiltersActive =
+        !!filters.destination ||
+        !!filters.consignor ||
+        (filters.consignee && filters.consignee.length > 0) ||
+        !!filters.godown ||
+        filters.filterType !== 'all' ||
+        !!filters.search;
+
+      // If no filters active, just exclude visible items on current page
+      if (!hasFiltersActive) {
+        const visibleGcNos = paginatedData.map((gc) => gc.gcNo);
+        
+        if (visibleGcNos.length === 0) {
+          toast.error('No visible items to exclude.');
+          return;
+        }
+
+        setExcludedGcIds(prev =>
+          Array.from(new Set([...prev, ...visibleGcNos]))
+        );
+        toast.success(`Excluded ${visibleGcNos.length} visible items from selection.`);
+        return;
+      }
+
+      // Filters are active - fetch ALL matching items from API
+      const allMatching = await fetchLoadingSheetPrintData([], true, currentFilters);
+
+      if (!allMatching || allMatching.length === 0) {
+        toast.error('No items found to exclude for current filters.');
+        return;
+      }
+
+      const idsToExclude = allMatching.map((gc: any) => gc.gcNo);
+
+      setExcludedGcIds(prev =>
+        Array.from(new Set([...prev, ...idsToExclude]))
+      );
+
+      setExclusionFilter({ isActive: true, filterKey: 'Filter' });
+      toast.success(`Excluded ${idsToExclude.length} items from bulk selection.`);
+    } catch (err) {
+      console.error('Exclude filtered failed:', err);
+      toast.error('Failed to exclude filtered records.');
     }
   };
 
@@ -723,16 +756,6 @@ export const LoadingSheetEntry = () => {
               </button>
             </div>
           </div>
-
-          {/* {exclusionFilter.isActive && selectAllMode && (
-            <div className="mb-4 p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg flex items-start gap-3">
-              <XCircle className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
-              <p className="text-sm font-medium text-amber-700 dark:text-amber-400">
-                Exclusion Active: {excludedGcIds.length} GCs excluded
-                {exclusionFilter.filterKey && <> (filtered by <strong>{exclusionFilter.filterKey}</strong>)</>}
-              </p>
-            </div>
-          )} */}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
             <AsyncAutocomplete label="Destination" loadOptions={loadDestinationOptions} value={destinationOption} onChange={(val: any) => { setDestinationOption(val); setFilters({ destination: val?.value || '' }); }} placeholder="Search destination..." defaultOptions />
