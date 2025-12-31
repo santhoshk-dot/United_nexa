@@ -83,7 +83,8 @@ export const LoadingSheetEntry = () => {
       destination: '',
       consignor: '',
       consignee: [],
-      godown: ''
+      godown: '',
+      pending: 'true',
     } as LoadingSheetFilter,
     initialItemsPerPage: 10,
   });
