@@ -40,6 +40,7 @@ export const GcEntryList = () => {
   const {
     deleteGcEntry,
     fetchGcPrintData,
+    fetchFilteredGcIds, // 🟢 NEW: Add this
     searchConsignors,
     searchConsignees,
     searchToPlaces,
@@ -48,7 +49,7 @@ export const GcEntryList = () => {
   const toast = useToast();
 
   // ---------------------------------------------------------------------------
-  // Server pagination - FIXED: Complete initialFilters
+  // Server pagination
   // ---------------------------------------------------------------------------
   const {
     data: paginatedData,
@@ -64,7 +65,7 @@ export const GcEntryList = () => {
     refresh,
   } = useServerPagination<GcEntry>({
     endpoint: "/operations/gc",
-    skipLoader: true, // <--- NEW: Skip loader on initial load
+    skipLoader: true,
     initialItemsPerPage: 10,
     initialFilters: {
       search: "",
@@ -90,7 +91,7 @@ export const GcEntryList = () => {
 
 
   // ---------------------------------------------------------------------------
-  // Selection state - FIXED: Proper typed snapshot
+  // Selection state
   // ---------------------------------------------------------------------------
   const [selectedGcNos, setSelectedGcNos] = useState<string[]>([]);
   const [selectAllMode, setSelectAllMode] = useState(false);
@@ -128,7 +129,7 @@ export const GcEntryList = () => {
   // ---------------------------------------------------------------------------
   // Helper: Create complete filter object
   // ---------------------------------------------------------------------------
-  const createCompleteFilters = (sourceFilters: GcFilter): GcFilter => {
+  const createCompleteFilters = (sourceFilters: Partial<GcFilter>): GcFilter => {
     return {
       search: sourceFilters.search || "",
       filterType: sourceFilters.filterType || "all",
@@ -353,7 +354,6 @@ export const GcEntryList = () => {
     });
   };
 
-  // FIXED: Create complete filter snapshot
   const handleCombinedBulkSelect = () => {
     if (totalItems === 0) {
       toast.error("No items found to select based on current filters.");
@@ -373,52 +373,73 @@ export const GcEntryList = () => {
     });
   };
 
-  const handleExcludeFilteredData = async () => {
-    // CASE 1: Manual Selection Mode
-    if (!selectAllMode || !selectAllSnapshot.active) {
-      if (selectedGcNos.length === 0) {
-        toast.error("Select at least one GC to exclude.");
+  // ---------------------------------------------------------------------------
+// 🟢 UPDATED: Exclude logic - Always exclude ALL filtered items when filters active
+// ---------------------------------------------------------------------------
+const handleExcludeFilteredData = async () => {
+  // Check if any filters are active
+  const hasFiltersActive =
+    !!filters.destination ||
+    !!filters.consignor ||
+    (filters.consignee && filters.consignee.length > 0) ||
+    filters.filterType !== "all" ||
+    !!filters.search;
+
+  // If filters are active - ALWAYS fetch ALL matching IDs from API and exclude them
+  if (hasFiltersActive) {
+    try {
+      const currentFilters = createCompleteFilters(filters);
+      const gcNos = await fetchFilteredGcIds(currentFilters);
+
+      if (!gcNos || gcNos.length === 0) {
+        toast.error("No items found to exclude for current filters.");
         return;
       }
 
-      setExcludedGcNos(prev =>
-        Array.from(new Set([...prev, ...selectedGcNos]))
-      );
-      setSelectedGcNos([]);
-      setExclusionFilter({ isActive: true, filterKey: "Manual Selection" });
-      toast.success(`Excluded ${selectedGcNos.length} selected items.`);
+      // Remove from manual selection if any were selected
+      setSelectedGcNos(prev => prev.filter(id => !gcNos.includes(id)));
+      setExcludedGcNos(prev => Array.from(new Set([...prev, ...gcNos])));
+      setExclusionFilter({ isActive: true, filterKey: "Filter" });
+      toast.success(`Excluded ${gcNos.length} filtered items.`);
+    } catch (err) {
+      console.error("Exclude filtered failed:", err);
+      toast.error("Failed to exclude filtered records.");
+    }
+    return;
+  }
+
+  // No filters active - exclude based on selection mode
+  if (selectAllMode && selectAllSnapshot.active) {
+    // Select-All mode without filters - exclude visible page items
+    const visibleGcNos = paginatedData.map((gc) => gc.gcNo);
+
+    if (visibleGcNos.length === 0) {
+      toast.error("No visible items to exclude.");
       return;
     }
 
-    // CASE 2: Select-All Mode (Bulk exclusion)
-    try {
-      const allMatching = await fetchGcPrintData([], true, {
-        ...createCompleteFilters(filters),
-        page: 1,
-        perPage: 0
-      });
+    setExcludedGcNos(prev => Array.from(new Set([...prev, ...visibleGcNos])));
+    toast.success(`Excluded ${visibleGcNos.length} visible items.`);
+  } else {
+    // Manual selection mode without filters - exclude selected items
+    const selectedVisible = paginatedData
+      .map(gc => gc.gcNo)
+      .filter(id => selectedGcNos.includes(id));
 
-      if (!allMatching || allMatching.length === 0) {
-        toast.error("No items found to exclude.");
-        return;
-      }
-
-      const idsToExclude = allMatching.map((gc: any) => gc.gcNo);
-
-      setExcludedGcNos(prev =>
-        Array.from(new Set([...prev, ...idsToExclude]))
-      );
-
-      setExclusionFilter({ isActive: true, filterKey: "Filter" });
-      toast.success(`Excluded ${idsToExclude.length} filtered items.`);
-    } catch (e) {
-      console.error(e);
-      toast.error("Failed to exclude filtered records.");
+    if (selectedVisible.length === 0) {
+      toast.error("Select at least one GC to exclude.");
+      return;
     }
-  };
+
+    setExcludedGcNos(prev => Array.from(new Set([...prev, ...selectedVisible])));
+    setSelectedGcNos(prev => prev.filter(id => !selectedVisible.includes(id)));
+    setExclusionFilter({ isActive: true, filterKey: "Manual Selection" });
+    toast.success(`Excluded ${selectedVisible.length} items.`);
+  }
+};
 
   // ---------------------------------------------------------------------------
-  // Print handlers - FIXED: Keep selection after print
+  // Print handlers
   // ---------------------------------------------------------------------------
   const handlePrintSelected = async () => {
     if (finalCount === 0) {
@@ -455,7 +476,6 @@ export const GcEntryList = () => {
       if (jobs.length > 0) {
         setPrintingJobs(jobs);
         toast.success(`Prepared ${jobs.length} print job(s).`);
-        // FIXED: Selection is NOT reset after print - keeping it visible
       } else {
         toast.error("Failed to prepare print jobs. No GCs matched criteria.");
       }
@@ -493,7 +513,8 @@ export const GcEntryList = () => {
   const handleEdit = (gcNo: string) => navigate(`/gc-entry/edit/${gcNo}`);
 
   const handleDelete = (gcNo: string) => {
-    const gc = paginatedData.find((g) => g.gcNo === gcNo);    const tripSheetId = gc?.tripSheetId;
+    const gc = paginatedData.find((g) => g.gcNo === gcNo);
+    const tripSheetId = gc?.tripSheetId;
     const message = tripSheetId && tripSheetId !== "" ? `Deleting this GC will also remove it from Trip Sheet. Are you sure you want to delete GC #${gcNo}?` : `Are you sure you want to delete GC #${gcNo}?`;
     setDeletingId(gcNo);
     setDeleteMessage(message);
@@ -652,16 +673,6 @@ export const GcEntryList = () => {
               </button>
             </div>
           </div>
-
-          {/* {excludedGcNos.length > 0 && (
-            <div className="mb-4 p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg flex items-start gap-3">
-              <XCircle className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
-              <p className="text-sm font-medium text-amber-700 dark:text-amber-400">
-                Exclusion Active: {excludedGcNos.length} GCs excluded
-
-              </p>
-            </div>
-          )} */}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
             <AsyncAutocomplete label="Destination" placeholder="Search destination..." value={destinationOption} onChange={(val) => { setDestinationOption(val); setFilters({ destination: (val as any)?.value || "" }); }} loadOptions={loadDestinationOptions} defaultOptions />
