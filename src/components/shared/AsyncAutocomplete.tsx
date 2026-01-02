@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { AsyncPaginate } from 'react-select-async-paginate';
 import {
   components,
@@ -87,7 +87,6 @@ const CustomOption = (props: OptionProps<OptionType, boolean>) => {
 };
 
 // Custom Value Container factory to handle "+ N more" logic
-// Using a factory function to pass showAllSelected without module augmentation
 const createCustomValueContainer = (showAllSelected: boolean) => {
   const CustomValueContainer = ({ children, ...props }: ValueContainerProps<OptionType, boolean>) => {
     const { isMulti, getValue } = props;
@@ -144,9 +143,6 @@ export const AsyncAutocomplete = ({
   const showAsterisk = required && !hideRequiredIndicator;
   const [shouldLoad, setShouldLoad] = useState(defaultOptions);
 
-  // Cache to store the default list (page 1) loaded when search is empty
-  const defaultOptionsCache = useRef<OptionType[]>([]);
-
   // Memoize the custom value container based on showAllSelected
   const CustomValueContainer = React.useMemo(
     () => createCustomValueContainer(showAllSelected),
@@ -159,35 +155,12 @@ export const AsyncAutocomplete = ({
     }
   };
 
-  // ORIGINAL LOGIC - UNCHANGED
   const loadOptionsWrapper = async (search: string, prevOptions: any, { page }: any) => {
-    // 1. OPTIMIZATION: Local filtering from Cache
-    // If we have cached default options and user is typing, try to find match locally first.
-    if (search && defaultOptionsCache.current.length > 0) {
-      const normalizedSearch = search.toLowerCase();
-      const localMatches = defaultOptionsCache.current.filter((opt: OptionType) =>
-        opt.label.toLowerCase().includes(normalizedSearch)
-      );
-
-      // If we found matches in our cache, return them immediately.
-      // This prevents the API call.
-      if (localMatches.length > 0) {
-        return {
-          options: localMatches,
-          hasMore: false,
-        };
-      }
-    }
-
-    // 2. NORMAL FETCH: If no local match or search is empty, call API
-    const response = await loadOptions(search, prevOptions, { page });
-
-    // 3. CACHE UPDATE: If this was a default load (no search, page 1), save to cache
-    if (!search && page === 1 && response.options) {
-      defaultOptionsCache.current = response.options;
-    }
-
-    return response;
+    // 🔴 REMOVED: Local caching optimization.
+    // This ensures every search hits the parent's loadOptions function, 
+    // allowing custom sorting (like exact match priority) to always run.
+    
+    return await loadOptions(search, prevOptions, { page });
   };
 
   // Modern Styles - ONLY VISUAL CHANGES

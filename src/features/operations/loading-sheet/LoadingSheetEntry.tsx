@@ -17,6 +17,7 @@ import { DateFilterButtons, getTodayDate, getYesterdayDate } from '../../../comp
 import { ConfirmationDialog } from '../../../components/shared/ConfirmationDialog';
 import { useData } from '../../../hooks/useData';
 import { Button } from '../../../components/shared/Button';
+import { Input } from '../../../components/shared/Input'; // 🟢 Used for Godown Filter
 import { AsyncAutocomplete } from '../../../components/shared/AsyncAutocomplete';
 import { GcPrintManager, type GcPrintJob } from '../gc-entry/GcPrintManager';
 import type { GcEntry, Consignor, Consignee, LoadingSheetFilter } from '../../../types';
@@ -50,12 +51,12 @@ export const LoadingSheetEntry = () => {
     searchConsignors,
     searchConsignees,
     searchToPlaces,
-    searchGodowns
+    // searchGodowns // 🔴 Removed: No longer needed for text input
   } = useData();
 
   const toast = useToast();
 
-  // Server-side pagination hook - FIXED: Complete initialFilters
+  // Server-side pagination hook
   const {
     data: paginatedData,
     loading,
@@ -93,11 +94,11 @@ export const LoadingSheetEntry = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [destinationOption, setDestinationOption] = useState<any>(null);
   const [consignorOption, setConsignorOption] = useState<any>(null);
-  const [godownOption, setGodownOption] = useState<any>(null);
+  // const [godownOption, setGodownOption] = useState<any>(null); // 🔴 Removed: State for dropdown not needed
   const [consigneeOptions, setConsigneeOptions] = useState<any[]>([]);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
-  // Selection State - FIXED: Proper typed snapshot
+  // Selection State
   const [selectedGcIds, setSelectedGcIds] = useState<string[]>([]);
   const [selectAllMode, setSelectAllMode] = useState(false);
   const [excludedGcIds, setExcludedGcIds] = useState<string[]>([]);
@@ -209,7 +210,7 @@ export const LoadingSheetEntry = () => {
     setDestinationOption(null);
     setConsignorOption(null);
     setConsigneeOptions([]);
-    setGodownOption(null);
+    // setGodownOption(null); // 🔴 Removed
 
     setFilters({
       search: '',
@@ -273,20 +274,7 @@ export const LoadingSheetEntry = () => {
     [searchConsignees]
   );
 
-  const loadGodownOptions = useCallback(
-    async (search: string, _prevOptions: any, { page }: any) => {
-      const result = await searchGodowns(search, page);
-      return {
-        options: result.data.map((g: any) => ({
-          value: g.godownName || g.name,
-          label: g.godownName || g.name,
-        })),
-        hasMore: result.hasMore,
-        additional: { page: page + 1 },
-      };
-    },
-    [searchGodowns]
-  );
+  // 🔴 Removed: loadGodownOptions - using free text input now
 
   // ---------------------------------------------------------------------------
   // Selection helpers
@@ -761,7 +749,14 @@ export const LoadingSheetEntry = () => {
             <AsyncAutocomplete label="Destination" loadOptions={loadDestinationOptions} value={destinationOption} onChange={(val: any) => { setDestinationOption(val); setFilters({ destination: val?.value || '' }); }} placeholder="Search destination..." defaultOptions />
             <AsyncAutocomplete label="Consignor" loadOptions={loadConsignorOptions} value={consignorOption} onChange={(val: any) => { setConsignorOption(val); setFilters({ consignor: val?.value || '' }); }} placeholder="Search consignor..." defaultOptions />
             <AsyncAutocomplete label="Consignee (Multi-select)" loadOptions={loadConsigneeOptions} value={consigneeOptions} onChange={(val: any) => { const arr = Array.isArray(val) ? val : (val ? [val] : []); setConsigneeOptions(arr); setFilters({ consignee: arr.map((v: any) => v.value) }); }} placeholder="Select consignees..." isMulti={true} defaultOptions closeMenuOnSelect={false} showAllSelected={true} />
-            <AsyncAutocomplete label="Godown" loadOptions={loadGodownOptions} value={godownOption} onChange={(val: any) => { setGodownOption(val); setFilters({ godown: val?.value || '' }); }} placeholder="Search godown..." defaultOptions />
+            
+            {/* 🟢 CHANGED: Replaced AsyncAutocomplete with simple Input for Godown Search */}
+            <Input 
+              label="Godown" 
+              value={filters.godown || ''} 
+              onChange={(e) => setFilters({ godown: e.target.value })} 
+              placeholder="Search godown (e.g. A1)" 
+            />
           </div>
 
           <DateFilterButtons filterType={filters.filterType || 'all'} setFilterType={handleFilterTypeChange} customStart={filters.customStart || ''} setCustomStart={(val) => handleCustomDateChange(val, filters.customEnd)} customEnd={filters.customEnd || ''} setCustomEnd={(val) => handleCustomDateChange(filters.customStart, val)} />

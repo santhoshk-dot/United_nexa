@@ -7,7 +7,7 @@ import { Input } from '../../../components/shared/Input';
 import { Button } from '../../../components/shared/Button';
 import { AsyncAutocomplete } from '../../../components/shared/AsyncAutocomplete';
 import { AppSelect } from '../../../components/shared/AppSelect';
-import { Printer, Save, X, Plus, Trash2, AlertCircle } from 'lucide-react';
+import { Printer, Save, X, Plus, Trash2 } from 'lucide-react';
 import { GcPrintManager, type GcPrintJob } from './GcPrintManager';
 import { useToast } from '../../../contexts/ToastContext';
 import { gcEntrySchema } from '../../../schemas';
@@ -122,9 +122,6 @@ export const GcEntryForm = () => {
     const [currentFromNo, setCurrentFromNo] = useState<string>('1');
     const [currentPackingOption, setCurrentPackingOption] = useState<any>(null);
     const [currentContentOption, setCurrentContentOption] = useState<any>(null);
-
-    // 🟢 NEW: State for proactive duplicate warning
-    const [duplicateWarning, setDuplicateWarning] = useState<string>('');
 
     const [consignorGstOption, setConsignorGstOption] = useState<any>(null);
     const [consigneeDestDisplay, setConsigneeDestDisplay] = useState('');
@@ -511,26 +508,6 @@ export const GcEntryForm = () => {
 
     // --- Content Items Handlers ---
 
-    // 🟢 NEW: Effect to proactively check for duplicates and set warning
-    useEffect(() => {
-        if (!currentPacking || !currentContents) {
-            setDuplicateWarning('');
-            return;
-        }
-
-        // Case-insensitive check for duplicates
-        const isDuplicate = contentItems.some(item =>
-            item.packing.trim().toLowerCase() === currentPacking.trim().toLowerCase() &&
-            item.contents.trim().toLowerCase() === currentContents.trim().toLowerCase()
-        );
-
-        if (isDuplicate) {
-            setDuplicateWarning('This Packing and Content combination already exists.');
-        } else {
-            setDuplicateWarning('');
-        }
-    }, [currentPacking, currentContents, contentItems]);
-
     const resetCurrentContent = () => {
         setCurrentQty('');
         setCurrentPacking('');
@@ -539,17 +516,11 @@ export const GcEntryForm = () => {
         setCurrentFromNo('1');
         setCurrentPackingOption(null);
         setCurrentContentOption(null);
-        setDuplicateWarning(''); // Clear warning on reset
     };
 
     const handleAddContent = () => {
         if (!currentQty || !currentPacking || !currentContents) {
             toast.error("Please fill Qty, Packing and Contents before adding.");
-            return;
-        }
-
-        // Safety check (redundant if button is disabled, but good practice)
-        if (duplicateWarning) {
             return;
         }
 
@@ -860,27 +831,16 @@ export const GcEntryForm = () => {
                                     />
                                 </div>
                                 <div className="col-span-2 sm:col-span-1 lg:col-span-1">
-                                    <label className="block text-sm font-medium text-transparent mb-1 hidden sm:block">&nbsp;</label>
+                                    <label className="text-sm font-medium text-transparent mb-1 hidden sm:block">&nbsp;</label>
                                     <Button
                                         type="button"
                                         variant="primary"
                                         className="w-full text-white bg-primary hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
                                         onClick={handleAddContent}
-                                        // 🟢 NEW: Disable button if duplicate warning exists
-                                        disabled={!!duplicateWarning}
                                     >
                                         <Plus size={16} className="mr-1" /> Add
                                     </Button>
                                 </div>
-                                {/* 🟢 NEW: Warning Message Display */}
-                                {duplicateWarning && (
-                                    <div className="col-span-full mt-0 justify-center flex">
-                                        <p className="text-sm text-destructive font-medium flex items-center">
-                                            <AlertCircle size={16} className="mr-2" />
-                                            {duplicateWarning}
-                                        </p>
-                                    </div>
-                                )}
                             </div>
                         </div>
 

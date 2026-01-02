@@ -174,7 +174,7 @@ export const TripSheetForm = () => {
 
   // --- ASYNC LOADERS ---
   
-  // 🟢 UPDATED: Load GC Options (Merges API results + Locally Deleted GCs)
+  // 🟢 UPDATED: Load GC Options (Merges API results + Locally Deleted GCs + Sorts Exact Match)
   const loadGcOptions = async (search: string, _prev: any, { page }: any) => {
       try {
         // 1. Fetch "Officially Available" GCs from Backend
@@ -200,8 +200,7 @@ export const TripSheetForm = () => {
                     opt.label.toLowerCase().includes(searchLower);
         });
 
-        // 3. Merge and Remove Duplicates (Prioritise API, but ensure Local are present)
-        // Using a Map to deduplicate by value (gcNo)
+        // 3. Merge and Remove Duplicates
         const combinedMap = new Map();
         [...localOptions, ...apiOptions].forEach(opt => {
             combinedMap.set(opt.value, opt);
@@ -209,9 +208,23 @@ export const TripSheetForm = () => {
         
         const mergedOptions = Array.from(combinedMap.values());
 
+        // 🟢 4. Sort Exact Match to Top
+        if (search) {
+            const lowerSearch = search.trim().toLowerCase();
+            mergedOptions.sort((a, b) => {
+                const aVal = String(a.value).toLowerCase();
+                const bVal = String(b.value).toLowerCase();
+                // If A is exact match ("44" == "44"), put it first (-1)
+                if (aVal === lowerSearch && bVal !== lowerSearch) return -1;
+                // If B is exact match, put it first (1)
+                if (bVal === lowerSearch && aVal !== lowerSearch) return 1;
+                // Otherwise keep relative order
+                return 0; 
+            });
+        }
+
         return {
             options: mergedOptions,
-            // Only have more pages if the API says so (local options are always single page)
             hasMore: data.page < data.pages,
             additional: { page: page + 1 }
         };
@@ -275,17 +288,36 @@ export const TripSheetForm = () => {
   const [gcConsignor, setGcConsignor] = useState("");
   const [gcConsignee, setGcConsignee] = useState("");
 
-  // Filter items to exclude ones already added to the table for this GC
+  // 🟢 UPDATED: Filter items correctly to allow adding identical items (multiset subtraction)
   const availableGcItems = useMemo(() => {
       if (!gcItems.length) return [];
+      
+      // Create a mutable copy of the items currently in the table for this GC
+      // This serves as a checklist of "used" items
+      const tableItemsForGc = items
+          .filter(item => item.gcNo === gcNo)
+          .map(item => ({
+              packing: item.packingDts,
+              content: item.contentDts,
+              qty: item.qty
+          }));
+
       return gcItems.filter(gcItem => {
-          // Check if this specific item combination is already in the 'items' table
-          const isAdded = items.some(addedItem => 
-              addedItem.gcNo === gcNo && 
-              addedItem.packingDts === gcItem.packing && 
-              addedItem.contentDts === gcItem.content
+          // Check if this gcItem matches any item in the tableItemsForGc list
+          const matchIndex = tableItemsForGc.findIndex(tableItem => 
+              tableItem.packing === gcItem.packing &&
+              tableItem.content === gcItem.content &&
+              tableItem.qty === gcItem.quantity
           );
-          return !isAdded;
+
+          if (matchIndex !== -1) {
+              // Found a match (meaning this item is already added)
+              // Remove it from the "checklist" so it doesn't match a subsequent identical item
+              tableItemsForGc.splice(matchIndex, 1);
+              return false; // Filter it out (not available)
+          }
+
+          return true; // Available
       });
   }, [gcItems, items, gcNo]);
 
