@@ -17,7 +17,7 @@ import { DateFilterButtons, getTodayDate, getYesterdayDate } from '../../../comp
 import { ConfirmationDialog } from '../../../components/shared/ConfirmationDialog';
 import { useData } from '../../../hooks/useData';
 import { Button } from '../../../components/shared/Button';
-import { Input } from '../../../components/shared/Input'; // 🟢 Used for Godown Filter
+import { Input } from '../../../components/shared/Input';
 import { AsyncAutocomplete } from '../../../components/shared/AsyncAutocomplete';
 import { GcPrintManager, type GcPrintJob } from '../gc-entry/GcPrintManager';
 import type { GcEntry, Consignor, Consignee, LoadingSheetFilter } from '../../../types';
@@ -48,10 +48,10 @@ export const LoadingSheetEntry = () => {
     saveLoadingProgress,
     fetchGcById,
     fetchLoadingSheetPrintData,
+    fetchFilteredLoadingSheetIds, // 🟢 NEW
     searchConsignors,
     searchConsignees,
     searchToPlaces,
-    // searchGodowns // 🔴 Removed: No longer needed for text input
   } = useData();
 
   const toast = useToast();
@@ -94,7 +94,6 @@ export const LoadingSheetEntry = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [destinationOption, setDestinationOption] = useState<any>(null);
   const [consignorOption, setConsignorOption] = useState<any>(null);
-  // const [godownOption, setGodownOption] = useState<any>(null); // 🔴 Removed: State for dropdown not needed
   const [consigneeOptions, setConsigneeOptions] = useState<any[]>([]);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
@@ -210,7 +209,6 @@ export const LoadingSheetEntry = () => {
     setDestinationOption(null);
     setConsignorOption(null);
     setConsigneeOptions([]);
-    // setGodownOption(null); // 🔴 Removed
 
     setFilters({
       search: '',
@@ -273,8 +271,6 @@ export const LoadingSheetEntry = () => {
     },
     [searchConsignees]
   );
-
-  // 🔴 Removed: loadGodownOptions - using free text input now
 
   // ---------------------------------------------------------------------------
   // Selection helpers
@@ -366,7 +362,6 @@ export const LoadingSheetEntry = () => {
     setExclusionFilter({ isActive: false, filterKey: '' });
   };
 
-  // FIXED: Create complete filter snapshot
   const handleCombinedBulkSelect = () => {
     if (totalItems === 0) {
       toast.error('No items found to select based on current filters.');
@@ -387,88 +382,68 @@ export const LoadingSheetEntry = () => {
   };
 
   // ---------------------------------------------------------------------------
-  // Exclude logic - Exclude all filtered items (fetches from API)
+  // 🟢 UPDATED: Exclude logic - Uses dedicated API endpoint for filtered IDs
   // ---------------------------------------------------------------------------
   const handleExcludeFilteredData = async () => {
-    // CASE 1: Manual Selection Mode - exclude selected visible items
-    if (!selectAllMode || !selectAllSnapshot.active) {
+    // Check if any filters are active
+    const hasFiltersActive =
+      !!filters.destination ||
+      !!filters.consignor ||
+      (filters.consignee && filters.consignee.length > 0) ||
+      !!filters.godown ||
+      filters.filterType !== 'all' ||
+      !!filters.search;
+
+    // CASE 1: Filters are active - ALWAYS fetch ALL matching IDs from API
+    if (hasFiltersActive) {
+      try {
+        const currentFilters = createCompleteFilters(filters);
+        const gcNos = await fetchFilteredLoadingSheetIds(currentFilters);
+
+        if (!gcNos || gcNos.length === 0) {
+          toast.error('No items found to exclude for current filters.');
+          return;
+        }
+
+        // Remove from manual selection if any were selected
+        setSelectedGcIds(prev => prev.filter(id => !gcNos.includes(id)));
+        setExcludedGcIds(prev => Array.from(new Set([...prev, ...gcNos])));
+        setExclusionFilter({ isActive: true, filterKey: 'Filter' });
+        toast.success(`Excluded ${gcNos.length} filtered items.`);
+      } catch (err) {
+        console.error('Exclude filtered failed:', err);
+        toast.error('Failed to exclude filtered records.');
+      }
+      return;
+    }
+
+    // CASE 2: No filters active - exclude based on selection mode
+    if (selectAllMode && selectAllSnapshot.active) {
+      // Select-All mode without filters - exclude visible page items
+      const visibleGcNos = paginatedData.map((gc) => gc.gcNo);
+
+      if (visibleGcNos.length === 0) {
+        toast.error('No visible items to exclude.');
+        return;
+      }
+
+      setExcludedGcIds(prev => Array.from(new Set([...prev, ...visibleGcNos])));
+      toast.success(`Excluded ${visibleGcNos.length} visible items.`);
+    } else {
+      // Manual selection mode without filters - exclude selected items
       const selectedVisible = paginatedData
         .map(gc => gc.gcNo)
         .filter(id => selectedGcIds.includes(id));
 
       if (selectedVisible.length === 0) {
+        toast.error('Select at least one item to exclude.');
         return;
       }
 
-      setExcludedGcIds(prev =>
-        Array.from(new Set([...prev, ...selectedVisible]))
-      );
+      setExcludedGcIds(prev => Array.from(new Set([...prev, ...selectedVisible])));
       setSelectedGcIds(prev => prev.filter(id => !selectedVisible.includes(id)));
       setExclusionFilter({ isActive: true, filterKey: 'Manual Selection' });
-
-      return;
-    }
-
-    // CASE 2: Select-All Mode - exclude all items matching current filters
-    try {
-      // Build filter object with current filter values
-      const currentFilters: LoadingSheetFilter = {
-        search: filters.search || '',
-        filterType: filters.filterType || 'all',
-        startDate: filters.startDate || '',
-        endDate: filters.endDate || '',
-        customStart: filters.customStart || '',
-        customEnd: filters.customEnd || '',
-        destination: filters.destination || '',
-        consignor: filters.consignor || '',
-        consignee: filters.consignee || [],
-        godown: filters.godown || '',
-      };
-
-      // Check if any filter is active
-      const hasFiltersActive =
-        !!filters.destination ||
-        !!filters.consignor ||
-        (filters.consignee && filters.consignee.length > 0) ||
-        !!filters.godown ||
-        filters.filterType !== 'all' ||
-        !!filters.search;
-
-      // If no filters active, just exclude visible items on current page
-      if (!hasFiltersActive) {
-        const visibleGcNos = paginatedData.map((gc) => gc.gcNo);
-        
-        if (visibleGcNos.length === 0) {
-          toast.error('No visible items to exclude.');
-          return;
-        }
-
-        setExcludedGcIds(prev =>
-          Array.from(new Set([...prev, ...visibleGcNos]))
-        );
-        toast.success(`Excluded ${visibleGcNos.length} visible items from selection.`);
-        return;
-      }
-
-      // Filters are active - fetch ALL matching items from API
-      const allMatching = await fetchLoadingSheetPrintData([], true, currentFilters);
-
-      if (!allMatching || allMatching.length === 0) {
-        toast.error('No items found to exclude for current filters.');
-        return;
-      }
-
-      const idsToExclude = allMatching.map((gc: any) => gc.gcNo);
-
-      setExcludedGcIds(prev =>
-        Array.from(new Set([...prev, ...idsToExclude]))
-      );
-
-      setExclusionFilter({ isActive: true, filterKey: 'Filter' });
-      toast.success(`Excluded ${idsToExclude.length} items from bulk selection.`);
-    } catch (err) {
-      console.error('Exclude filtered failed:', err);
-      toast.error('Failed to exclude filtered records.');
+      toast.success(`Excluded ${selectedVisible.length} items.`);
     }
   };
 
@@ -533,7 +508,6 @@ export const LoadingSheetEntry = () => {
     }
   };
 
-  // FIXED: Bulk print - Keep selection after print
   const handlePrintSelected = async () => {
     if (finalCount === 0) {
       toast.error('No items selected for printing.');
@@ -578,7 +552,6 @@ export const LoadingSheetEntry = () => {
       if (jobs.length > 0) {
         setLoadListPrintingJobs(jobs);
         toast.success(`Prepared ${jobs.length} print job(s).`);
-        // FIXED: Selection is NOT reset after print - keeping it visible
       }
     } catch (error) {
       console.error('Bulk print failed', error);
@@ -750,7 +723,6 @@ export const LoadingSheetEntry = () => {
             <AsyncAutocomplete label="Consignor" loadOptions={loadConsignorOptions} value={consignorOption} onChange={(val: any) => { setConsignorOption(val); setFilters({ consignor: val?.value || '' }); }} placeholder="Search consignor..." defaultOptions />
             <AsyncAutocomplete label="Consignee (Multi-select)" loadOptions={loadConsigneeOptions} value={consigneeOptions} onChange={(val: any) => { const arr = Array.isArray(val) ? val : (val ? [val] : []); setConsigneeOptions(arr); setFilters({ consignee: arr.map((v: any) => v.value) }); }} placeholder="Select consignees..." isMulti={true} defaultOptions closeMenuOnSelect={false} showAllSelected={true} />
             
-            {/* 🟢 CHANGED: Replaced AsyncAutocomplete with simple Input for Godown Search */}
             <Input 
               label="Godown" 
               value={filters.godown || ''} 
