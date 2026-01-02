@@ -44,6 +44,7 @@ export const PendingStockHistory = () => {
   const {
     deleteGcEntry,
     fetchGcPrintData,
+    fetchFilteredPendingStockIds, // 🟢 NEW: Add this
     fetchPendingStockReport,
     searchConsignors,
     searchConsignees,
@@ -66,7 +67,7 @@ export const PendingStockHistory = () => {
     refresh,
   } = useServerPagination<GcEntry>({
     endpoint: '/operations/pending-stock',
-    skipLoader: true, // <--- NEW: Skip loader on initial load
+    skipLoader: true,
     initialFilters: {
       search: '',
       filterType: 'all',
@@ -119,7 +120,7 @@ export const PendingStockHistory = () => {
     filterKey: '',
   });
 
-  const createCompleteFilters = (sourceFilters: PendingStockFilter): PendingStockFilter => {
+  const createCompleteFilters = (sourceFilters: Partial<PendingStockFilter>): PendingStockFilter => {
     return {
       search: sourceFilters.search || '',
       filterType: sourceFilters.filterType || 'all',
@@ -336,47 +337,66 @@ export const PendingStockHistory = () => {
     });
   };
 
+  // ---------------------------------------------------------------------------
+  // 🟢 NEW: Exclude logic - Uses dedicated API endpoint
+  // ---------------------------------------------------------------------------
   const handleExcludeFilteredData = async () => {
+    // CASE 1: Manual Selection Mode
     if (!selectAllMode || !selectAllSnapshot.active) {
       const selectedVisible = paginatedData
         .map(gc => gc.gcNo)
         .filter(id => selectedGcNos.includes(id));
 
       if (selectedVisible.length === 0) {
+        toast.error('Select at least one item to exclude.');
         return;
       }
 
-      setExcludedGcNos(prev =>
-        Array.from(new Set([...prev, ...selectedVisible]))
-      );
+      setExcludedGcNos(prev => Array.from(new Set([...prev, ...selectedVisible])));
       setSelectedGcNos(prev => prev.filter(id => !selectedVisible.includes(id)));
       setExclusionFilter({ isActive: true, filterKey: "Manual Selection" });
-
+      toast.success(`Excluded ${selectedVisible.length} items.`);
       return;
     }
 
-    try {
-      const allMatching = await fetchGcPrintData([], true, {
-        ...createCompleteFilters(filters),
-        page: 1,
-        perPage: 0,
-        pendingStockView: true,
-      });
+    // CASE 2: Select-All Mode - Check if filters are active
+    const hasFiltersActive =
+      !!filters.destination ||
+      !!filters.consignor ||
+      (filters.consignee && filters.consignee.length > 0) ||
+      filters.filterType !== 'all' ||
+      !!filters.search;
 
-      if (!allMatching || allMatching.length === 0) {
+    // If no filters active, exclude visible items on current page
+    if (!hasFiltersActive) {
+      const visibleGcNos = paginatedData.map((gc) => gc.gcNo);
+
+      if (visibleGcNos.length === 0) {
+        toast.error('No visible items to exclude.');
         return;
       }
 
-      const idsToExclude = allMatching.map((gc: any) => gc.gcNo);
+      setExcludedGcNos(prev => Array.from(new Set([...prev, ...visibleGcNos])));
+      toast.success(`Excluded ${visibleGcNos.length} visible items.`);
+      return;
+    }
 
-      setExcludedGcNos(prev =>
-        Array.from(new Set([...prev, ...idsToExclude]))
-      );
+    // Filters are active - fetch ALL matching IDs from API
+    try {
+      const currentFilters = createCompleteFilters(filters);
+      const gcNos = await fetchFilteredPendingStockIds(currentFilters);
 
+      if (!gcNos || gcNos.length === 0) {
+        toast.error('No items found to exclude for current filters.');
+        return;
+      }
+
+      setExcludedGcNos(prev => Array.from(new Set([...prev, ...gcNos])));
       setExclusionFilter({ isActive: true, filterKey: "Filter" });
-      toast.success(`Excluded ${idsToExclude.length} items from bulk selection.`);
+      toast.success(`Excluded ${gcNos.length} items from selection.`);
     } catch (e) {
       console.error(e);
+      toast.error('Failed to exclude filtered records.');
     }
   };
 
@@ -444,7 +464,6 @@ export const PendingStockHistory = () => {
     }
   };
 
-  // FIXED: Keep selection after print
   const handlePrintSelected = async () => {
     if (finalCount === 0) {
       toast.error('No GCs selected for printing.');
@@ -486,7 +505,6 @@ export const PendingStockHistory = () => {
       if (jobs.length > 0) {
         setGcPrintingJobs(jobs);
         toast.success(`Prepared ${jobs.length} print jobs.`);
-        // FIXED: Selection is NOT reset after print - keeping it visible
       } else {
         toast.error('Could not prepare print jobs.');
       }
@@ -520,7 +538,6 @@ export const PendingStockHistory = () => {
       <div className="bg-card border border-border rounded-xl p-4 shadow-sm">
         {/* Desktop - Single Row (xl and above) */}
         <div className="hidden xl:flex items-center gap-3">
-          {/* Search Bar (Stays on Left) */}
           <div className="relative flex-1 max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <input
@@ -532,7 +549,6 @@ export const PendingStockHistory = () => {
             />
           </div>
 
-          {/* Button Group (Moved to Right using ml-auto) */}
           <div className="flex items-center gap-3 ml-auto">
             <Button
               variant={hasActiveFilters ? "primary" : "outline"}
@@ -544,21 +560,12 @@ export const PendingStockHistory = () => {
               {hasActiveFilters && <span className="ml-1.5 w-1.5 h-1.5 bg-white rounded-full animate-pulse" />}
             </Button>
 
-            <Button
-              variant="secondary"
-              onClick={handleShowReport}
-              className="h-10"
-            >
+            <Button variant="secondary" onClick={handleShowReport} className="h-10">
               <FileText className="w-4 h-4" />
               Report
             </Button>
 
-            <Button
-              variant="secondary"
-              onClick={handlePrintSelected}
-              disabled={finalCount === 0}
-              className="h-10"
-            >
+            <Button variant="secondary" onClick={handlePrintSelected} disabled={finalCount === 0} className="h-10">
               <Printer className="w-4 h-4" />
               {printButtonText}
             </Button>
@@ -567,23 +574,13 @@ export const PendingStockHistory = () => {
               variant={bulkButtonVariant}
               onClick={handleBulkAction}
               disabled={!selectAllMode && selectedGcNos.length === 0 && totalItems === 0}
-              title={
-                bulkButtonText === 'Clear Selection'
-                  ? 'Click to remove all items from selection'
-                  : 'Select all filtered items'
-              }
-
               className="h-10"
             >
               <BulkIconComponent className="w-4 h-4" />
               {bulkButtonText}
             </Button>
 
-            <Button
-              variant="primary"
-              onClick={() => navigate('/gc-entry/new')}
-              className="h-10"
-            >
+            <Button variant="primary" onClick={() => navigate('/gc-entry/new')} className="h-10">
               <Plus className="w-4 h-4" />
               Add New GC
             </Button>
@@ -615,15 +612,7 @@ export const PendingStockHistory = () => {
               <span className="ml-1">({finalCount})</span>
             </Button>
 
-            <Button variant={bulkButtonVariant}
-              onClick={handleBulkAction}
-              disabled={!selectAllMode && selectedGcNos.length === 0 && totalItems === 0}
-              title={
-                bulkButtonText === 'Clear Selection'
-                  ? 'Click to remove all items from selection'
-                  : 'Select all filtered items'
-              }
-              className="flex-1 h-9 text-xs sm:text-sm">
+            <Button variant={bulkButtonVariant} onClick={handleBulkAction} disabled={!selectAllMode && selectedGcNos.length === 0 && totalItems === 0} className="flex-1 h-9 text-xs sm:text-sm">
               <BulkIconComponent className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               <span className="hidden sm:inline ml-1">{isAllSelected ? "Clear" : "Select All"}</span>
               <span className="sm:hidden ml-1">{isAllSelected ? "Clear" : "All"}</span>
@@ -660,16 +649,6 @@ export const PendingStockHistory = () => {
             </div>
           </div>
 
-          {/* {exclusionFilter.isActive && selectAllMode && (
-            <div className="mb-4 p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg flex items-start gap-3">
-              <XCircle className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
-              <p className="text-sm font-medium text-amber-700 dark:text-amber-400">
-                Exclusion Active: {excludedGcIds.length} GCs excluded
-                {exclusionFilter.filterKey && <> (filtered by <strong>{exclusionFilter.filterKey}</strong>)</>}
-              </p>
-            </div>
-          )} */}
-
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
             <AsyncAutocomplete label="Destination" loadOptions={loadDestinationOptions} value={destinationOption} onChange={(val) => { setDestinationOption(val); setFilters({ destination: (val as any)?.value || '' }); }} placeholder="Search destination..." defaultOptions />
             <AsyncAutocomplete label="Consignor" loadOptions={loadConsignorOptions} value={consignorOption} onChange={(val) => { setConsignorOption(val); setFilters({ consignor: (val as any)?.value || '' }); }} placeholder="Search consignor..." defaultOptions />
@@ -682,7 +661,7 @@ export const PendingStockHistory = () => {
 
       {/* ===== DATA TABLE ===== */}
       <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
-        {/* Desktop Table - xl and above */}
+        {/* Desktop Table */}
         <div className="hidden xl:block overflow-x-auto">
           <table className="w-full">
             <thead>
@@ -734,7 +713,7 @@ export const PendingStockHistory = () => {
           </table>
         </div>
 
-        {/* Tablet Table - lg to xl */}
+        {/* Tablet Table */}
         <div className="hidden lg:block xl:hidden overflow-x-auto">
           <table className="w-full">
             <thead>
@@ -778,7 +757,7 @@ export const PendingStockHistory = () => {
           </table>
         </div>
 
-        {/* Mobile Cards - below lg */}
+        {/* Mobile Cards */}
         <div className="block lg:hidden divide-y divide-border">
           {loading ? (
             <div className="p-6 text-center"><div className="flex flex-col items-center gap-2"><div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" /><span className="text-sm text-muted-foreground">Loading...</span></div></div>
@@ -848,8 +827,7 @@ export const PendingStockHistory = () => {
                 });
               }
             }}
-            className={`w-full min-h-[80px] p-3 text-sm bg-secondary/30 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 placeholder:text-muted-foreground/50 resize-none ${formErrors.data ? "border-destructive ring-1 ring-destructive/20" : "border-border"
-              }`}
+            className={`w-full min-h-[80px] p-3 text-sm bg-secondary/30 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 placeholder:text-muted-foreground/50 resize-none ${formErrors.data ? "border-destructive ring-1 ring-destructive/20" : "border-border"}`}
             placeholder="Please enter the reason for deletion..."
             autoFocus
           />
