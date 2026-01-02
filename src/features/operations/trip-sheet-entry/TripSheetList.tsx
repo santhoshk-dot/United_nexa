@@ -30,10 +30,11 @@ import { Pagination } from "../../../components/shared/Pagination";
 import { TripSheetPrintManager } from "./TripSheetPrintManager";
 import { TripSheetReportPrint } from "./TripSheetReportView";
 import { useToast } from "../../../contexts/ToastContext";
+
 type SelectAllSnapshot = {
   active: boolean;
   total: number;
-  filters: TripSheetFilter; // Use proper type instead of any
+  filters: TripSheetFilter;
 };
 
 export const TripSheetList = () => {
@@ -41,6 +42,7 @@ export const TripSheetList = () => {
   const {
     deleteTripSheet,
     fetchTripSheetPrintData,
+    fetchFilteredTripSheetIds, // 🟢 NEW: Add this for exclude functionality
     fetchTripSheetReport,
     searchConsignors,
     searchConsignees,
@@ -63,7 +65,7 @@ export const TripSheetList = () => {
     refresh
   } = useServerPagination<TripSheetEntry>({
     endpoint: "/operations/tripsheet",
-    skipLoader: true, // <--- NEW: Skip loader on initial load
+    skipLoader: true,
     initialFilters: {
       search: "",
       filterType: "all",
@@ -155,7 +157,7 @@ export const TripSheetList = () => {
   );
 
   // Helper function to create complete filter object
-  const createCompleteFilters = (sourceFilters: TripSheetFilter): TripSheetFilter => {
+  const createCompleteFilters = (sourceFilters: Partial<TripSheetFilter>): TripSheetFilter => {
     return {
       search: sourceFilters.search || "",
       filterType: sourceFilters.filterType || "all",
@@ -326,11 +328,6 @@ export const TripSheetList = () => {
     // Create a complete snapshot of ALL filter fields
     const completeFilters = createCompleteFilters(filters);
 
-    console.log("=== SELECT ALL DEBUG ===");
-    console.log("Total items to select:", totalItems);
-    console.log("Current filters:", filters);
-    console.log("Complete filters for snapshot:", completeFilters);
-
     setSelectAllMode(true);
     setExcludedMfNos([]);
     setSelectedMfNos([]);
@@ -342,60 +339,64 @@ export const TripSheetList = () => {
     });
   };
 
-  // Exclude Filtered Data
+  // ---------------------------------------------------------------------------
+  // 🟢 NEW: Exclude logic - Uses dedicated API endpoint
+  // ---------------------------------------------------------------------------
   const handleExcludeFilteredData = async () => {
     const visibleMfNos = paginatedData.map((ts) => ts.mfNo);
 
-    if (visibleMfNos.length === 0 && finalCount === 0) {
-      return;
-    }
-
-    // CASE 1: Manual Selection Mode
+    // CASE 1: Manual Selection Mode - exclude selected visible items
     if (!selectAllMode || !selectAllSnapshot.active) {
       const selectedVisible = visibleMfNos.filter((id) => selectedMfNos.includes(id));
 
       if (selectedVisible.length === 0) {
+        toast.error("Select at least one item to exclude.");
         return;
       }
 
       setSelectedMfNos((prev) => prev.filter((id) => !selectedVisible.includes(id)));
       setExcludedMfNos((prev) => Array.from(new Set([...prev, ...selectedVisible])));
       setExclusionFilter({ isActive: true, filterKey: "Manual Selection" });
-      toast.success(`Excluded ${selectedVisible.length} items from bulk selection.`);
+      toast.success(`Excluded ${selectedVisible.length} items.`);
       return;
     }
 
-    // CASE 2: Select-All Mode - Exclude ALL matching current filters
-    try {
-      const allMatching = await fetchTripSheetPrintData([], true, {
-        ...createCompleteFilters(filters),
-        page: 1,
-        perPage: 0,
-      });
+    // CASE 2: Select-All Mode - Check if filters are active
+    const hasFiltersActive =
+      !!filters.toPlace ||
+      !!filters.consignor ||
+      (filters.consignee && filters.consignee.length > 0) ||
+      filters.filterType !== "all" ||
+      !!filters.search;
 
-      if (!allMatching || allMatching.length === 0) {
+    // If no filters active, exclude visible items on current page
+    if (!hasFiltersActive) {
+      if (visibleMfNos.length === 0) {
+        toast.error("No visible items to exclude.");
         return;
       }
 
-      const idsToExclude = allMatching.map((ts: any) => ts.mfNo);
+      setExcludedMfNos((prev) => Array.from(new Set([...prev, ...visibleMfNos])));
+      toast.success(`Excluded ${visibleMfNos.length} visible items.`);
+      return;
+    }
 
-      setExcludedMfNos(prev =>
-        Array.from(new Set([...prev, ...idsToExclude]))
-      );
+    // Filters are active - fetch ALL matching IDs from dedicated API endpoint
+    try {
+      const currentFilters = createCompleteFilters(filters);
+      const mfNos = await fetchFilteredTripSheetIds(currentFilters);
 
-      let filterKey: string | undefined;
-      if (filters.consignor) filterKey = "Consignor";
-      else if (filters.toPlace) filterKey = "Destination";
-      else if (filters.consignee && filters.consignee.length > 0) filterKey = "Consignee";
+      if (!mfNos || mfNos.length === 0) {
+        toast.error("No items found to exclude for current filters.");
+        return;
+      }
 
-      setExclusionFilter({
-        isActive: true,
-        filterKey
-      });
-      toast.success(`Excluded ${idsToExclude.length} items from bulk selection.`);
-
+      setExcludedMfNos((prev) => Array.from(new Set([...prev, ...mfNos])));
+      setExclusionFilter({ isActive: true, filterKey: "Filter" });
+      toast.success(`Excluded ${mfNos.length} items from selection.`);
     } catch (e) {
-      console.error("Exclude failed during bulk fetch:", e);
+      console.error("Exclude failed:", e);
+      toast.error("Failed to exclude filtered records.");
     }
   };
 
@@ -411,7 +412,6 @@ export const TripSheetList = () => {
     setConfirmOpen(false);
     try {
       await deleteTripSheet(delId, deleteReason);
-      // toast.success(`TS #${delId} deleted successfully.`);
       refresh();
       setSelectedMfNos((prev) => prev.filter((id) => id !== delId));
       setExcludedMfNos((prev) => prev.filter((id) => id !== delId));
@@ -423,7 +423,7 @@ export const TripSheetList = () => {
     }
   };
 
-  // Bulk Print Handler with comprehensive debug logging
+  // Bulk Print Handler
   const handlePrintSelected = async () => {
     if (finalCount === 0) {
       toast.error("No Trip Sheets selected for printing.");
@@ -440,46 +440,16 @@ export const TripSheetList = () => {
           excludeIds: excludedMfNos.length > 0 ? excludedMfNos : undefined,
         };
 
-        // DEBUG: Log what we're sending
-        console.log("=== PRINT DEBUG ===");
-        console.log("Mode: Select All (Bulk)");
-        console.log("Snapshot active:", selectAllSnapshot.active);
-        console.log("Snapshot total:", selectAllSnapshot.total);
-        console.log("Snapshot filters:", JSON.stringify(selectAllSnapshot.filters, null, 2));
-        console.log("Excluded MF Nos:", excludedMfNos);
-        console.log("Excluded count:", excludedMfNos.length);
-        console.log("Final filters being sent:", JSON.stringify(filtersForPrint, null, 2));
-        console.log("Expected count:", finalCount);
-
         sheets = await fetchTripSheetPrintData([], true, filtersForPrint);
-
-        console.log("API Response - Sheets returned:", sheets?.length);
-        console.log("Sheets data:", sheets);
       } else {
         // Manual mode: use explicitly selected IDs
-        console.log("=== PRINT DEBUG ===");
-        console.log("Mode: Manual Selection");
-        console.log("Selected MF Nos:", selectedMfNos);
-        console.log("Selected count:", selectedMfNos.length);
-
         sheets = await fetchTripSheetPrintData(selectedMfNos);
-
-        console.log("API Response - Sheets returned:", sheets?.length);
-        console.log("Sheets data:", sheets);
       }
 
       if (sheets && sheets.length > 0) {
         setPrintingSheets(sheets);
-
-
-
         toast.success(`Prepared ${sheets.length} print job(s).`);
       } else {
-        console.error("No sheets returned from API");
-        console.error("This could mean:");
-        console.error("1. Backend returned empty array");
-        console.error("2. Filters don't match any records");
-        console.error("3. All records are excluded");
         toast.error("Failed to load data for printing. No Trip Sheets matched criteria.");
       }
     } catch (e) {
@@ -664,16 +634,6 @@ export const TripSheetList = () => {
               </button>
             </div>
           </div>
-
-          {/* {exclusionFilter.isActive && selectAllMode && (
-            <div className="mb-4 p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg flex items-start gap-3">
-              <XCircle className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
-              <p className="text-sm font-medium text-amber-700 dark:text-amber-400">
-                Exclusion Active: {excludedMfNos.length} Trip Sheets excluded
-                {exclusionFilter.filterKey && <> (filtered by <strong>{exclusionFilter.filterKey}</strong>)</>}
-              </p>
-            </div>
-          )} */}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
             <AsyncAutocomplete label="Destination" loadOptions={loadDestinationOptions} value={destinationOption} onChange={(val: any) => { setDestinationOption(val); setFilters({ toPlace: val?.value || "" }); }} placeholder="Search destination..." defaultOptions />
