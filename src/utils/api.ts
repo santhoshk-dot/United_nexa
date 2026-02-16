@@ -3,7 +3,7 @@ import axios from 'axios';
 import { loadingManager } from './loadingManager';
 
 // Use environment variable or default to localhost
-export const API_URL = 'https://unitednexatransportbackend-234908127463.asia-south2.run.app/api';
+export const API_URL = 'https://unitednexatransportbackend-234908127463.asia-south1.run.app/api';
 //export const API_URL = 'http://localhost:5000/api';
 
 const api = axios.create({
