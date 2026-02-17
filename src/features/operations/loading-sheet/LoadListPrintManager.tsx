@@ -68,10 +68,11 @@ export const LoadListPrintManager: React.FC<LoadListPrintManagerProps> = ({ jobs
             }
         });
 
-        // 🟢 STEP 2: Group by Godown + Consignor + Consignee + Packing + Content
+        // 🟢 STEP 2: Group by GC No + Godown + Consignor + Consignee + Packing + Content
         const groupedLoads = allItems.reduce((acc, item) => {
-            // Unique key for grouping
-            const key = `${item.godown}::${item.consignorId}::${item.consigneeId}::${item.packing}::${item.contents}`;
+            // 🟢 FIX APPLIED HERE: Added item.gcNo to the key
+            // This ensures different GCs are NEVER merged, even if content is identical.
+            const key = `${item.gcNo}::${item.godown}::${item.consignorId}::${item.consigneeId}::${item.packing}::${item.contents}`;
             
             if (!acc[key]) {
                 acc[key] = {
